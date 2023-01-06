@@ -54,13 +54,15 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	elapsed := end.Sub(start)
 	m := result.(map[string]interface{})
 	primaryIpAddr := m["primaryIpAddr"].(string)
+	primaryRegion := m["primaryRegion"].(string)
 	primaryPgUrl := fmt.Sprintf("postgresql://%v:5000", primaryIpAddr)
 	replicaIpAddr := m["replicaIpAddr"].(string)
+	replicaRegion := m["replicaRegion"].(string)
 	replicaPgUrl := fmt.Sprintf("postgresql://%v:5000", replicaIpAddr)
 	fmt.Printf("Database created in %d seconds.\n\n", int(elapsed.Seconds()))
 	fmt.Printf("You can access the database at:\n")
-	fmt.Printf("  - %s [primary]\n", primaryPgUrl)
-	fmt.Printf("  - %s [replica]\n", replicaPgUrl)
+	fmt.Printf("  - %s [primary in %s]\n", primaryPgUrl, toLocation(primaryRegion))
+	fmt.Printf("  - %s [replica in %s]\n", replicaPgUrl, toLocation(replicaRegion))
 	fmt.Printf("\n")
 	fmt.Println("Connecting SQL shell to primary server...\n")
 	pgCmd := exec.Command("psql", primaryPgUrl)
@@ -72,4 +74,63 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 		return err
 	}
 	return nil
+}
+
+func toLocation(regionId string) string {
+	switch regionId {
+	case "ams":
+		return "Amsterdam, Netherlands"
+	case "cdg":
+		return "Paris, France"
+	case "den":
+		return "Denver, Colorado (US)"
+	case "dfw":
+		return "Dallas, Texas (US)"
+	case "ewr":
+		return "Secaucus, NJ (US)"
+	case "fra":
+		return "Frankfurt, Germany"
+	case "gru":
+		return "São Paulo"
+	case "hkg":
+		return "Hong Kong, Hong Kong"
+	case "iad":
+		return "Ashburn, Virginia (US)"
+	case "jnb":
+		return "Johannesburg, South Africa"
+	case "lax":
+		return "Los Angeles, California (US)"
+	case "lhr":
+		return "London, United Kingdom"
+	case "maa":
+		return "Chennai (Madras), India"
+	case "mad":
+		return "Madrid, Spain"
+	case "mia":
+		return "Miami, Florida (US)"
+	case "nrt":
+		return "Tokyo, Japan"
+	case "ord":
+		return "Chicago, Illinois (US)"
+	case "otp":
+		return "Bucharest, Romania"
+	case "scl":
+		return "Santiago, Chile"
+	case "sea":
+		return "Seattle, Washington (US)"
+	case "sin":
+		return "Singapore"
+	case "sjc":
+		return "Sunnyvale, California (US)"
+	case "syd":
+		return "Sydney, Australia"
+	case "waw":
+		return "Warsaw, Poland"
+	case "yul":
+		return "Montreal, Canada"
+	case "yyz":
+		return "Toronto, Canada"
+	default:
+		return fmt.Sprintf("Region ID: %s", regionId)
+	}
 }
