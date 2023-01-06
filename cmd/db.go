@@ -50,12 +50,16 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 		return err
 	}
 	m := result.(map[string]interface{})
-	ipAddr := m["ipAddr"].(map[string]interface{})["address"].(string)
-	pgUrl := fmt.Sprintf("postgresql://%v:5000", ipAddr)
-	fmt.Printf("Database created. You can access it at:\n\n%s\n\n", pgUrl)
-	fmt.Println("Starting SQL shell...")
-	time.Sleep(2 * time.Second)
-	pgCmd := exec.Command("psql", pgUrl)
+	primaryIpAddr := m["primaryIpAddr"].(string)
+	primaryPgUrl := fmt.Sprintf("postgresql://%v:5000", primaryIpAddr)
+	replicaIpAddr := m["replicaIpAddr"].(string)
+	replicaPgUrl := fmt.Sprintf("postgresql://%v:5000", replicaIpAddr)
+	fmt.Printf("Database created. You can access the primary server at:\n\n%s\n\n", primaryPgUrl)
+	fmt.Printf("  - %s [primary]\n", primaryPgUrl)
+	fmt.Printf("  - %s [replica]\n", replicaPgUrl)
+	fmt.Printf("\n")
+	fmt.Println("Starting SQL shell on primary server...\n")
+	pgCmd := exec.Command("psql", primaryPgUrl)
 	pgCmd.Stdout = os.Stdout
 	pgCmd.Stderr = os.Stderr
 	pgCmd.Stdin = os.Stdin
