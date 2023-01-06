@@ -34,6 +34,7 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	s.Prefix = "Creating a database... "
 	s.Start()
+	start := time.Now()
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	s.Stop()
@@ -49,16 +50,19 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	if err := json.Unmarshal(body, &result); err != nil {
 		return err
 	}
+	end := time.Now()
+	elapsed := end.Sub(start)
 	m := result.(map[string]interface{})
 	primaryIpAddr := m["primaryIpAddr"].(string)
 	primaryPgUrl := fmt.Sprintf("postgresql://%v:5000", primaryIpAddr)
 	replicaIpAddr := m["replicaIpAddr"].(string)
 	replicaPgUrl := fmt.Sprintf("postgresql://%v:5000", replicaIpAddr)
-	fmt.Printf("Database created. You can access the primary server at:\n\n%s\n\n", primaryPgUrl)
+	fmt.Printf("Database created in %d seconds.\n\n", int(elapsed.Seconds()))
+	fmt.Printf("You can access the database at:\n")
 	fmt.Printf("  - %s [primary]\n", primaryPgUrl)
 	fmt.Printf("  - %s [replica]\n", replicaPgUrl)
 	fmt.Printf("\n")
-	fmt.Println("Starting SQL shell on primary server...\n")
+	fmt.Println("Connecting SQL shell to primary server...\n")
 	pgCmd := exec.Command("psql", primaryPgUrl)
 	pgCmd.Stdout = os.Stdout
 	pgCmd.Stderr = os.Stderr
