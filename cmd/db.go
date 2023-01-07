@@ -41,6 +41,9 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	if err != nil {
 		return err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to create database: %s", resp.Status)
+	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
