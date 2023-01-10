@@ -5,3 +5,13 @@
 ```console
 cd cmd/ikuctl && go install
 ```
+
+## Authentication
+
+```console
+ikuctl auth login
+```
+
+```console
+export IKU_API_TOKEN=<access token>
+```
