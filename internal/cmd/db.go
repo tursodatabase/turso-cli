@@ -22,6 +22,7 @@ type DbCmd struct {
 
 type CreateCmd struct {
 	Name string `arg:"" optional:"" name:"database name" help:"Database name. If no name is specified, one will be automatically generated."`
+	Region string `optional:"" help:"Region ID. If no ID is specified, 'ams' is used by default."`
 }
 
 func (cmd *CreateCmd) Run(globals *Globals) error {
@@ -32,6 +33,10 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 			return err
 		}
 		name = codename.Generate(rng, 0)
+	}
+	region := cmd.Region
+	if region == "" {
+		region = "ams"
 	}
 	accessToken := os.Getenv("IKU_API_TOKEN")
 	if accessToken == "" {
@@ -51,7 +56,7 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	}
 	req.Header.Add("Authorization", bearer)
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-	s.Prefix = fmt.Sprintf("Creating database `%s`... ", name)
+	s.Prefix = fmt.Sprintf("Creating database `%s` to %s... ", name, toLocation(region))
 	s.Start()
 	start := time.Now()
 	client := &http.Client{}
