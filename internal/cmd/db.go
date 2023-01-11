@@ -17,6 +17,7 @@ import (
 type DbCmd struct {
 	Create CreateCmd `cmd:"" help:"Create a database."`
 	Replicate ReplicateCmd `cmd:"" help:"Replicate a database."`
+	Regions RegionsCmd `cmd:"" help:"List available database regions."`
 }
 
 type CreateCmd struct {
@@ -156,6 +157,44 @@ func (cmd *ReplicateCmd) Run(globals *Globals) error {
 	fmt.Printf("You can access the database by running:\n\n")
 	fmt.Printf("   psql %s\n", pgUrl)
 	fmt.Printf("\n")
+	return nil
+}
+
+type RegionsCmd struct {
+}
+
+func (cmd *RegionsCmd) Run(globals *Globals) error {
+	regionIds := []string{
+		"ams",
+		"cdg",
+		"den",
+		"dfw",
+		"ewr",
+		"fra",
+		"gru",
+		"hkg",
+		"iad",
+		"jnb",
+		"lax",
+		"lhr",
+		"maa",
+		"mad",
+		"mia",
+		"nrt",
+		"ord",
+		"otp",
+		"scl",
+		"sea",
+		"sin",
+		"sjc",
+		"syd",
+		"waw",
+		"yul",
+		"yyz",
+	}
+	for _, regionId := range regionIds {
+		fmt.Printf("  %s - %s\n", regionId, toLocation(regionId))
+	}
 	return nil
 }
 
