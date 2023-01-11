@@ -84,6 +84,7 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	fmt.Printf("   %s [%s in %s]\n", pgUrl, dbType, toLocation(dbRegion))
 	fmt.Printf("\n")
 	fmt.Println("Connecting SQL shell to the server...\n")
+	time.Sleep(2 * time.Second)
 	pgCmd := exec.Command("psql", pgUrl)
 	pgCmd.Stdout = os.Stdout
 	pgCmd.Stderr = os.Stderr
