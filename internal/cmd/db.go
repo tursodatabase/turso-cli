@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/lucasepe/codename"
 )
 
 type DbCmd struct {
@@ -17,22 +19,32 @@ type DbCmd struct {
 }
 
 type CreateCmd struct {
+	Name string `arg:"" optional:"" name:"database name" help:"Database name. If no name is specified, one will be automatically generated."`
 }
 
 func (cmd *CreateCmd) Run(globals *Globals) error {
+	name := cmd.Name
+	if name == "" {
+		rng, err := codename.DefaultRNG()
+		if err != nil {
+			return err
+		}
+		name = codename.Generate(rng, 0)
+	}
 	accessToken := os.Getenv("IKU_API_TOKEN")
 	if accessToken == "" {
 		return fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
 	}
 	url := "https://api.chiseledge.com/v1/databases"
 	bearer := "Bearer " + accessToken
-	req, err := http.NewRequest("POST", url, nil)
+	createDbReq := []byte(fmt.Sprintf(`{"name": "%s"}`, name))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
 	if err != nil {
 		return err
 	}
 	req.Header.Add("Authorization", bearer)
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-	s.Prefix = "Creating a database... "
+	s.Prefix = fmt.Sprintf("Creating database `%s`... ", name)
 	s.Start()
 	start := time.Now()
 	client := &http.Client{}
