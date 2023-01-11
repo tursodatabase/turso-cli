@@ -35,7 +35,11 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	if accessToken == "" {
 		return fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
 	}
-	url := "https://api.chiseledge.com/v1/databases"
+	host := os.Getenv("IKU_API_HOSTNAME")
+	if host == "" {
+		host = "https://api.chiseledge.com"
+	}
+	url := fmt.Sprintf("%s/v1/databases", host)
 	bearer := "Bearer " + accessToken
 	createDbReq := []byte(fmt.Sprintf(`{"name": "%s"}`, name))
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
