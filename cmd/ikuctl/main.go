@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/alecthomas/kong"
-	"github.com/chiselstrike/iku-turso-cli/cmd"
+	"github.com/chiselstrike/iku-turso-cli/internal/cmd"
 )
 
 type CLI struct {
