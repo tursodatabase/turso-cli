@@ -16,6 +16,7 @@ import (
 
 type DbCmd struct {
 	Create CreateCmd `cmd:"" help:"Create a database."`
+	Replicate ReplicateCmd `cmd:"" help:"Replicate a database."`
 }
 
 type CreateCmd struct {
@@ -90,6 +91,71 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+type ReplicateCmd struct {
+	Name string `arg:"" name:"database name" help:"Database name (required)"`
+	Region string `arg:"" name:"region ID" help:"Region ID (required)"`
+}
+
+func (cmd *ReplicateCmd) Run(globals *Globals) error {
+	name := cmd.Name
+	if name == "" {
+		return fmt.Errorf("You must specify a database name to replicate it.")
+	}
+	region := cmd.Region
+	if region == "" {
+		return fmt.Errorf("You must specify a database region ID to replicate it.")
+	}
+	accessToken := os.Getenv("IKU_API_TOKEN")
+	if accessToken == "" {
+		return fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
+	}
+	host := os.Getenv("IKU_API_HOSTNAME")
+	if host == "" {
+		host = "https://api.chiseledge.com"
+	}
+	url := fmt.Sprintf("%s/v1/databases", host)
+	bearer := "Bearer " + accessToken
+	createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "type": "replica"}`, name, region))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", bearer)
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Prefix = fmt.Sprintf("Replicating database `%s` to %s... ", name, toLocation(region))
+	s.Start()
+	start := time.Now()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	s.Stop()
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to create database: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return err
+	}
+	end := time.Now()
+	elapsed := end.Sub(start)
+	m := result.(map[string]interface{})["database"].(map[string]interface{})
+	dbHost := m["Host"].(string)
+	dbRegion := m["Region"].(string)
+	pgUrl := fmt.Sprintf("postgresql://%v:5000", dbHost)
+	fmt.Printf("Replicated database `%s` to %s in %d seconds.\n\n", name, toLocation(dbRegion), int(elapsed.Seconds()))
+	fmt.Printf("You can access the database by running:\n\n")
+	fmt.Printf("   psql %s\n", pgUrl)
+	fmt.Printf("\n")
 	return nil
 }
 
