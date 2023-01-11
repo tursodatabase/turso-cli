@@ -41,7 +41,8 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	}
 	url := fmt.Sprintf("%s/v1/databases", host)
 	bearer := "Bearer " + accessToken
-	createDbReq := []byte(fmt.Sprintf(`{"name": "%s"}`, name))
+	region := "fra"
+	createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s"}`, name, region))
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
 	if err != nil {
 		return err
