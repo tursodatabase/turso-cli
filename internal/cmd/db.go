@@ -15,14 +15,31 @@ import (
 )
 
 type DbCmd struct {
-	Create CreateCmd `cmd:"" help:"Create a database."`
+	Create    CreateCmd    `cmd:"" help:"Create a database."`
 	Replicate ReplicateCmd `cmd:"" help:"Replicate a database."`
-	Regions RegionsCmd `cmd:"" help:"List available database regions."`
+	List      ListCmd      `cmd:"" help:"List databases."`
+	Regions   RegionsCmd   `cmd:"" help:"List available database regions."`
 }
 
 type CreateCmd struct {
-	Name string `arg:"" optional:"" name:"database name" help:"Database name. If no name is specified, one will be automatically generated."`
+	Name   string `arg:"" optional:"" name:"database name" help:"Database name. If no name is specified, one will be automatically generated."`
 	Region string `optional:"" help:"Region ID. If no ID is specified, 'ams' is used by default."`
+}
+
+func getAccessToken() (string, error) {
+	accessToken := os.Getenv("IKU_API_TOKEN")
+	if accessToken == "" {
+		return "", fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
+	}
+	return accessToken, nil
+}
+
+func getHost() string {
+	host := os.Getenv("IKU_API_HOSTNAME")
+	if host == "" {
+		host = "https://api.chiseledge.com"
+	}
+	return host
 }
 
 func (cmd *CreateCmd) Run(globals *Globals) error {
@@ -38,14 +55,11 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	if region == "" {
 		region = "ams"
 	}
-	accessToken := os.Getenv("IKU_API_TOKEN")
-	if accessToken == "" {
-		return fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
+	accessToken, err := getAccessToken()
+	if err != nil {
+		return err
 	}
-	host := os.Getenv("IKU_API_HOSTNAME")
-	if host == "" {
-		host = "https://api.chiseledge.com"
-	}
+	host := getHost()
 	url := fmt.Sprintf("%s/v1/databases", host)
 	bearer := "Bearer " + accessToken
 	createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s"}`, name, region))
@@ -101,7 +115,7 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 }
 
 type ReplicateCmd struct {
-	Name string `arg:"" name:"database name" help:"Database name (required)"`
+	Name   string `arg:"" name:"database name" help:"Database name (required)"`
 	Region string `arg:"" name:"region ID" help:"Region ID (required)"`
 }
 
@@ -162,6 +176,62 @@ func (cmd *ReplicateCmd) Run(globals *Globals) error {
 	fmt.Printf("You can access the database by running:\n\n")
 	fmt.Printf("   psql %s\n", pgUrl)
 	fmt.Printf("\n")
+	return nil
+}
+
+type ListCmd struct {
+}
+
+func (cmd *ListCmd) Run(globals *Globals) error {
+	accessToken, err := getAccessToken()
+	if err != nil {
+		return err
+	}
+	host := getHost()
+	url := fmt.Sprintf("%s/v1/databases", host)
+	bearer := "Bearer " + accessToken
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", bearer)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to get database listing: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return err
+	}
+	databases := result.(map[string]interface{})["databases"].([]interface{})
+	nameWidth := 8
+	for _, database := range databases {
+		db := database.(map[string]interface{})
+		name := db["Name"].(string)
+		nameLen := len(name)
+		if nameWidth < nameLen {
+			nameWidth = nameLen
+		}
+	}
+	typeWidth := 7
+	hostWidth := 15
+	fmt.Printf("%-*s  %-*s  %-*s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST")
+	for _, database := range databases {
+		db := database.(map[string]interface{})
+		name := db["Name"]
+		ty := db["Type"]
+		host := db["Host"]
+		fmt.Printf("%-*s  %s  %s\n", nameWidth, name, ty, host)
+	}
 	return nil
 }
 
