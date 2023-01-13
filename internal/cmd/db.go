@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -94,23 +93,12 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	elapsed := end.Sub(start)
 	m := result.(map[string]interface{})["database"].(map[string]interface{})
 	dbHost := m["Host"].(string)
-	dbType := m["Type"].(string)
 	dbRegion := m["Region"].(string)
 	pgUrl := fmt.Sprintf("postgresql://%v:5000", dbHost)
-	fmt.Printf("Created database `%s` in %d seconds.\n\n", name, int(elapsed.Seconds()))
-	fmt.Printf("You can access the database at:\n\n")
-	fmt.Printf("   %s [%s in %s]\n", pgUrl, dbType, toLocation(dbRegion))
+	fmt.Printf("Created database `%s` to %s in %d seconds.\n\n", name, toLocation(dbRegion), int(elapsed.Seconds()))
+	fmt.Printf("You can access the database by running:\n\n")
+	fmt.Printf("   psql %s\n", pgUrl)
 	fmt.Printf("\n")
-	fmt.Println("Connecting SQL shell to the server...\n")
-	time.Sleep(2 * time.Second)
-	pgCmd := exec.Command("psql", pgUrl)
-	pgCmd.Stdout = os.Stdout
-	pgCmd.Stderr = os.Stderr
-	pgCmd.Stdin = os.Stdin
-	err = pgCmd.Run()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
