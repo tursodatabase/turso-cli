@@ -15,6 +15,7 @@ import (
 
 type DbCmd struct {
 	Create    CreateCmd    `cmd:"" help:"Create a database."`
+	Destroy   DestroyCmd   `cmd:"" help:"Destroy a database."`
 	Replicate ReplicateCmd `cmd:"" help:"Replicate a database."`
 	List      ListCmd      `cmd:"" help:"List databases."`
 	Regions   RegionsCmd   `cmd:"" help:"List available database regions."`
@@ -99,6 +100,49 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	fmt.Printf("You can access the database by running:\n\n")
 	fmt.Printf("   psql %s\n", pgUrl)
 	fmt.Printf("\n")
+	return nil
+}
+
+type DestroyCmd struct {
+	Name   string `arg:"" name:"database name" help:"Database name (required)"`
+}
+
+func (cmd *DestroyCmd) Run(globals *Globals) error {
+	name := cmd.Name
+	if name == "" {
+		return fmt.Errorf("You must specify a database name to delete it.")
+	}
+	accessToken := os.Getenv("IKU_API_TOKEN")
+	if accessToken == "" {
+		return fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
+	}
+	host := os.Getenv("IKU_API_HOSTNAME")
+	if host == "" {
+		host = "https://api.chiseledge.com"
+	}
+	url := fmt.Sprintf("%s/v1/databases/%s", host, name)
+	bearer := "Bearer " + accessToken
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", bearer)
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Prefix = fmt.Sprintf("Destroying database `%s`... ", name)
+	s.Start()
+	start := time.Now()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	s.Stop()
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to destroy database: %s", resp.Status)
+	}
+	end := time.Now()
+	elapsed := end.Sub(start)
+	fmt.Printf("Destroyed database `%s` in %d seconds.\n", name, int(elapsed.Seconds()))
 	return nil
 }
 
