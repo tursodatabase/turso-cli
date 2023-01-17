@@ -20,7 +20,7 @@ builds:
 release:
   github:
     owner: chiselstrike
-    name: homebrew-tools
+    name: homebrew-tap
 
 archives:
   - format: tar.gz
