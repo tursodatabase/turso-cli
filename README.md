@@ -6,6 +6,12 @@
 cd cmd/ikuctl && go install
 ```
 
+## Homebrew installation
+
+```console
+brew install chiselstrike/tools/tools
+```
+
 ## Authentication
 
 ```console
