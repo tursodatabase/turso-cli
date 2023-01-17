@@ -49,7 +49,7 @@ changelog:
 
 brews:
   - name: tools
-    homepage: https://https://github.com/chiselstrike/homebrew-tools
+    homepage: https://github.com/chiselstrike/homebrew-tools
     tap:
       owner: chiselstrike
       name: homebrew-tools
