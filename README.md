@@ -9,7 +9,7 @@ cd cmd/ikuctl && go install
 ## Homebrew installation
 
 ```console
-brew install chiselstrike/tools/tools
+brew install chiselstrike/tap/ikuctl
 ```
 
 ## Authentication

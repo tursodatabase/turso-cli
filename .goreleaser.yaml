@@ -48,11 +48,11 @@ changelog:
       - '^test:'
 
 brews:
-  - name: tools
-    homepage: https://github.com/chiselstrike/homebrew-tools
+  - name: ikuctl
+    homepage: https://github.com/chiselstrike/homebrew-tap
     tap:
       owner: chiselstrike
-      name: homebrew-tools
+      name: homebrew-tap
 
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
