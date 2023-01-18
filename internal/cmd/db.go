@@ -93,12 +93,16 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	end := time.Now()
 	elapsed := end.Sub(start)
 	m := result.(map[string]interface{})["database"].(map[string]interface{})
+	username := result.(map[string]interface{})["username"].(string)
+	password := result.(map[string]interface{})["password"].(string)
 	dbHost := m["Host"].(string)
 	dbRegion := m["Region"].(string)
 	pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
 	fmt.Printf("Created database `%s` to %s in %d seconds.\n\n", name, toLocation(dbRegion), int(elapsed.Seconds()))
 	fmt.Printf("You can access the database by running:\n\n")
-	fmt.Printf("   psql %s\n", pgUrl)
+	fmt.Printf("   psql %s\n\n", pgUrl)
+	fmt.Printf("or via HTTP API:\n\n")
+	fmt.Printf("   http://%s:%s@%s\n\n", username, password, dbHost)
 	fmt.Printf("\n")
 	return nil
 }
