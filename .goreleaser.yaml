@@ -14,8 +14,8 @@ builds:
       - linux
       - windows
       - darwin
-    binary: ikuctl
-    main: ./cmd/ikuctl
+    binary: turso
+    main: ./cmd/turso
 
 release:
   github:
@@ -48,7 +48,7 @@ changelog:
       - '^test:'
 
 brews:
-  - name: ikuctl
+  - name: turso
     homepage: https://github.com/chiselstrike/homebrew-tap
     tap:
       owner: chiselstrike
