@@ -7,11 +7,11 @@ build_tarball () {
   arch=$2
   program=$3
   target=$os-$arch
-  GOARCH=$arch GOOS=$os go build -o build/ikuctl-$os-$arch/$program main.go
-  tar -C build -czvf "ikuctl-$version-$target.tar.gz" "ikuctl-$target/"
+  GOARCH=$arch GOOS=$os go build -o build/turso-$os-$arch/$program main.go
+  tar -C build -czvf "turso-$version-$target.tar.gz" "turso-$target/"
 }
 
-build_tarball darwin amd64 ikuctl
-build_tarball darwin arm64 ikuctl
-build_tarball linux amd64 ikuctl
-build_tarball windows amd64 ikuctl.exe
+build_tarball darwin amd64 turso
+build_tarball darwin arm64 turso
+build_tarball linux amd64 turso
+build_tarball windows amd64 turso.exe

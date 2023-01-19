@@ -23,5 +23,5 @@ It is used by GitHub Actions in iku-turso-cli repository to give them access to 
 
 To install run:
 ```console
-brew install chiselstrike/tap/ikuctl
+brew install chiselstrike/tap/turso
 ```

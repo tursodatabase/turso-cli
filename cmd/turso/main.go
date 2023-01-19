@@ -10,8 +10,8 @@ import (
 type CLI struct {
 	cmd.Globals
 
-	Auth        cmd.AuthCmd                  `cmd:"" help:"Authenticate with ChiselEdge"`
-	Db          cmd.DbCmd                    `cmd:"" help:"Manage ChiselEdge databases"`
+	Auth        cmd.AuthCmd                  `cmd:"" help:"Authenticate with Turso"`
+	Db          cmd.DbCmd                    `cmd:"" help:"Manage databases"`
 	Completions kongplete.InstallCompletions `cmd:"" help:"Install shell completions"`
 }
 
@@ -22,8 +22,8 @@ func main() {
 		},
 	}
 	parser := kong.Must(&cli,
-		kong.Name("ikuctl"),
-		kong.Description("ChiselEdge CLI"),
+		kong.Name("turso"),
+		kong.Description("Turso CLI"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,

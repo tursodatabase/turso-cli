@@ -1,21 +1,23 @@
-# Iku-Turso CLI
+# Turso CLI
+
+This is the command line interface (CLI) to Turso.
 
 ## Building from Sources
 
 ```console
-cd cmd/ikuctl && go install
+cd cmd/turso && go install
 ```
 
 ## Homebrew installation
 
 ```console
-brew install chiselstrike/tap/ikuctl
+brew install chiselstrike/tap/turso
 ```
 
 ## Authentication
 
 ```console
-ikuctl auth login
+turso auth login
 ```
 
 ```console
