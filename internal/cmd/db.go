@@ -324,7 +324,7 @@ func toLocation(regionId string) string {
 	case "fra":
 		return "Frankfurt, Germany"
 	case "gru":
-		return "São Paulo"
+		return "São Paulo, Brazil"
 	case "hkg":
 		return "Hong Kong, Hong Kong"
 	case "iad":
