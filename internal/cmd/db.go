@@ -7,9 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/fatih/color"
 	"github.com/lucasepe/codename"
 )
 
@@ -23,7 +25,7 @@ type DbCmd struct {
 
 type CreateCmd struct {
 	Name   string `arg:"" optional:"" name:"database name" help:"Database name. If no name is specified, one will be automatically generated."`
-	Region string `optional:"" help:"Region ID. If no ID is specified, 'ams' is used by default."`
+	Region string `optional:"" help:"Region ID. If no ID is specified, closest region to you is used by default."`
 }
 
 func getAccessToken() (string, error) {
@@ -107,8 +109,28 @@ func (cmd *CreateCmd) Run(globals *Globals) error {
 	return nil
 }
 
+// The fallback region ID to use if we are unable to probe the closest region.
+const FallbackRegionId = "ams"
+
+func probeClosestRegion() string {
+	probeUrl := "http://api.fly.io"
+	resp, err := http.Get(probeUrl)
+	if err != nil {
+		return FallbackRegionId
+	}
+	rawRequestId := resp.Header["Fly-Request-Id"]
+	if rawRequestId == nil || len(rawRequestId) == 0 {
+		return FallbackRegionId
+	}
+	requestId := strings.Split(rawRequestId[0], "-")
+	if len(requestId) < 2 {
+		return FallbackRegionId
+	}
+	return requestId[1]
+}
+
 type DestroyCmd struct {
-	Name   string `arg:"" name:"database name" help:"Database name (required)"`
+	Name string `arg:"" name:"database name" help:"Database name (required)"`
 }
 
 func (cmd *DestroyCmd) Run(globals *Globals) error {
@@ -275,6 +297,7 @@ type RegionsCmd struct {
 }
 
 func (cmd *RegionsCmd) Run(globals *Globals) error {
+	defaultRegionId := probeClosestRegion()
 	regionIds := []string{
 		"ams",
 		"cdg",
@@ -303,8 +326,18 @@ func (cmd *RegionsCmd) Run(globals *Globals) error {
 		"yul",
 		"yyz",
 	}
+	fmt.Println("ID   LOCATION")
 	for _, regionId := range regionIds {
-		fmt.Printf("  %s - %s\n", regionId, toLocation(regionId))
+		suffix := ""
+		if regionId == defaultRegionId {
+			suffix = "  [default]"
+		}
+		line := fmt.Sprintf("%s  %s%s", regionId, toLocation(regionId), suffix)
+		if regionId == defaultRegionId {
+			emph := color.New(color.FgWhite, color.Bold).SprintFunc()
+			line = emph(line)
+		}
+		fmt.Printf("%s\n", line)
 	}
 	return nil
 }
