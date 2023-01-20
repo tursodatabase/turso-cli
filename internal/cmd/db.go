@@ -199,11 +199,31 @@ func probeClosestRegion() string {
 	return requestId[1]
 }
 
+func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		databases, err := getDatabases()
+		if err != nil {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+		result := make([]string, 0)
+		for _, database := range databases {
+			db := database.(map[string]interface{})
+			name := db["Name"]
+			ty := db["Type"]
+			if ty == "primary" {
+				result = append(result, name.(string))
+			}
+		}
+		return result, cobra.ShellCompDirectiveNoFileComp
+	}
+	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
 var destroyCmd = &cobra.Command{
 	Use:               "destroy database_name",
 	Short:             "Destroy a database.",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: noFilesArg,
+	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
