@@ -248,6 +248,22 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 	if len(args) == 1 {
 		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
+	if len(args) == 0 {
+		databases, err := getDatabases()
+		if err != nil {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+		result := make([]string, 0)
+		for _, database := range databases {
+			db := database.(map[string]interface{})
+			name := db["Name"]
+			ty := db["Type"]
+			if ty == "primary" {
+				result = append(result, name.(string))
+			}
+		}
+		return result, cobra.ShellCompDirectiveNoFileComp
+	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
 
