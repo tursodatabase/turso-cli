@@ -6,8 +6,9 @@ import (
 )
 
 var authCmd = &cobra.Command{
-	Use:   "auth",
-	Short: "Authenticate with Turso",
+	Use:               "auth",
+	Short:             "Authenticate with Turso",
+	ValidArgsFunction: noSpaceArg,
 }
 
 var loginCmd = &cobra.Command{
