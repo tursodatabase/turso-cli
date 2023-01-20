@@ -128,7 +128,7 @@ func probeClosestRegion() string {
 		return FallbackRegionId
 	}
 	rawRequestId := resp.Header["Fly-Request-Id"]
-	if rawRequestId == nil || len(rawRequestId) == 0 {
+	if len(rawRequestId) == 0 {
 		return FallbackRegionId
 	}
 	requestId := strings.Split(rawRequestId[0], "-")
