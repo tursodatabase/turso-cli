@@ -16,12 +16,76 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Region string
+var region string
+var regionIds = []string{
+	"ams",
+	"cdg",
+	"den",
+	"dfw",
+	"ewr",
+	"fra",
+	"gru",
+	"hkg",
+	"iad",
+	"jnb",
+	"lax",
+	"lhr",
+	"maa",
+	"mad",
+	"mia",
+	"nrt",
+	"ord",
+	"otp",
+	"scl",
+	"sea",
+	"sin",
+	"sjc",
+	"syd",
+	"waw",
+	"yul",
+	"yyz",
+}
+
+func getDatabases() ([]interface{}, error) {
+	accessToken, err := getAccessToken()
+	if err != nil {
+		return nil, err
+	}
+	host := getHost()
+	url := fmt.Sprintf("%s/v1/databases", host)
+	bearer := "Bearer " + accessToken
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", bearer)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Failed to get database listing: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+	return result.(map[string]interface{})["databases"].([]interface{}), nil
+}
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, destroyCmd, replicateCmd, listCmd, regionsCmd)
-	createCmd.Flags().StringVar(&Region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
+	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
+	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return regionIds, cobra.ShellCompDirectiveDefault
+	})
 }
 
 var dbCmd = &cobra.Command{
@@ -46,9 +110,10 @@ func getHost() string {
 }
 
 var createCmd = &cobra.Command{
-	Use:   "create [flags] [database_name]",
-	Short: "Create a database.",
-	Args:  cobra.MaximumNArgs(1),
+	Use:               "create [flags] [database_name]",
+	Short:             "Create a database.",
+	Args:              cobra.MaximumNArgs(1),
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := ""
 		if len(args) == 0 || args[0] == "" {
@@ -60,7 +125,7 @@ var createCmd = &cobra.Command{
 		} else {
 			name = args[0]
 		}
-		region := Region
+		region := region
 		if region == "" {
 			region = "ams"
 		}
@@ -127,7 +192,7 @@ func probeClosestRegion() string {
 		return FallbackRegionId
 	}
 	rawRequestId := resp.Header["Fly-Request-Id"]
-	if rawRequestId == nil || len(rawRequestId) == 0 {
+	if len(rawRequestId) == 0 {
 		return FallbackRegionId
 	}
 	requestId := strings.Split(rawRequestId[0], "-")
@@ -137,10 +202,31 @@ func probeClosestRegion() string {
 	return requestId[1]
 }
 
+func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		databases, err := getDatabases()
+		if err != nil {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+		result := make([]string, 0)
+		for _, database := range databases {
+			db := database.(map[string]interface{})
+			name := db["Name"]
+			ty := db["Type"]
+			if ty == "primary" {
+				result = append(result, name.(string))
+			}
+		}
+		return result, cobra.ShellCompDirectiveNoFileComp
+	}
+	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
 var destroyCmd = &cobra.Command{
-	Use:   "destroy database_name",
-	Short: "Destroy a database.",
-	Args:  cobra.ExactArgs(1),
+	Use:               "destroy database_name",
+	Short:             "Destroy a database.",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
@@ -181,10 +267,34 @@ var destroyCmd = &cobra.Command{
 	},
 }
 
+func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 1 {
+		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+	if len(args) == 0 {
+		databases, err := getDatabases()
+		if err != nil {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+		result := make([]string, 0)
+		for _, database := range databases {
+			db := database.(map[string]interface{})
+			name := db["Name"]
+			ty := db["Type"]
+			if ty == "primary" {
+				result = append(result, name.(string))
+			}
+		}
+		return result, cobra.ShellCompDirectiveNoFileComp
+	}
+	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
 var replicateCmd = &cobra.Command{
-	Use:   "replicate database_name region_id",
-	Short: "Replicate a database.",
-	Args:  cobra.ExactArgs(2),
+	Use:               "replicate database_name region_id",
+	Short:             "Replicate a database.",
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
@@ -247,39 +357,15 @@ var replicateCmd = &cobra.Command{
 }
 
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List databases.",
+	Use:               "list",
+	Short:             "List databases.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessToken, err := getAccessToken()
+		databases, err := getDatabases()
 		if err != nil {
 			return err
 		}
-		host := getHost()
-		url := fmt.Sprintf("%s/v1/databases", host)
-		bearer := "Bearer " + accessToken
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return err
-		}
-		req.Header.Add("Authorization", bearer)
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Failed to get database listing: %s", resp.Status)
-		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		var result interface{}
-		if err := json.Unmarshal(body, &result); err != nil {
-			return err
-		}
-		databases := result.(map[string]interface{})["databases"].([]interface{})
 		nameWidth := 8
 		for _, database := range databases {
 			db := database.(map[string]interface{})
@@ -304,38 +390,12 @@ var listCmd = &cobra.Command{
 }
 
 var regionsCmd = &cobra.Command{
-	Use:   "regions",
-	Short: "List available database regions.",
+	Use:               "regions",
+	Short:             "List available database regions.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
 	Run: func(cmd *cobra.Command, args []string) {
 		defaultRegionId := probeClosestRegion()
-		regionIds := []string{
-			"ams",
-			"cdg",
-			"den",
-			"dfw",
-			"ewr",
-			"fra",
-			"gru",
-			"hkg",
-			"iad",
-			"jnb",
-			"lax",
-			"lhr",
-			"maa",
-			"mad",
-			"mia",
-			"nrt",
-			"ord",
-			"otp",
-			"scl",
-			"sea",
-			"sin",
-			"sjc",
-			"syd",
-			"waw",
-			"yul",
-			"yyz",
-		}
 		fmt.Println("ID   LOCATION")
 		for _, regionId := range regionIds {
 			suffix := ""

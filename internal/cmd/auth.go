@@ -6,13 +6,16 @@ import (
 )
 
 var authCmd = &cobra.Command{
-	Use:   "auth",
-	Short: "Authenticate with Turso",
+	Use:               "auth",
+	Short:             "Authenticate with Turso",
+	ValidArgsFunction: noSpaceArg,
 }
 
 var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Login to the platform.",
+	Use:               "login",
+	Short:             "Login to the platform.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return browser.OpenURL("https://api.chiseledge.com")
 	},

@@ -7,6 +7,7 @@ before:
     - go mod tidy
     # you may remove this if you don't need go generate
     - go generate ./...
+    - ./script/completions.sh
 builds:
   - env:
       - CGO_ENABLED=0
@@ -23,6 +24,8 @@ release:
     name: homebrew-tap
 
 archives:
+  - files:
+    - completions/*
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
@@ -53,6 +56,11 @@ brews:
     tap:
       owner: chiselstrike
       name: homebrew-tap
+  - install: |-
+    bin.install "turso"
+    bash_completion.install "completions/turso.bash" => "turso"
+    zsh_completion.install "completions/turso.zsh" => "_turso"
+    fish_completion.install "completions/turso.fish"
 
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
