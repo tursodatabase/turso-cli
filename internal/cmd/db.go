@@ -46,6 +46,39 @@ var regionIds = []string{
 	"yyz",
 }
 
+func getDatabases() ([]interface{}, error) {
+	accessToken, err := getAccessToken()
+	if err != nil {
+		return nil, err
+	}
+	host := getHost()
+	url := fmt.Sprintf("%s/v1/databases", host)
+	bearer := "Bearer " + accessToken
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", bearer)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Failed to get database listing: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var result interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+	return result.(map[string]interface{})["databases"].([]interface{}), nil
+}
+
 func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, destroyCmd, replicateCmd, listCmd, regionsCmd)
@@ -290,36 +323,10 @@ var listCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessToken, err := getAccessToken()
+		databases, err := getDatabases()
 		if err != nil {
 			return err
 		}
-		host := getHost()
-		url := fmt.Sprintf("%s/v1/databases", host)
-		bearer := "Bearer " + accessToken
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return err
-		}
-		req.Header.Add("Authorization", bearer)
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Failed to get database listing: %s", resp.Status)
-		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		var result interface{}
-		if err := json.Unmarshal(body, &result); err != nil {
-			return err
-		}
-		databases := result.(map[string]interface{})["databases"].([]interface{})
 		nameWidth := 8
 		for _, database := range databases {
 			db := database.(map[string]interface{})
