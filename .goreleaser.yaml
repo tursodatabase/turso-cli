@@ -56,11 +56,11 @@ brews:
     tap:
       owner: chiselstrike
       name: homebrew-tap
-  - install: |-
-    bin.install "turso"
-    bash_completion.install "completions/turso.bash" => "turso"
-    zsh_completion.install "completions/turso.zsh" => "_turso"
-    fish_completion.install "completions/turso.fish"
+    install: |
+      bin.install "turso"
+      bash_completion.install "completions/turso.bash" => "turso"
+      zsh_completion.install "completions/turso.zsh" => "_turso"
+      fish_completion.install "completions/turso.fish"
 
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
