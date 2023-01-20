@@ -83,6 +83,9 @@ func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, destroyCmd, replicateCmd, listCmd, regionsCmd)
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
+	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return regionIds, cobra.ShellCompDirectiveDefault
+	})
 }
 
 var dbCmd = &cobra.Command{
