@@ -17,6 +17,34 @@ import (
 )
 
 var region string
+var regionIds = []string{
+	"ams",
+	"cdg",
+	"den",
+	"dfw",
+	"ewr",
+	"fra",
+	"gru",
+	"hkg",
+	"iad",
+	"jnb",
+	"lax",
+	"lhr",
+	"maa",
+	"mad",
+	"mia",
+	"nrt",
+	"ord",
+	"otp",
+	"scl",
+	"sea",
+	"sin",
+	"sjc",
+	"syd",
+	"waw",
+	"yul",
+	"yyz",
+}
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
@@ -183,11 +211,18 @@ var destroyCmd = &cobra.Command{
 	},
 }
 
+func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 1 {
+		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
 var replicateCmd = &cobra.Command{
 	Use:               "replicate database_name region_id",
 	Short:             "Replicate a database.",
 	Args:              cobra.ExactArgs(2),
-	ValidArgsFunction: noFilesArg,
+	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
@@ -315,34 +350,6 @@ var regionsCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	Run: func(cmd *cobra.Command, args []string) {
 		defaultRegionId := probeClosestRegion()
-		regionIds := []string{
-			"ams",
-			"cdg",
-			"den",
-			"dfw",
-			"ewr",
-			"fra",
-			"gru",
-			"hkg",
-			"iad",
-			"jnb",
-			"lax",
-			"lhr",
-			"maa",
-			"mad",
-			"mia",
-			"nrt",
-			"ord",
-			"otp",
-			"scl",
-			"sea",
-			"sin",
-			"sjc",
-			"syd",
-			"waw",
-			"yul",
-			"yyz",
-		}
 		fmt.Println("ID   LOCATION")
 		for _, regionId := range regionIds {
 			suffix := ""
