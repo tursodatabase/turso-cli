@@ -16,12 +16,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Region string
+var region string
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, destroyCmd, replicateCmd, listCmd, regionsCmd)
-	createCmd.Flags().StringVar(&Region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
+	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 }
 
 var dbCmd = &cobra.Command{
@@ -61,7 +61,7 @@ var createCmd = &cobra.Command{
 		} else {
 			name = args[0]
 		}
-		region := Region
+		region := region
 		if region == "" {
 			region = "ams"
 		}
