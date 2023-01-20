@@ -249,6 +249,7 @@ var replicateCmd = &cobra.Command{
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List databases.",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessToken, err := getAccessToken()
 		if err != nil {
@@ -306,6 +307,7 @@ var listCmd = &cobra.Command{
 var regionsCmd = &cobra.Command{
 	Use:   "regions",
 	Short: "List available database regions.",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		defaultRegionId := probeClosestRegion()
 		regionIds := []string{
