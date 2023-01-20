@@ -12,9 +12,10 @@ var authCmd = &cobra.Command{
 }
 
 var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Login to the platform.",
-	Args:  cobra.NoArgs,
+	Use:               "login",
+	Short:             "Login to the platform.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return browser.OpenURL("https://api.chiseledge.com")
 	},

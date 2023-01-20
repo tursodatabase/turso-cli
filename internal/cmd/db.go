@@ -46,9 +46,10 @@ func getHost() string {
 }
 
 var createCmd = &cobra.Command{
-	Use:   "create [flags] [database_name]",
-	Short: "Create a database.",
-	Args:  cobra.MaximumNArgs(1),
+	Use:               "create [flags] [database_name]",
+	Short:             "Create a database.",
+	Args:              cobra.MaximumNArgs(1),
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := ""
 		if len(args) == 0 || args[0] == "" {
@@ -138,9 +139,10 @@ func probeClosestRegion() string {
 }
 
 var destroyCmd = &cobra.Command{
-	Use:   "destroy database_name",
-	Short: "Destroy a database.",
-	Args:  cobra.ExactArgs(1),
+	Use:               "destroy database_name",
+	Short:             "Destroy a database.",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
@@ -182,9 +184,10 @@ var destroyCmd = &cobra.Command{
 }
 
 var replicateCmd = &cobra.Command{
-	Use:   "replicate database_name region_id",
-	Short: "Replicate a database.",
-	Args:  cobra.ExactArgs(2),
+	Use:               "replicate database_name region_id",
+	Short:             "Replicate a database.",
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
@@ -247,9 +250,10 @@ var replicateCmd = &cobra.Command{
 }
 
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List databases.",
-	Args:  cobra.NoArgs,
+	Use:               "list",
+	Short:             "List databases.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessToken, err := getAccessToken()
 		if err != nil {
@@ -305,9 +309,10 @@ var listCmd = &cobra.Command{
 }
 
 var regionsCmd = &cobra.Command{
-	Use:   "regions",
-	Short: "List available database regions.",
-	Args:  cobra.NoArgs,
+	Use:               "regions",
+	Short:             "List available database regions.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
 	Run: func(cmd *cobra.Command, args []string) {
 		defaultRegionId := probeClosestRegion()
 		regionIds := []string{
