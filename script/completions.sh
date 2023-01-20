@@ -4,5 +4,5 @@ set -e
 rm -rf completions
 mkdir completions
 for sh in bash zsh fish; do
-	go run main.go completion "$sh" >"completions/turso.$sh"
+	go run cmd/turso/main.go completion "$sh" >"completions/turso.$sh"
 done
