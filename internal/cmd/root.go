@@ -1,14 +1,19 @@
 package cmd
 
 import (
+	_ "embed"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
+//go:generate sh -c "printf %s $(../../script/version.sh) > version.txt"
+//go:embed version.txt
+var version string
+
 var rootCmd = &cobra.Command{
 	Use:     "turso",
-	Version: "0.0.1",
+	Version: version,
 	Long:    "Turso CLI",
 }
 
