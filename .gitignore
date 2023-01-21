@@ -1,3 +1,4 @@
 
 dist/
 completions
+internal/cmd/version.txt
