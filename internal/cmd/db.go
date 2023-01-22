@@ -17,7 +17,7 @@ import (
 )
 
 // Color function for emphasising text.
-var emph = color.New(color.FgWhite, color.Bold).SprintFunc()
+var emph = color.New(color.FgBlue, color.Bold).SprintFunc()
 
 var region string
 var regionIds = []string{
