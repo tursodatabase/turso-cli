@@ -147,8 +147,9 @@ var createCmd = &cobra.Command{
 			return err
 		}
 		req.Header.Add("Authorization", bearer)
-		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Creating database %s to %s... ", emph(name), emph(toLocation(region)))
+		s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
+		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
+		s.Prefix = fmt.Sprintf("Creating database %s to %s ", emph(name), emph(regionText))
 		s.Start()
 		start := time.Now()
 		client := &http.Client{}
@@ -175,9 +176,8 @@ var createCmd = &cobra.Command{
 		username := result.(map[string]interface{})["username"].(string)
 		password := result.(map[string]interface{})["password"].(string)
 		dbHost := m["Host"].(string)
-		dbRegion := m["Region"].(string)
 		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
-		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(toLocation(dbRegion)), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
 		fmt.Printf("   psql %s\n\n", pgUrl)
 		fmt.Printf("or via HTTP API:\n\n")
@@ -252,7 +252,7 @@ var destroyCmd = &cobra.Command{
 			return err
 		}
 		req.Header.Add("Authorization", bearer)
-		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		s := spinner.New(spinner.CharSets[14], 40*time.Millisecond)
 		s.Prefix = fmt.Sprintf("Destroying database %s... ", emph(name))
 		s.Start()
 		start := time.Now()
@@ -325,8 +325,9 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 		req.Header.Add("Authorization", bearer)
-		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Replicating database %s to %s... ", emph(name), emph(toLocation(region)))
+		s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
+		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
+		s.Prefix = fmt.Sprintf("Replicating database %s to %s ", emph(name), emph(regionText))
 		s.Start()
 		start := time.Now()
 		client := &http.Client{}
@@ -351,9 +352,8 @@ var replicateCmd = &cobra.Command{
 		elapsed := end.Sub(start)
 		m := result.(map[string]interface{})["database"].(map[string]interface{})
 		dbHost := m["Host"].(string)
-		dbRegion := m["Region"].(string)
 		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
-		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(toLocation(dbRegion)), int(elapsed.Seconds()))
+		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
 		fmt.Printf("   psql %s\n", pgUrl)
 		fmt.Printf("\n")
