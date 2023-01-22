@@ -12,6 +12,8 @@ This is the command line interface (CLI) to Turso.
 brew install chiselstrike/tap/turso
 ```
 
+Also remember to configure `homebrew` [shell completions](https://docs.brew.sh/Shell-Completion) if you haven't already done so.
+
 ### Building from Sources
 
 ```bash
