@@ -16,6 +16,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Color function for emphasising text.
+var emph = color.New(color.FgWhite, color.Bold).SprintFunc()
+
 var region string
 var regionIds = []string{
 	"ams",
@@ -93,10 +96,12 @@ var dbCmd = &cobra.Command{
 	Short: "Manage databases",
 }
 
+const ENV_ACCESS_TOKEN = "IKU_API_TOKEN"
+
 func getAccessToken() (string, error) {
-	accessToken := os.Getenv("IKU_API_TOKEN")
+	accessToken := os.Getenv(ENV_ACCESS_TOKEN)
 	if accessToken == "" {
-		return "", fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
+		return "", fmt.Errorf("please set the %s environment variable to your access token", emph(ENV_ACCESS_TOKEN))
 	}
 	return accessToken, nil
 }
@@ -143,7 +148,7 @@ var createCmd = &cobra.Command{
 		}
 		req.Header.Add("Authorization", bearer)
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Creating database `%s` to %s... ", name, toLocation(region))
+		s.Prefix = fmt.Sprintf("Creating database %s to %s... ", emph(name), emph(toLocation(region)))
 		s.Start()
 		start := time.Now()
 		client := &http.Client{}
@@ -172,7 +177,7 @@ var createCmd = &cobra.Command{
 		dbHost := m["Host"].(string)
 		dbRegion := m["Region"].(string)
 		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
-		fmt.Printf("Created database `%s` to %s in %d seconds.\n\n", name, toLocation(dbRegion), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(toLocation(dbRegion)), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
 		fmt.Printf("   psql %s\n\n", pgUrl)
 		fmt.Printf("or via HTTP API:\n\n")
@@ -232,9 +237,9 @@ var destroyCmd = &cobra.Command{
 		if name == "" {
 			return fmt.Errorf("You must specify a database name to delete it.")
 		}
-		accessToken := os.Getenv("IKU_API_TOKEN")
+		accessToken := os.Getenv(ENV_ACCESS_TOKEN)
 		if accessToken == "" {
-			return fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
+			return fmt.Errorf("please set the %s environment variable to your access token", emph(ENV_ACCESS_TOKEN))
 		}
 		host := os.Getenv("IKU_API_HOSTNAME")
 		if host == "" {
@@ -248,7 +253,7 @@ var destroyCmd = &cobra.Command{
 		}
 		req.Header.Add("Authorization", bearer)
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Destroying database `%s`... ", name)
+		s.Prefix = fmt.Sprintf("Destroying database %s... ", emph(name))
 		s.Start()
 		start := time.Now()
 		client := &http.Client{}
@@ -262,7 +267,7 @@ var destroyCmd = &cobra.Command{
 		}
 		end := time.Now()
 		elapsed := end.Sub(start)
-		fmt.Printf("Destroyed database `%s` in %d seconds.\n", name, int(elapsed.Seconds()))
+		fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
 		return nil
 	},
 }
@@ -304,9 +309,9 @@ var replicateCmd = &cobra.Command{
 		if region == "" {
 			return fmt.Errorf("You must specify a database region ID to replicate it.")
 		}
-		accessToken := os.Getenv("IKU_API_TOKEN")
+		accessToken := os.Getenv(ENV_ACCESS_TOKEN)
 		if accessToken == "" {
-			return fmt.Errorf("please set the `IKU_API_TOKEN` environment variable to your access token")
+			return fmt.Errorf("please set the %s environment variable to your access token", emph(ENV_ACCESS_TOKEN))
 		}
 		host := os.Getenv("IKU_API_HOSTNAME")
 		if host == "" {
@@ -321,7 +326,7 @@ var replicateCmd = &cobra.Command{
 		}
 		req.Header.Add("Authorization", bearer)
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Replicating database `%s` to %s... ", name, toLocation(region))
+		s.Prefix = fmt.Sprintf("Replicating database %s to %s... ", emph(name), emph(toLocation(region)))
 		s.Start()
 		start := time.Now()
 		client := &http.Client{}
@@ -348,7 +353,7 @@ var replicateCmd = &cobra.Command{
 		dbHost := m["Host"].(string)
 		dbRegion := m["Region"].(string)
 		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
-		fmt.Printf("Replicated database `%s` to %s in %d seconds.\n\n", name, toLocation(dbRegion), int(elapsed.Seconds()))
+		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(toLocation(dbRegion)), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
 		fmt.Printf("   psql %s\n", pgUrl)
 		fmt.Printf("\n")
@@ -404,7 +409,6 @@ var regionsCmd = &cobra.Command{
 			}
 			line := fmt.Sprintf("%s  %s%s", regionId, toLocation(regionId), suffix)
 			if regionId == defaultRegionId {
-				emph := color.New(color.FgWhite, color.Bold).SprintFunc()
 				line = emph(line)
 			}
 			fmt.Printf("%s\n", line)
