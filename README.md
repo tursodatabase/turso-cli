@@ -4,7 +4,7 @@ This is the command line interface (CLI) to Turso.
 
 ## Installation
 
-## Package Manager
+### Package Manager
 
 #### [Homebrew](https://brew.sh) (macOS, Linux, WSL)
 
@@ -14,7 +14,7 @@ brew install chiselstrike/tap/turso
 
 Also remember to configure `homebrew` [shell completions](https://docs.brew.sh/Shell-Completion) if you haven't already done so.
 
-## Install Script
+### Install Script
 
 ```bash
 curl -sSfL https://get.tur.so/install.sh
