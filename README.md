@@ -83,3 +83,12 @@ turso db list
 ```bash
 turso db destroy <database name>
 ```
+
+## Settings
+
+The `turso` program keeps settings in your local machine in the following base directory in `turso/settings.json` file:
+
+| OS    | Config directory |
+| ----- | -----------------|
+| Linux | `$XDG_CONFIG_HOME` or `$HOME/.config` |
+| macOS | `$HOME/Library/Application Support`  |
