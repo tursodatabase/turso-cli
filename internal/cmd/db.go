@@ -378,6 +378,10 @@ var listCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
 		databases, err := getDatabases()
 		if err != nil {
 			return err
@@ -400,15 +404,22 @@ var listCmd = &cobra.Command{
 		}
 		typeWidth := 7
 		hostWidth := 15
-		fmt.Printf("%-*s  %-*s  %-*s %-*s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST", regionWidth, "REGION")
+		fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST", regionWidth, "REGION", "URL")
 		for _, database := range databases {
 			db := database.(map[string]interface{})
-			name := db["Name"]
+			name := db["Name"].(string)
 			ty := db["Type"]
 			host := db["Host"]
 			region := db["Region"].(string)
+			dbSettings := settings.GetDatabaseSettings(name)
+			var url string
+			if dbSettings != nil {
+				url = dbSettings.GetURL()
+			} else {
+				url = "<n/a>"
+			}
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
-			fmt.Printf("%-*s  %-*s  %-*s %-*s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText)
+			fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText, url)
 		}
 		return nil
 	},
