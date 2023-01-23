@@ -15,7 +15,7 @@ type DatabaseSettings struct {
 }
 
 func (s *DatabaseSettings) GetURL() string {
-	return fmt.Sprintf("%s:%s@%s", s.Username, s.Password, s.Host)
+	return fmt.Sprintf("http://%s:%s@%s", s.Username, s.Password, s.Host)
 }
 
 type Settings struct{}
