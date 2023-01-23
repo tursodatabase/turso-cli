@@ -14,6 +14,12 @@ brew install chiselstrike/tap/turso
 
 Also remember to configure `homebrew` [shell completions](https://docs.brew.sh/Shell-Completion) if you haven't already done so.
 
+## Install Script
+
+```bash
+curl -sSfL https://get.tur.so/install.sh
+```
+
 ### Building from Sources
 
 ```bash
