@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/fatih/color"
 	"github.com/lucasepe/codename"
 	"github.com/spf13/cobra"
@@ -120,6 +121,10 @@ var createCmd = &cobra.Command{
 	Args:              cobra.MaximumNArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
 		name := ""
 		if len(args) == 0 || args[0] == "" {
 			rng, err := codename.DefaultRNG()
@@ -180,9 +185,15 @@ var createCmd = &cobra.Command{
 		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
 		fmt.Printf("   psql %s\n\n", pgUrl)
-		fmt.Printf("or via HTTP API:\n\n")
-		fmt.Printf("   http://%s:%s@%s\n\n", username, password, dbHost)
+		dbSettings := settings.DatabaseSettings{
+			Host:     dbHost,
+			Username: username,
+			Password: password,
+		}
+		dbUrl := dbSettings.GetURL()
+		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("\n")
+		config.AddDatabase(name, &dbSettings)
 		return nil
 	},
 }
@@ -367,6 +378,10 @@ var listCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
 		databases, err := getDatabases()
 		if err != nil {
 			return err
@@ -389,15 +404,22 @@ var listCmd = &cobra.Command{
 		}
 		typeWidth := 7
 		hostWidth := 15
-		fmt.Printf("%-*s  %-*s  %-*s %-*s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST", regionWidth, "REGION")
+		fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST", regionWidth, "REGION", "URL")
 		for _, database := range databases {
 			db := database.(map[string]interface{})
-			name := db["Name"]
+			name := db["Name"].(string)
 			ty := db["Type"]
 			host := db["Host"]
 			region := db["Region"].(string)
+			dbSettings := settings.GetDatabaseSettings(name)
+			var url string
+			if dbSettings != nil {
+				url = dbSettings.GetURL()
+			} else {
+				url = "<n/a>"
+			}
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
-			fmt.Printf("%-*s  %-*s  %-*s %-*s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText)
+			fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText, url)
 		}
 		return nil
 	},
