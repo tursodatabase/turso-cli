@@ -372,6 +372,7 @@ var listCmd = &cobra.Command{
 			return err
 		}
 		nameWidth := 8
+		regionWidth := 8
 		for _, database := range databases {
 			db := database.(map[string]interface{})
 			name := db["Name"].(string)
@@ -379,16 +380,24 @@ var listCmd = &cobra.Command{
 			if nameWidth < nameLen {
 				nameWidth = nameLen
 			}
+			region := db["Region"].(string)
+			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
+			regionLen := len(regionText)
+			if regionWidth < regionLen {
+				regionWidth = regionLen
+			}
 		}
 		typeWidth := 7
 		hostWidth := 15
-		fmt.Printf("%-*s  %-*s  %-*s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST")
+		fmt.Printf("%-*s  %-*s  %-*s %-*s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST", regionWidth, "REGION")
 		for _, database := range databases {
 			db := database.(map[string]interface{})
 			name := db["Name"]
 			ty := db["Type"]
 			host := db["Host"]
-			fmt.Printf("%-*s  %s  %s\n", nameWidth, name, ty, host)
+			region := db["Region"].(string)
+			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
+			fmt.Printf("%-*s  %-*s  %-*s %-*s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText)
 		}
 		return nil
 	},
