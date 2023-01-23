@@ -6,7 +6,7 @@ before:
     # You may remove this if you don't use go modules.
     - go mod tidy
     # you may remove this if you don't need go generate
-    - go generate ./...
+    - go generate --tags=prod ./...
     - ./script/completions.sh
 builds:
   - env:
@@ -17,6 +17,8 @@ builds:
       - darwin
     binary: turso
     main: ./cmd/turso
+    flags:
+      - -tags=prod
 
 release:
   github:
