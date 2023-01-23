@@ -50,6 +50,23 @@ var regionIds = []string{
 	"yyz",
 }
 
+func getDatabaseNames() []string {
+	databases, err := getDatabases()
+	if err != nil {
+		return []string{}
+	}
+	result := make([]string, 0)
+	for _, database := range databases {
+		db := database.(map[string]interface{})
+		name := db["Name"]
+		ty := db["Type"]
+		if ty == "primary" {
+			result = append(result, name.(string))
+		}
+	}
+	return result
+}
+
 func getDatabases() ([]interface{}, error) {
 	accessToken, err := getAccessToken()
 	if err != nil {
@@ -229,20 +246,7 @@ func probeClosestRegion() string {
 
 func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
-		databases, err := getDatabases()
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
-		result := make([]string, 0)
-		for _, database := range databases {
-			db := database.(map[string]interface{})
-			name := db["Name"]
-			ty := db["Type"]
-			if ty == "primary" {
-				result = append(result, name.(string))
-			}
-		}
-		return result, cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
@@ -297,20 +301,7 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	if len(args) == 0 {
-		databases, err := getDatabases()
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
-		result := make([]string, 0)
-		for _, database := range databases {
-			db := database.(map[string]interface{})
-			name := db["Name"]
-			ty := db["Type"]
-			if ty == "primary" {
-				result = append(result, name.(string))
-			}
-		}
-		return result, cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
