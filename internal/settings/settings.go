@@ -43,7 +43,7 @@ func (s *Settings) AddDatabase(name string, dbSettings *DatabaseSettings) {
 	databases := viper.GetStringMap("databases")
 	databases[name] = dbSettings
 	viper.Set("databases", databases)
-	viper.SafeWriteConfig()
+	viper.WriteConfig()
 }
 
 func (s *Settings) GetDatabaseSettings(name string) *DatabaseSettings {
