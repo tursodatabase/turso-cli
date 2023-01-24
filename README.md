@@ -36,12 +36,6 @@ To authenticate with the service, run:
 turso auth login
 ```
 
-Then configure the `IKU_API_TOKEN` environment variable to your access token:
-
-```bash
-export IKU_API_TOKEN=<access token>
-```
-
 ### Create database
 
 To create a database, run:

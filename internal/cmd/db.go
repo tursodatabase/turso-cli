@@ -97,14 +97,18 @@ var dbCmd = &cobra.Command{
 	Short: "Manage databases",
 }
 
-const ENV_ACCESS_TOKEN = "IKU_API_TOKEN"
-
 func getAccessToken() (string, error) {
-	accessToken := os.Getenv(ENV_ACCESS_TOKEN)
-	if accessToken == "" {
-		return "", fmt.Errorf("please set the %s environment variable to your access token", emph(ENV_ACCESS_TOKEN))
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return "", fmt.Errorf("could not read local settings")
 	}
-	return accessToken, nil
+
+	token := settings.GetToken()
+	if token == "" {
+		return "", fmt.Errorf("user not logged in")
+	}
+
+	return token, nil
 }
 
 func getHost() string {
@@ -257,9 +261,10 @@ var destroyCmd = &cobra.Command{
 		if name == "" {
 			return fmt.Errorf("You must specify a database name to delete it.")
 		}
-		accessToken := os.Getenv(ENV_ACCESS_TOKEN)
-		if accessToken == "" {
-			return fmt.Errorf("please set the %s environment variable to your access token", emph(ENV_ACCESS_TOKEN))
+
+		accessToken, err := getAccessToken()
+		if err != nil {
+			return fmt.Errorf("please login with", emph("iku turso login"))
 		}
 		host := os.Getenv("IKU_API_HOSTNAME")
 		if host == "" {
@@ -329,9 +334,9 @@ var replicateCmd = &cobra.Command{
 		if region == "" {
 			return fmt.Errorf("You must specify a database region ID to replicate it.")
 		}
-		accessToken := os.Getenv(ENV_ACCESS_TOKEN)
-		if accessToken == "" {
-			return fmt.Errorf("please set the %s environment variable to your access token", emph(ENV_ACCESS_TOKEN))
+		accessToken, err := getAccessToken()
+		if err != nil {
+			return fmt.Errorf("please login with", emph("iku turso login"))
 		}
 		host := os.Getenv("IKU_API_HOSTNAME")
 		if host == "" {
