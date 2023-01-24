@@ -137,7 +137,7 @@ var createCmd = &cobra.Command{
 		}
 		region := region
 		if region == "" {
-                   region = probeClosestRegion()
+			region = probeClosestRegion()
 		}
 		accessToken, err := getAccessToken()
 		if err != nil {
