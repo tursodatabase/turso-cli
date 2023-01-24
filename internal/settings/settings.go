@@ -9,15 +9,16 @@ import (
 )
 
 type DatabaseSettings struct {
-	Host     string `json:"host"`
-	Username string `json:"username"`
-	Password string `json:"Password"`
+	Host     string  `json:"host"`
+	Hostname *string `json:"hostname"`
+	Username string  `json:"username"`
+	Password string  `json:"Password"`
 }
 
 func (s *DatabaseSettings) GetURL() string {
 	var hostname string
 	if s.Hostname != nil {
-		hostname = s.Hostname
+		hostname = *s.Hostname
 	} else {
 		hostname = s.Host
 	}
