@@ -362,11 +362,21 @@ var replicateCmd = &cobra.Command{
 		end := time.Now()
 		elapsed := end.Sub(start)
 		m := result.(map[string]interface{})["database"].(map[string]interface{})
+		username := result.(map[string]interface{})["username"].(string)
+		password := result.(map[string]interface{})["password"].(string)
 		dbHost := m["Host"].(string)
 		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
 		fmt.Printf("   psql %s\n", pgUrl)
+		dbSettings := settings.DatabaseSettings{
+			Host:     dbHost,
+			Username: username,
+			Password: password,
+		}
+		dbUrl := dbSettings.GetURL()
+		fmt.Printf("\n")
+		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("\n")
 		return nil
 	},
