@@ -2,15 +2,21 @@ package cmd
 
 import (
 	"context"
+	_ "embed"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
+	"text/template"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
+
+//go:embed login.html
+var LOGIN_HTML string
 
 var authCmd = &cobra.Command{
 	Use:               "auth",
@@ -33,7 +39,10 @@ func init() {
 
 func login(cmd *cobra.Command, args []string) error {
 	ch := make(chan string, 1)
-	server := createCallbackServer(ch)
+	server, err := createCallbackServer(ch)
+	if err != nil {
+		return err
+	}
 
 	port, err := runServer(server)
 	if err != nil {
@@ -66,19 +75,22 @@ func beginAuth(port int) error {
 	return browser.OpenURL(authUrl.String())
 }
 
-func createCallbackServer(jwtCh chan string) *http.Server {
+func createCallbackServer(jwtCh chan string) (*http.Server, error) {
+	tmpl, err := template.New("login.html").Parse(LOGIN_HTML)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse login callback template: %w", err)
+	}
+
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		jwtCh <- q.Get("jwt")
 
 		w.WriteHeader(200)
-		// TODO: send nice response to user
+		tmpl.Execute(w, q.Get("username"))
 	})
 
-	return &http.Server{
-		Handler: handler,
-	}
+	return &http.Server{Handler: handler}, nil
 }
 
 func runServer(server *http.Server) (int, error) {
