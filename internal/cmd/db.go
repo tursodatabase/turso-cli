@@ -50,21 +50,39 @@ var regionIds = []string{
 	"yyz",
 }
 
-func getDatabaseNames() []string {
-	databases, err := getDatabases()
-	if err != nil {
-		return []string{}
-	}
-	result := make([]string, 0)
+func extractDatabaseNames(databases []interface{}) []string {
+	names := make([]string, 0)
 	for _, database := range databases {
 		db := database.(map[string]interface{})
 		name := db["Name"]
 		ty := db["Type"]
 		if ty == "primary" {
-			result = append(result, name.(string))
+			names = append(names, name.(string))
 		}
 	}
-	return result
+	return names
+}
+
+func fetchDatabaseNames() []string {
+	databases, err := getDatabases()
+	if err != nil {
+		return []string{}
+	}
+	return extractDatabaseNames(databases)
+}
+
+func getDatabaseNames() []string {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return fetchDatabaseNames()
+	}
+	cached_names := settings.GetDbNamesCache()
+	if cached_names != nil {
+		return cached_names
+	}
+	names := fetchDatabaseNames()
+	settings.SetDbNamesCache(names)
+	return names
 }
 
 func getDatabases() ([]interface{}, error) {
@@ -211,6 +229,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("\n")
 		config.AddDatabase(name, &dbSettings)
+		config.InvalidateDbNamesCache()
 		return nil
 	},
 }
@@ -292,6 +311,10 @@ var destroyCmd = &cobra.Command{
 		end := time.Now()
 		elapsed := end.Sub(start)
 		fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
+		settings, err := settings.ReadSettings()
+		if err == nil {
+			settings.InvalidateDbNamesCache()
+		}
 		return nil
 	},
 }
@@ -431,6 +454,7 @@ var listCmd = &cobra.Command{
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
 			fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText, url)
 		}
+		settings.SetDbNamesCache(extractDatabaseNames(databases))
 		return nil
 	},
 }
