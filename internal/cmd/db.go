@@ -180,7 +180,7 @@ var createCmd = &cobra.Command{
 		m := result.(map[string]interface{})["database"].(map[string]interface{})
 		username := result.(map[string]interface{})["username"].(string)
 		password := result.(map[string]interface{})["password"].(string)
-		dbHost := m["Host"].(string)
+		dbHost := m["Hostname"].(string)
 		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
 		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
@@ -373,7 +373,7 @@ var replicateCmd = &cobra.Command{
 		m := result.(map[string]interface{})["database"].(map[string]interface{})
 		username := result.(map[string]interface{})["username"].(string)
 		password := result.(map[string]interface{})["password"].(string)
-		dbHost := m["Host"].(string)
+		dbHost := m["Hostname"].(string)
 		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		fmt.Printf("You can access the database by running:\n\n")
@@ -428,7 +428,7 @@ var listCmd = &cobra.Command{
 			db := database.(map[string]interface{})
 			name := db["Name"].(string)
 			ty := db["Type"]
-			host := db["Host"]
+			host := db["Hostname"]
 			region := db["Region"].(string)
 			dbSettings := settings.GetDatabaseSettings(name)
 			var url string
