@@ -215,7 +215,16 @@ func probeClosestRegion() string {
 	if len(requestId) < 2 {
 		return FallbackRegionId
 	}
-	return requestId[1]
+	closestRegionId := requestId[1]
+	// Fly has regions that are not available to users. So let's ensure
+	// that we return a region ID that is actually usable for provisioning
+	// a database.
+	for _, regionId := range regionIds {
+		if closestRegionId == regionId {
+			return closestRegionId
+		}
+	}
+	return FallbackRegionId
 }
 
 func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
