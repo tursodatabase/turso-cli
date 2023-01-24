@@ -38,7 +38,7 @@ func ReadSettings() (*Settings, error) {
 	viper.AddConfigPath(configPath)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found; ignore error because one will be created if necessary later.
+			viper.SafeWriteConfig()
 		} else {
 			return nil, err
 		}
