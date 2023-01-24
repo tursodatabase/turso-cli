@@ -56,6 +56,14 @@ You can configure the database name with:
 turso db create <database name>
 ```
 
+### Start SQL shell
+
+You can start an interactive SQL shell similar to `sqlite3` or `psql` with:
+
+```bash
+turso db shell <database name>
+```
+
 ### Replicate database
 
 First, list available regions and pick a region you want to replicate to:
