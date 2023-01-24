@@ -33,12 +33,13 @@ func ReadSettings() (*Settings, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	viper.SetConfigName("settings")
 	viper.SetConfigType("json")
 	viper.AddConfigPath(configPath)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found; ignore error because one will be created if necessary later.
+			viper.SafeWriteConfig() // Force config creation
 		} else {
 			return nil, err
 		}
@@ -62,4 +63,13 @@ func (s *Settings) GetDatabaseSettings(name string) *DatabaseSettings {
 	settings := DatabaseSettings{}
 	mapstructure.Decode(rawSettings, &settings)
 	return &settings
+}
+
+func (s *Settings) SetToken(token string) {
+	viper.Set("token", token)
+	viper.WriteConfig()
+}
+
+func (s *Settings) GetToken() string {
+	return viper.GetString("token")
 }
