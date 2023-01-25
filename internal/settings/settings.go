@@ -29,7 +29,7 @@ func (s *DatabaseSettings) GetURL() string {
 	} else {
 		hostname = s.Host
 	}
-	return fmt.Sprintf("http://%s:%s@%s", s.Username, s.Password, hostname)
+	return fmt.Sprintf("https://%s:%s@%s", s.Username, s.Password, hostname)
 }
 
 type Settings struct{}
