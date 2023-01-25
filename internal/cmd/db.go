@@ -289,10 +289,7 @@ var destroyCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
-		host := os.Getenv("IKU_API_HOSTNAME")
-		if host == "" {
-			host = "https://api.chiseledge.com"
-		}
+		host := getHost()
 		url := fmt.Sprintf("%s/v1/databases/%s", host, name)
 		bearer := "Bearer " + accessToken
 		req, err := http.NewRequest("DELETE", url, nil)
@@ -356,10 +353,7 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
-		host := os.Getenv("IKU_API_HOSTNAME")
-		if host == "" {
-			host = "https://api.chiseledge.com"
-		}
+		host := getHost()
 		url := fmt.Sprintf("%s/v1/databases", host)
 		bearer := "Bearer " + accessToken
 		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "type": "replica"}`, name, region))
