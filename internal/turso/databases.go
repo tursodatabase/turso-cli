@@ -14,6 +14,7 @@ type ListDatabasesResponse struct {
 }
 
 type Database struct {
+	ID       string
 	Name     string
 	Type     string
 	Region   string
@@ -47,6 +48,7 @@ func (s *DatabasesService) List() ([]Database, error) {
 	for _, db := range databases {
 		d := db.(map[string]interface{})
 		result = append(result, Database{
+			ID:       d["DbId"].(string),
 			Name:     d["Name"].(string),
 			Type:     d["Type"].(string),
 			Region:   d["Region"].(string),

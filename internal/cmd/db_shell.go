@@ -80,7 +80,7 @@ func runShell(name string) error {
 	_, err = url.ParseRequestURI(name)
 	var dbUrl string
 	if err != nil {
-		dbSettings := config.GetDatabaseSettings(name)
+		dbSettings := config.FindDatabaseByName(name)
 		dbUrl = dbSettings.GetURL()
 		fmt.Printf("Connected to %s at %s\n\n", emph(name), dbUrl)
 	} else {
