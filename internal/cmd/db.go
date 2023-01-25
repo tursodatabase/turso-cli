@@ -340,6 +340,10 @@ var replicateCmd = &cobra.Command{
 	Args:              cobra.ExactArgs(2),
 	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
 		name := args[0]
 		if name == "" {
 			return fmt.Errorf("You must specify a database name to replicate it.")
@@ -406,6 +410,7 @@ var replicateCmd = &cobra.Command{
 		fmt.Printf("\n")
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("\n")
+		config.InvalidateDbNamesCache()
 		return nil
 	},
 }
