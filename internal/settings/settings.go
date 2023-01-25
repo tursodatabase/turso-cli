@@ -39,7 +39,10 @@ func ReadSettings() (*Settings, error) {
 	viper.AddConfigPath(configPath)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			viper.SafeWriteConfig()
+			// Force config creation
+			if err := viper.SafeWriteConfig(); err != nil {
+				return nil, err
+			}
 		} else {
 			return nil, err
 		}
@@ -65,9 +68,9 @@ func (s *Settings) GetDatabaseSettings(name string) *DatabaseSettings {
 	return &settings
 }
 
-func (s *Settings) SetToken(token string) {
+func (s *Settings) SetToken(token string) error {
 	viper.Set("token", token)
-	viper.WriteConfig()
+	return viper.WriteConfig()
 }
 
 func (s *Settings) GetToken() string {
