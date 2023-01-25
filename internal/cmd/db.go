@@ -237,7 +237,6 @@ var createCmd = &cobra.Command{
 		fmt.Printf("HTTP connection string:\n\n")
 		dbUrl := dbSettings.GetURL()
 		fmt.Printf("   %s\n\n", dbUrl)
-		fmt.Printf("\n")
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
 		config.AddDatabase(name, &dbSettings)
@@ -399,19 +398,17 @@ var replicateCmd = &cobra.Command{
 		username := result.(map[string]interface{})["username"].(string)
 		password := result.(map[string]interface{})["password"].(string)
 		dbHost := m["Hostname"].(string)
-		pgUrl := fmt.Sprintf("postgresql://%v", dbHost)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
-		fmt.Printf("You can access the database by running:\n\n")
-		fmt.Printf("   psql %s\n", pgUrl)
 		dbSettings := settings.DatabaseSettings{
 			Host:     dbHost,
 			Username: username,
 			Password: password,
 		}
+		fmt.Printf("HTTP connection string:\n\n")
 		dbUrl := dbSettings.GetURL()
-		fmt.Printf("\n")
 		fmt.Printf("   %s\n\n", dbUrl)
-		fmt.Printf("\n")
+		fmt.Printf("You can start an interactive SQL shell with:\n\n")
+		fmt.Printf("   turso db shell %s\n\n", dbUrl)
 		config.InvalidateDbNamesCache()
 		return nil
 	},
