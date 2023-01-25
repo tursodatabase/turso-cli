@@ -55,24 +55,35 @@ func login(cmd *cobra.Command, args []string) error {
 	}
 
 	jwt := <-ch
-	settings, _ := settings.ReadSettings()
-	settings.SetToken(jwt)
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return fmt.Errorf("could not retrieve local config: %w", err)
+	}
 
+	err = settings.SetToken(jwt)
 	server.Shutdown(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("error persisting token on local config: %w", err)
+	}
 	return nil
 }
 
 func beginAuth(port int) error {
 	authUrl, err := url.Parse(getHost())
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing auth URL: %w", err)
 	}
 	authUrl.RawQuery = url.Values{
 		"port":     {strconv.Itoa(port)},
 		"redirect": {"true"},
 	}.Encode()
 
-	return browser.OpenURL(authUrl.String())
+	browser.OpenURL(authUrl.String())
+	if err != nil {
+		return fmt.Errorf("error opening browser for auth flow: %w", err)
+	}
+	return nil
 }
 
 func createCallbackServer(jwtCh chan string) (*http.Server, error) {
@@ -96,7 +107,7 @@ func createCallbackServer(jwtCh chan string) (*http.Server, error) {
 func runServer(server *http.Server) (int, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("could not allocate port for http server: %w", err)
 	}
 
 	go func() {
