@@ -50,6 +50,41 @@ var regionIds = []string{
 	"yyz",
 }
 
+func extractDatabaseNames(databases []interface{}) []string {
+	names := make([]string, 0)
+	for _, database := range databases {
+		db := database.(map[string]interface{})
+		name := db["Name"]
+		ty := db["Type"]
+		if ty == "primary" {
+			names = append(names, name.(string))
+		}
+	}
+	return names
+}
+
+func fetchDatabaseNames() []string {
+	databases, err := getDatabases()
+	if err != nil {
+		return []string{}
+	}
+	return extractDatabaseNames(databases)
+}
+
+func getDatabaseNames() []string {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return fetchDatabaseNames()
+	}
+	cached_names := settings.GetDbNamesCache()
+	if cached_names != nil {
+		return cached_names
+	}
+	names := fetchDatabaseNames()
+	settings.SetDbNamesCache(names)
+	return names
+}
+
 func getDatabases() ([]interface{}, error) {
 	accessToken, err := getAccessToken()
 	if err != nil {
@@ -198,6 +233,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("\n")
 		config.AddDatabase(name, &dbSettings)
+		config.InvalidateDbNamesCache()
 		return nil
 	},
 }
@@ -233,20 +269,7 @@ func probeClosestRegion() string {
 
 func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
-		databases, err := getDatabases()
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
-		result := make([]string, 0)
-		for _, database := range databases {
-			db := database.(map[string]interface{})
-			name := db["Name"]
-			ty := db["Type"]
-			if ty == "primary" {
-				result = append(result, name.(string))
-			}
-		}
-		return result, cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
@@ -293,6 +316,10 @@ var destroyCmd = &cobra.Command{
 		end := time.Now()
 		elapsed := end.Sub(start)
 		fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
+		settings, err := settings.ReadSettings()
+		if err == nil {
+			settings.InvalidateDbNamesCache()
+		}
 		return nil
 	},
 }
@@ -302,20 +329,7 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	if len(args) == 0 {
-		databases, err := getDatabases()
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
-		result := make([]string, 0)
-		for _, database := range databases {
-			db := database.(map[string]interface{})
-			name := db["Name"]
-			ty := db["Type"]
-			if ty == "primary" {
-				result = append(result, name.(string))
-			}
-		}
-		return result, cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
@@ -445,6 +459,7 @@ var listCmd = &cobra.Command{
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
 			fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText, url)
 		}
+		settings.SetDbNamesCache(extractDatabaseNames(databases))
 		return nil
 	},
 }

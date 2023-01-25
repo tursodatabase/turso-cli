@@ -2,11 +2,18 @@ package settings
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/kirsle/configdir"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
+
+type DbNamesCache struct {
+	ExpirationTime int64    `json:"expiration_time"`
+	DbNames        []string `json:"db_names"`
+}
 
 type DatabaseSettings struct {
 	Host     string  `json:"host"`
@@ -50,11 +57,44 @@ func ReadSettings() (*Settings, error) {
 	return &Settings{}, nil
 }
 
+const DB_NAMES_CACHE_KEY = "cached_db_names"
+
+func (s *Settings) SetDbNamesCache(dbNames []string) {
+	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{time.Now().Unix() + 30*60, dbNames})
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
+	}
+}
+
+func (s *Settings) GetDbNamesCache() []string {
+	expirationTime := viper.GetInt64(DB_NAMES_CACHE_KEY + ".expiration_time")
+	if expirationTime == 0 {
+		return nil
+	}
+	if expirationTime <= time.Now().Unix() {
+		s.InvalidateDbNamesCache()
+		return nil
+	}
+	return viper.GetStringSlice(DB_NAMES_CACHE_KEY + ".db_names")
+}
+
+func (s *Settings) InvalidateDbNamesCache() {
+	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{0, []string{}})
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
+	}
+}
+
 func (s *Settings) AddDatabase(name string, dbSettings *DatabaseSettings) {
 	databases := viper.GetStringMap("databases")
 	databases[name] = dbSettings
 	viper.Set("databases", databases)
-	viper.WriteConfig()
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
+	}
 }
 
 func (s *Settings) GetDatabaseSettings(name string) *DatabaseSettings {
