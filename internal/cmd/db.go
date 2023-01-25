@@ -203,6 +203,14 @@ var createCmd = &cobra.Command{
 			return err
 		}
 		if resp.StatusCode != http.StatusOK {
+			defer resp.Body.Close()
+			body, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				var result interface{}
+				if err := json.Unmarshal(body, &result); err == nil {
+					return fmt.Errorf("Failed to create database: %s [%s]", resp.Status, result.(map[string]interface{})["error"])
+				}
+			}
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
 		}
 		defer resp.Body.Close()
