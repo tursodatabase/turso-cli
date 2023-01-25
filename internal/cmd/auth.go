@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +38,30 @@ func init() {
 	authCmd.AddCommand(loginCmd)
 }
 
+func isJwtTokenValid(token string) bool {
+	if len(token) == 0 {
+		return false
+	}
+	client, err := turso.NewClient(getHost(), token, nil)
+	if err != nil {
+		return false
+	}
+	req, err := client.NewRequest("GET", "/v1/databases", nil)
+	if err != nil {
+		return false
+	}
+	resp, err := client.Do(req)
+	return err == nil && resp.StatusCode == http.StatusOK
+}
+
 func login(cmd *cobra.Command, args []string) error {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return fmt.Errorf("could not retrieve local config: %w", err)
+	}
+	if isJwtTokenValid(settings.GetToken()) {
+		return nil
+	}
 	ch := make(chan string, 1)
 	server, err := createCallbackServer(ch)
 	if err != nil {
@@ -55,10 +79,6 @@ func login(cmd *cobra.Command, args []string) error {
 	}
 
 	jwt := <-ch
-	settings, err := settings.ReadSettings()
-	if err != nil {
-		return fmt.Errorf("could not retrieve local config: %w", err)
-	}
 
 	err = settings.SetToken(jwt)
 	server.Shutdown(context.Background())
