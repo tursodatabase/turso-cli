@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -75,7 +76,18 @@ func runShell(name string) error {
 	if err != nil {
 		return err
 	}
-	dbSettings := config.GetDatabaseSettings(name)
+	// If name is a valid URL, let's just is it directly to connect instead
+	// of looking up an URL from settings.
+	_, err = url.ParseRequestURI(name)
+	var dbUrl string
+	if err != nil {
+		dbSettings := config.GetDatabaseSettings(name)
+		dbUrl = dbSettings.GetURL()
+		fmt.Printf("Connected to %s at %s\n\n", emph(name), dbUrl)
+	} else {
+		dbUrl = name
+		fmt.Printf("Connected to %s\n\n", dbUrl)
+	}
 	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:            promptFmt("→  "),
@@ -91,7 +103,6 @@ func runShell(name string) error {
 	l.CaptureExitSignal()
 
 	fmt.Printf("Welcome to Turso SQL shell!\n\n")
-	fmt.Printf("Connected to %s at %s\n\n", emph(name), dbSettings.GetURL())
 	for {
 		line, err := l.Readline()
 		if err == readline.ErrInterrupt {
@@ -104,7 +115,7 @@ func runShell(name string) error {
 			break
 		}
 		line = strings.TrimSpace(line)
-		err = query(dbSettings.GetURL(), line)
+		err = query(dbUrl, line)
 		if err != nil {
 			return err
 		}
