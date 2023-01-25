@@ -55,27 +55,29 @@ func isJwtTokenValid(token string) bool {
 }
 
 func login(cmd *cobra.Command, args []string) error {
+	fmt.Println("Waiting for authentication...")
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
 	if isJwtTokenValid(settings.GetToken()) {
+		fmt.Println("✔  Success! Existing JWT still valid")
 		return nil
 	}
 	ch := make(chan string, 1)
 	server, err := createCallbackServer(ch)
 	if err != nil {
-		return err
+		return fmt.Errorf("Internal error. Cannot create callback: %w", err)
 	}
 
 	port, err := runServer(server)
 	if err != nil {
-		return err
+		return fmt.Errorf("Internal error. Cannot run authentication server: %w", err)
 	}
 
 	err = beginAuth(port)
 	if err != nil {
-		return err
+		return fmt.Errorf("Internal error. Cannot initiate auth flow: %w", err)
 	}
 
 	jwt := <-ch
@@ -86,6 +88,7 @@ func login(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error persisting token on local config: %w", err)
 	}
+	fmt.Println("✔  Success!")
 	return nil
 }
 
