@@ -25,11 +25,10 @@ func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 		}
 		result := make([]string, 0)
 		for _, database := range databases {
-			db := database.(map[string]interface{})
-			name := db["Name"]
-			ty := db["Type"]
+			name := database.Name
+			ty := database.Type
 			if ty == "primary" {
-				result = append(result, name.(string))
+				result = append(result, name)
 			}
 		}
 		return result, cobra.ShellCompDirectiveNoFileComp
