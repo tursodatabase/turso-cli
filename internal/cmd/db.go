@@ -181,8 +181,13 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusUnprocessableEntity {
+			return fmt.Errorf("Database name '%s' is not available", emph(name))
+		}
+
 		if resp.StatusCode != http.StatusOK {
-			defer resp.Body.Close()
 			body, err := ioutil.ReadAll(resp.Body)
 			if err == nil {
 				var result interface{}
@@ -192,7 +197,7 @@ var createCmd = &cobra.Command{
 			}
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
 		}
-		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return err
