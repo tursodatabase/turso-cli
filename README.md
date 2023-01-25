@@ -36,6 +36,9 @@ To authenticate with the service, run:
 turso auth login
 ```
 
+You are taken to a web page in your default browser to authenticate via GitHub.
+After succesfully authenticated, `turs auth login` receives an access token that is stored on your settings file.
+
 ### Create database
 
 To create a database, run:
