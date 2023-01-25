@@ -79,7 +79,7 @@ func beginAuth(port int) error {
 		"redirect": {"true"},
 	}.Encode()
 
-	browser.OpenURL(authUrl.String())
+	err = browser.OpenURL(authUrl.String())
 	if err != nil {
 		return fmt.Errorf("error opening browser for auth flow: %w", err)
 	}
