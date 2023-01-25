@@ -92,7 +92,7 @@ func runShell(name string) error {
 		Prompt:            promptFmt("→  "),
 		HistoryFile:       ".turso_history",
 		InterruptPrompt:   "^C",
-		EOFPrompt:         "exit",
+		EOFPrompt:         ".quit",
 		HistorySearchFold: true,
 	})
 	if err != nil {
@@ -102,6 +102,8 @@ func runShell(name string) error {
 	l.CaptureExitSignal()
 
 	fmt.Printf("Welcome to Turso SQL shell!\n\n")
+	fmt.Printf("Type \".quit\" to exit the shell.\n\n")
+replLoop:
 	for {
 		line, err := l.Readline()
 		if err == readline.ErrInterrupt {
@@ -116,6 +118,10 @@ func runShell(name string) error {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue
+		}
+		switch line {
+		case ".quit":
+			break replLoop
 		}
 		err = query(dbUrl, line)
 		if err != nil {
