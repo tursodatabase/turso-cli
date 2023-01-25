@@ -264,7 +264,7 @@ var destroyCmd = &cobra.Command{
 
 		accessToken, err := getAccessToken()
 		if err != nil {
-			return fmt.Errorf("please login with", emph("iku turso login"))
+			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
 		host := os.Getenv("IKU_API_HOSTNAME")
 		if host == "" {
@@ -336,7 +336,7 @@ var replicateCmd = &cobra.Command{
 		}
 		accessToken, err := getAccessToken()
 		if err != nil {
-			return fmt.Errorf("please login with", emph("iku turso login"))
+			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
 		host := os.Getenv("IKU_API_HOSTNAME")
 		if host == "" {
