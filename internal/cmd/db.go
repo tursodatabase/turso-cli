@@ -12,6 +12,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/fatih/color"
 	"github.com/lucasepe/codename"
 	"github.com/spf13/cobra"
@@ -50,14 +51,13 @@ var regionIds = []string{
 	"yyz",
 }
 
-func extractDatabaseNames(databases []interface{}) []string {
+func extractDatabaseNames(databases []turso.Database) []string {
 	names := make([]string, 0)
 	for _, database := range databases {
-		db := database.(map[string]interface{})
-		name := db["Name"]
-		ty := db["Type"]
+		name := database.Name
+		ty := database.Type
 		if ty == "primary" {
-			names = append(names, name.(string))
+			names = append(names, name)
 		}
 	}
 	return names
@@ -85,37 +85,16 @@ func getDatabaseNames() []string {
 	return names
 }
 
-func getDatabases() ([]interface{}, error) {
+func getDatabases() ([]turso.Database, error) {
 	accessToken, err := getAccessToken()
 	if err != nil {
 		return nil, err
 	}
-	host := getHost()
-	url := fmt.Sprintf("%s/v1/databases", host)
-	bearer := "Bearer " + accessToken
-	req, err := http.NewRequest("GET", url, nil)
+	client, err := turso.NewClient(getHost(), accessToken, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Authorization", bearer)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Failed to get database listing: %s", resp.Status)
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	var result interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-	return result.(map[string]interface{})["databases"].([]interface{}), nil
+	return client.Databases.List()
 }
 
 func init() {
@@ -431,13 +410,12 @@ var listCmd = &cobra.Command{
 		nameWidth := 8
 		regionWidth := 8
 		for _, database := range databases {
-			db := database.(map[string]interface{})
-			name := db["Name"].(string)
+			name := database.Name
 			nameLen := len(name)
 			if nameWidth < nameLen {
 				nameWidth = nameLen
 			}
-			region := db["Region"].(string)
+			region := database.Region
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
 			regionLen := len(regionText)
 			if regionWidth < regionLen {
@@ -447,10 +425,9 @@ var listCmd = &cobra.Command{
 		typeWidth := 7
 		fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", regionWidth, "REGION", "URL")
 		for _, database := range databases {
-			db := database.(map[string]interface{})
-			name := db["Name"].(string)
-			ty := db["Type"]
-			region := db["Region"].(string)
+			name := database.Name
+			ty := database.Type
+			region := database.Region
 			dbSettings := settings.GetDatabaseSettings(name)
 			var url string
 			if dbSettings != nil {
