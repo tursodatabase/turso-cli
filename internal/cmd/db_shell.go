@@ -114,6 +114,9 @@ func runShell(name string) error {
 			break
 		}
 		line = strings.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
 		err = query(dbUrl, line)
 		if err != nil {
 			return err
