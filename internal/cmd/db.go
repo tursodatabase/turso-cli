@@ -448,13 +448,11 @@ var listCmd = &cobra.Command{
 			}
 		}
 		typeWidth := 7
-		hostWidth := 15
-		fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", hostWidth, "HOST", regionWidth, "REGION", "URL")
+		fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", regionWidth, "REGION", "URL")
 		for _, database := range databases {
 			db := database.(map[string]interface{})
 			name := db["Name"].(string)
 			ty := db["Type"]
-			host := db["Hostname"]
 			region := db["Region"].(string)
 			dbSettings := settings.GetDatabaseSettings(name)
 			var url string
@@ -464,7 +462,7 @@ var listCmd = &cobra.Command{
 				url = "<n/a>"
 			}
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
-			fmt.Printf("%-*s  %-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, hostWidth, host, regionWidth, regionText, url)
+			fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, regionWidth, regionText, url)
 		}
 		settings.SetDbNamesCache(extractDatabaseNames(databases))
 		return nil
