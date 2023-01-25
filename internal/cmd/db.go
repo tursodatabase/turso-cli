@@ -147,7 +147,7 @@ func getAccessToken() (string, error) {
 }
 
 func getHost() string {
-	host := os.Getenv("IKU_API_HOSTNAME")
+	host := os.Getenv("TURSO_API_BASEURL")
 	if host == "" {
 		host = "https://api.chiseledge.com"
 	}
