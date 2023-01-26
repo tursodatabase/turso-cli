@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -227,27 +226,30 @@ var createCmd = &cobra.Command{
 // The fallback region ID to use if we are unable to probe the closest region.
 const FallbackRegionId = "ams"
 
+type Region struct {
+	Server string
+}
+
 func probeClosestRegion() string {
-	probeUrl := "http://api.fly.io"
+	probeUrl := "https://chisel-region.fly.dev"
 	resp, err := http.Get(probeUrl)
 	if err != nil {
 		return FallbackRegionId
 	}
-	rawRequestId := resp.Header["Fly-Request-Id"]
-	if len(rawRequestId) == 0 {
+	defer resp.Body.Close()
+
+	reg := Region{}
+	err = json.NewDecoder(resp.Body).Decode(&reg)
+	if err != nil {
 		return FallbackRegionId
 	}
-	requestId := strings.Split(rawRequestId[0], "-")
-	if len(requestId) < 2 {
-		return FallbackRegionId
-	}
-	closestRegionId := requestId[1]
+
 	// Fly has regions that are not available to users. So let's ensure
 	// that we return a region ID that is actually usable for provisioning
 	// a database.
 	for _, regionId := range regionIds {
-		if closestRegionId == regionId {
-			return closestRegionId
+		if reg.Server == regionId {
+			return regionId
 		}
 	}
 	return FallbackRegionId
