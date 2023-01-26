@@ -21,6 +21,8 @@ import (
 // Color function for emphasising text.
 var emph = color.New(color.FgBlue, color.Bold).SprintFunc()
 
+var warn = color.New(color.FgYellow, color.Bold).SprintFunc()
+
 var region string
 var regionIds = []string{
 	"ams",
@@ -229,18 +231,23 @@ var createCmd = &cobra.Command{
 // The fallback region ID to use if we are unable to probe the closest region.
 const FallbackRegionId = "ams"
 
+const FallbackWarning = "Warning: we could not determine the deployment region closest to your physical location.\nThe region is defaulting to Amsterdam (ams). Consider specifying a region to select a better option using\n\n\tturso db create --region [region].\n\nRun turso db regions for a list of supported regions.\n"
+
 func probeClosestRegion() string {
 	probeUrl := "http://api.fly.io"
 	resp, err := http.Get(probeUrl)
 	if err != nil {
+		fmt.Printf(warn(FallbackWarning))
 		return FallbackRegionId
 	}
 	rawRequestId := resp.Header["Fly-Request-Id"]
 	if len(rawRequestId) == 0 {
+		fmt.Printf(warn(FallbackWarning))
 		return FallbackRegionId
 	}
 	requestId := strings.Split(rawRequestId[0], "-")
 	if len(requestId) < 2 {
+		fmt.Printf(warn(FallbackWarning))
 		return FallbackRegionId
 	}
 	closestRegionId := requestId[1]
