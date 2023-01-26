@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -233,30 +232,31 @@ const FallbackRegionId = "ams"
 
 const FallbackWarning = "Warning: we could not determine the deployment region closest to your physical location.\nThe region is defaulting to Amsterdam (ams). Consider specifying a region to select a better option using\n\n\tturso db create --region [region].\n\nRun turso db regions for a list of supported regions.\n"
 
+type Region struct {
+	Server string
+}
+
 func probeClosestRegion() string {
-	probeUrl := "http://api.fly.io"
+	probeUrl := "https://chisel-region.fly.dev"
 	resp, err := http.Get(probeUrl)
 	if err != nil {
 		fmt.Printf(warn(FallbackWarning))
 		return FallbackRegionId
 	}
-	rawRequestId := resp.Header["Fly-Request-Id"]
-	if len(rawRequestId) == 0 {
-		fmt.Printf(warn(FallbackWarning))
+	defer resp.Body.Close()
+
+	reg := Region{}
+	err = json.NewDecoder(resp.Body).Decode(&reg)
+	if err != nil {
 		return FallbackRegionId
 	}
-	requestId := strings.Split(rawRequestId[0], "-")
-	if len(requestId) < 2 {
-		fmt.Printf(warn(FallbackWarning))
-		return FallbackRegionId
-	}
-	closestRegionId := requestId[1]
+
 	// Fly has regions that are not available to users. So let's ensure
 	// that we return a region ID that is actually usable for provisioning
 	// a database.
 	for _, regionId := range regionIds {
-		if closestRegionId == regionId {
-			return closestRegionId
+		if reg.Server == regionId {
+			return regionId
 		}
 	}
 	return FallbackRegionId
