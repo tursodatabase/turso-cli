@@ -33,9 +33,29 @@ var loginCmd = &cobra.Command{
 	RunE:              login,
 }
 
+var tokenCmd = &cobra.Command{
+	Use:               "token",
+	Short:             "Show TURSO_API_TOKEN used for authorisation",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return fmt.Errorf("could not retrieve local config: %w", err)
+		}
+		token := settings.GetToken()
+		if len(token) == 0 {
+			fmt.Println("Please call `turso auth login` first")
+		}
+		fmt.Println(token)
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.AddCommand(loginCmd)
+	authCmd.AddCommand(tokenCmd)
 }
 
 func isJwtTokenValid(token string) bool {
