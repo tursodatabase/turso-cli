@@ -16,6 +16,7 @@ type DbNamesCache struct {
 }
 
 type DatabaseSettings struct {
+	Name     string  `json:"name"`
 	Host     string  `json:"host"`
 	Hostname *string `json:"hostname"`
 	Username string  `json:"username"`
@@ -87,9 +88,9 @@ func (s *Settings) InvalidateDbNamesCache() {
 	}
 }
 
-func (s *Settings) AddDatabase(name string, dbSettings *DatabaseSettings) {
+func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
 	databases := viper.GetStringMap("databases")
-	databases[name] = dbSettings
+	databases[id] = dbSettings
 	viper.Set("databases", databases)
 	err := viper.WriteConfig()
 	if err != nil {
@@ -97,9 +98,21 @@ func (s *Settings) AddDatabase(name string, dbSettings *DatabaseSettings) {
 	}
 }
 
-func (s *Settings) GetDatabaseSettings(name string) *DatabaseSettings {
+func (s Settings) FindDatabaseByName(name string) *DatabaseSettings {
 	databases := viper.GetStringMap("databases")
-	rawSettings, ok := databases[name]
+	for _, rawSettings := range databases {
+		settings := DatabaseSettings{}
+		mapstructure.Decode(rawSettings, &settings)
+		if settings.Name == name {
+			return &settings
+		}
+	}
+	return nil
+}
+
+func (s *Settings) GetDatabaseSettings(id string) *DatabaseSettings {
+	databases := viper.GetStringMap("databases")
+	rawSettings, ok := databases[id]
 	if !ok {
 		return nil
 	}

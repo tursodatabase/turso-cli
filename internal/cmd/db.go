@@ -206,9 +206,11 @@ var createCmd = &cobra.Command{
 		m := result.(map[string]interface{})["database"].(map[string]interface{})
 		username := result.(map[string]interface{})["username"].(string)
 		password := result.(map[string]interface{})["password"].(string)
+		dbId := m["DbId"].(string)
 		dbHost := m["Hostname"].(string)
 		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		dbSettings := settings.DatabaseSettings{
+			Name:     name,
 			Host:     dbHost,
 			Username: username,
 			Password: password,
@@ -218,7 +220,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
-		config.AddDatabase(name, &dbSettings)
+		config.AddDatabase(dbId, &dbSettings)
 		config.InvalidateDbNamesCache()
 		return nil
 	},
@@ -376,6 +378,7 @@ var replicateCmd = &cobra.Command{
 		m := result.(map[string]interface{})["database"].(map[string]interface{})
 		username := result.(map[string]interface{})["username"].(string)
 		password := result.(map[string]interface{})["password"].(string)
+		dbId := m["DbId"].(string)
 		dbHost := m["Hostname"].(string)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		dbSettings := settings.DatabaseSettings{
@@ -388,6 +391,7 @@ var replicateCmd = &cobra.Command{
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", dbUrl)
+		config.AddDatabase(dbId, &dbSettings)
 		config.InvalidateDbNamesCache()
 		return nil
 	},
@@ -425,10 +429,15 @@ var listCmd = &cobra.Command{
 		typeWidth := 7
 		fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", regionWidth, "REGION", "URL")
 		for _, database := range databases {
+			id := database.ID
 			name := database.Name
 			ty := database.Type
 			region := database.Region
-			dbSettings := settings.GetDatabaseSettings(name)
+			dbSettings := settings.GetDatabaseSettings(id)
+			if dbSettings == nil {
+				// Backwards compatibility with old settings files.
+				dbSettings = settings.GetDatabaseSettings(name)
+			}
 			var url string
 			if dbSettings != nil {
 				url = dbSettings.GetURL()
