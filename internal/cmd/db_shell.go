@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -76,6 +77,10 @@ type Row []interface{}
 
 type Error struct {
 	Message string `json:"message"`
+}
+
+type ErrorResponse struct {
+	Message string `json:"error"`
 }
 
 func getDatabaseURL(name string) (string, error) {
@@ -161,12 +166,19 @@ func query(url, stmt string) error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("error: Failed to execute SQL statement %s\n", stmt)
-		return nil
-	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		var err_response ErrorResponse
+		fmt.Fprintf(os.Stderr, "error: Failed to execute SQL statement %s\n", stmt)
+		if err := json.Unmarshal(body, &err_response); err != nil {
+			return nil
+		}
+		fmt.Fprintln(os.Stderr, err_response.Message)
+		return nil
+	}
+
 	var results []QueryResult
 	if err := json.Unmarshal(body, &results); err != nil {
 		fmt.Printf("error: Failed to parse response from server: %s\n", err.Error())
