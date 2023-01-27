@@ -317,6 +317,7 @@ var destroyCmd = &cobra.Command{
 		if err == nil {
 			settings.InvalidateDbNamesCache()
 		}
+		settings.DeleteDatabase(name)
 		return nil
 	},
 }

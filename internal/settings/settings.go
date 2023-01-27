@@ -99,6 +99,21 @@ func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
 	}
 }
 
+func (s *Settings) DeleteDatabase(name string) {
+	databases := viper.GetStringMap("databases")
+	for id, rawSettings := range databases {
+		settings := DatabaseSettings{}
+		mapstructure.Decode(rawSettings, &settings)
+		if settings.Name == name {
+			delete(databases, id)
+		}
+	}
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
+	}
+}
+
 func (s Settings) FindDatabaseByName(name string) (*DatabaseSettings, error) {
 	databases := viper.GetStringMap("databases")
 	db_names := make([]string, 0)
