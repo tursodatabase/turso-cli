@@ -3,6 +3,7 @@ package settings
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kirsle/configdir"
@@ -98,16 +99,19 @@ func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
 	}
 }
 
-func (s Settings) FindDatabaseByName(name string) *DatabaseSettings {
+func (s Settings) FindDatabaseByName(name string) (*DatabaseSettings, error) {
 	databases := viper.GetStringMap("databases")
+	db_names := make([]string, 0)
 	for _, rawSettings := range databases {
 		settings := DatabaseSettings{}
 		mapstructure.Decode(rawSettings, &settings)
 		if settings.Name == name {
-			return &settings
+			return &settings, nil
 		}
+		db_names = append(db_names, fmt.Sprintf("'%s'", settings.Name))
 	}
-	return nil
+	return nil, fmt.Errorf("provided database name is unknown. Valid database names are: [%s]",
+		strings.Join(db_names, ","))
 }
 
 func (s *Settings) GetDatabaseSettings(id string) *DatabaseSettings {
