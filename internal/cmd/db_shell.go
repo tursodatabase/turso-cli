@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/avast/retry-go"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
@@ -157,7 +159,18 @@ func query(url, stmt string) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.Post(url, "application/json", bytes.NewReader(req))
+	var resp *http.Response
+	err = retry.Do(
+		func() error {
+			var err error
+			resp, err = http.Post(url, "application/json", bytes.NewReader(req))
+			return err
+		},
+		retry.Attempts(3),
+		retry.OnRetry(func(n uint, err error) {
+			log.Printf("Retrying request after error: %v", err)
+		}),
+	)
 	if err != nil {
 		return err
 	}
