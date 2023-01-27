@@ -37,16 +37,24 @@ func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 }
 
 var shellCmd = &cobra.Command{
-	Use:               "shell database_name",
+	Use:               "shell database_name [sql]",
 	Short:             "Start a SQL shell.",
-	Args:              cobra.ExactArgs(1),
+	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
 			return fmt.Errorf("Please specify a database name.")
 		}
-		return runShell(name)
+		dbUrl, err := getDatabaseURL(name)
+		if err != nil {
+			return err
+		}
+		if len(args) == 1 {
+			return runShell(name, dbUrl)
+		} else {
+			return query(dbUrl, args[1])
+		}
 	},
 }
 
@@ -70,10 +78,10 @@ type Error struct {
 	Message string `json:"message"`
 }
 
-func runShell(name string) error {
+func getDatabaseURL(name string) (string, error) {
 	config, err := settings.ReadSettings()
 	if err != nil {
-		return err
+		return "", err
 	}
 	// If name is a valid URL, let's just is it directly to connect instead
 	// of looking up an URL from settings.
@@ -81,10 +89,20 @@ func runShell(name string) error {
 	var dbUrl string
 	if err != nil {
 		dbSettings := config.FindDatabaseByName(name)
+		if dbSettings == nil {
+			return "", fmt.Errorf("database %s not found", name)
+		}
 		dbUrl = dbSettings.GetURL()
-		fmt.Printf("Connected to %s at %s\n\n", emph(name), dbUrl)
 	} else {
 		dbUrl = name
+	}
+	return dbUrl, nil
+}
+
+func runShell(name, dbUrl string) error {
+	if name != dbUrl {
+		fmt.Printf("Connected to %s at %s\n\n", emph(name), dbUrl)
+	} else {
 		fmt.Printf("Connected to %s\n\n", dbUrl)
 	}
 	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
