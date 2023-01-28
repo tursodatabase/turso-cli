@@ -22,6 +22,7 @@ var emph = color.New(color.FgBlue, color.Bold).SprintFunc()
 
 var warn = color.New(color.FgYellow, color.Bold).SprintFunc()
 
+var canary bool
 var region string
 var regionIds = []string{
 	"ams",
@@ -101,10 +102,12 @@ func getDatabases() ([]turso.Database, error) {
 func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd)
+	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return regionIds, cobra.ShellCompDirectiveDefault
 	})
+	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 }
 
 var dbCmd = &cobra.Command{
@@ -158,6 +161,12 @@ var createCmd = &cobra.Command{
 		if region == "" {
 			region = probeClosestRegion()
 		}
+		var image string
+		if canary {
+			image = "canary"
+		} else {
+			image = "latest"
+		}
 		accessToken, err := getAccessToken()
 		if err != nil {
 			return err
@@ -165,7 +174,7 @@ var createCmd = &cobra.Command{
 		host := getHost()
 		url := fmt.Sprintf("%s/v1/databases", host)
 		bearer := "Bearer " + accessToken
-		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s"}`, name, region))
+		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s"}`, name, region, image))
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
 		if err != nil {
 			return err
@@ -350,6 +359,12 @@ var replicateCmd = &cobra.Command{
 		if region == "" {
 			return fmt.Errorf("You must specify a database region ID to replicate it.")
 		}
+		var image string
+		if canary {
+			image = "canary"
+		} else {
+			image = "latest"
+		}
 		accessToken, err := getAccessToken()
 		if err != nil {
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
@@ -357,7 +372,7 @@ var replicateCmd = &cobra.Command{
 		host := getHost()
 		url := fmt.Sprintf("%s/v1/databases", host)
 		bearer := "Bearer " + accessToken
-		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "type": "replica"}`, name, region))
+		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s", "type": "replica"}`, name, region, image))
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
 		if err != nil {
 			return err
