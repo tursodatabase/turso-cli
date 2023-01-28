@@ -23,6 +23,7 @@ var emph = color.New(color.FgBlue, color.Bold).SprintFunc()
 var warn = color.New(color.FgYellow, color.Bold).SprintFunc()
 
 var canary bool
+var force bool
 var region string
 var regionIds = []string{
 	"ams",
@@ -107,6 +108,7 @@ func init() {
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return regionIds, cobra.ShellCompDirectiveDefault
 	})
+	destroyCmd.Flags().BoolVar(&force, "force", false, "Force deletion.")
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 }
 
@@ -300,6 +302,9 @@ var destroyCmd = &cobra.Command{
 		}
 		host := getHost()
 		url := fmt.Sprintf("%s/v1/databases/%s", host, name)
+		if force {
+			url = fmt.Sprintf("%s?force=true", url)
+		}
 		bearer := "Bearer " + accessToken
 		req, err := http.NewRequest("DELETE", url, nil)
 		if err != nil {
