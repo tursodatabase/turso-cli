@@ -270,14 +270,20 @@ func probeClosestRegion() string {
 	// Fly has regions that are not available to users. So let's ensure
 	// that we return a region ID that is actually usable for provisioning
 	// a database.
-	for _, regionId := range regionIds {
-		if reg.Server == regionId {
-			return regionId
-		}
+	if !isValidRegion(reg.Server) {
+		return reg.Server
 	}
 	return FallbackRegionId
 }
 
+func isValidRegion(region string) bool {
+	for _, regionId := range regionIds {
+		if region == regionId {
+			return true
+		}
+	}
+	return false
+}
 func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
 		return getDatabaseNames(), cobra.ShellCompDirectiveNoFileComp
@@ -363,6 +369,9 @@ var replicateCmd = &cobra.Command{
 		region := args[1]
 		if region == "" {
 			return fmt.Errorf("You must specify a database region ID to replicate it.")
+		}
+		if !isValidRegion(region) {
+			return fmt.Errorf("Invalid region ID. Run %s to see a list of valid region IDs.", emph("turso db regions"))
 		}
 		var image string
 		if canary {
