@@ -33,6 +33,14 @@ var loginCmd = &cobra.Command{
 	RunE:              login,
 }
 
+var logoutCmd = &cobra.Command{
+	Use:               "logout",
+	Short:             "Log out currently logged in user.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE:              logout,
+}
+
 var tokenCmd = &cobra.Command{
 	Use:               "token",
 	Short:             "Show TURSO_API_TOKEN used for authorisation",
@@ -55,6 +63,7 @@ var tokenCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.AddCommand(loginCmd)
+	authCmd.AddCommand(logoutCmd)
 	authCmd.AddCommand(tokenCmd)
 }
 
@@ -158,4 +167,13 @@ func runServer(server *http.Server) (int, error) {
 	}()
 
 	return listener.Addr().(*net.TCPAddr).Port, nil
+}
+
+func logout(cmd *cobra.Command, args []string) error {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return fmt.Errorf("could not retrieve local config: %w", err)
+	}
+	settings.SetToken("")
+	return nil
 }
