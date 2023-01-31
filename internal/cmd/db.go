@@ -174,7 +174,7 @@ var createCmd = &cobra.Command{
 			return err
 		}
 		host := getHost()
-		url := fmt.Sprintf("%s/v1/databases", host)
+		url := fmt.Sprintf("%s/v2/databases", host)
 		bearer := "Bearer " + accessToken
 		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s"}`, name, region, image))
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
