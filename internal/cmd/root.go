@@ -13,6 +13,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	rootCmd.SilenceUsage = true
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
