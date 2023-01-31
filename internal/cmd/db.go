@@ -74,7 +74,7 @@ func fetchDatabaseNames() []string {
 	return extractDatabaseNames(databases)
 }
 
-func getDatabaseType(name string) (turso.Database, error) {
+func getDatabase(name string) (turso.Database, error) {
 	databases, err := getDatabases()
 	if err != nil {
 		return turso.Database{}, err
@@ -391,7 +391,7 @@ var replicateCmd = &cobra.Command{
 		}
 		host := getHost()
 
-		original, err := getDatabaseType(name)
+		original, err := getDatabase(name)
 		if err != nil {
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
