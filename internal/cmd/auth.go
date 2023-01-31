@@ -75,7 +75,6 @@ func isJwtTokenValid(token string) bool {
 }
 
 func login(cmd *cobra.Command, args []string) error {
-	fmt.Println("Waiting for authentication...")
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return fmt.Errorf("could not retrieve local config: %w", err)
@@ -84,6 +83,7 @@ func login(cmd *cobra.Command, args []string) error {
 		fmt.Println("✔  Success! Existing JWT still valid")
 		return nil
 	}
+	fmt.Println("Waiting for authentication...")
 	ch := make(chan string, 1)
 	server, err := createCallbackServer(ch)
 	if err != nil {
