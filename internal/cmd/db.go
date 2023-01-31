@@ -370,6 +370,9 @@ var replicateCmd = &cobra.Command{
 		if region == "" {
 			return fmt.Errorf("You must specify a database region ID to replicate it.")
 		}
+		if !isValidRegion(region) {
+			return fmt.Errorf("Invalid region ID. Run %s to see a list of valid region IDs.", emph("turso db regions"))
+		}
 		var image string
 		if canary {
 			image = "canary"
