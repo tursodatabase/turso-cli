@@ -43,7 +43,7 @@ var logoutCmd = &cobra.Command{
 
 var tokenCmd = &cobra.Command{
 	Use:               "token",
-	Short:             "Show TURSO_API_TOKEN used for authorisation",
+	Short:             "Show token used for authorization.",
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -53,7 +53,7 @@ var tokenCmd = &cobra.Command{
 		}
 		token := settings.GetToken()
 		if len(token) == 0 {
-			fmt.Println("Please call `turso auth login` first")
+			return fmt.Errorf("No user logged in. Run `turso auth login` to log in and get a token.")
 		}
 		fmt.Println(token)
 		return nil
@@ -174,6 +174,14 @@ func logout(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
-	settings.SetToken("")
+
+	token := settings.GetToken()
+	if len(token) == 0 {
+		fmt.Println("No user logged in.")
+	} else {
+		settings.SetToken("")
+		fmt.Println("Logged out.")
+	}
+
 	return nil
 }
