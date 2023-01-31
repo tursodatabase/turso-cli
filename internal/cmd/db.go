@@ -397,7 +397,7 @@ var replicateCmd = &cobra.Command{
 		}
 
 		url := fmt.Sprintf("%s/v1/databases", host)
-		if original.Type == "distributed" {
+		if original.Type == "logical" {
 			url = fmt.Sprintf("%s/v2/databases/%s/instances", host, name)
 		}
 
@@ -434,7 +434,7 @@ var replicateCmd = &cobra.Command{
 		end := time.Now()
 		elapsed := end.Sub(start)
 		var m map[string]interface{}
-		if original.Type == "distributed" {
+		if original.Type == "logical" {
 			m = result.(map[string]interface{})["instance"].(map[string]interface{})
 		} else {
 			m = result.(map[string]interface{})["database"].(map[string]interface{})
@@ -443,7 +443,7 @@ var replicateCmd = &cobra.Command{
 		password := result.(map[string]interface{})["password"].(string)
 		var dbId, dbHost string
 		fmt.Println(original)
-		if original.Type == "distributed" {
+		if original.Type == "logical" {
 			dbId = m["Uuid"].(string)
 			dbHost = original.Hostname
 		} else {
