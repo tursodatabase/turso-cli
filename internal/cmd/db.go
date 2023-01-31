@@ -301,7 +301,7 @@ var destroyCmd = &cobra.Command{
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
 		host := getHost()
-		url := fmt.Sprintf("%s/v1/databases/%s", host, name)
+		url := fmt.Sprintf("%s/v2/databases/%s", host, name)
 		if force {
 			url = fmt.Sprintf("%s?force=true", url)
 		}
