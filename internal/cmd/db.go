@@ -26,6 +26,7 @@ var canary bool
 var force bool
 var region string
 var allFlag bool
+var instanceFlag string
 var regionIds = []string{
 	"ams",
 	"cdg",
@@ -112,6 +113,7 @@ func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, showCmd)
 	destroyCmd.Flags().BoolVar(&allFlag, "all", false, "Destroy all regions of the database.")
+	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -311,8 +313,12 @@ var destroyCmd = &cobra.Command{
 			return destroyDatabase(name)
 		}
 
+		if instanceFlag != "" {
+			return destroyDatabaseInstance(name, instanceFlag)
+		}
+
 		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-			return fmt.Errorf("db destroy should receive a region argument or the --all flag")
+			return fmt.Errorf("db destroy should receive a region argument or a flag")
 		}
 
 		validateDestroyRegion := cobra.MatchAll(dbNameValidator(0), regionArgValidator(1))
