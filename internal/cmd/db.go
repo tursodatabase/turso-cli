@@ -411,7 +411,10 @@ var replicateCmd = &cobra.Command{
 		}
 
 		bearer := "Bearer " + accessToken
-		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s", "type": "replica"}`, name, region, image))
+		dbSettings := config.GetDatabaseSettings(original.ID)
+		password := dbSettings.Password
+
+		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s", "type": "replica", "password": "%s"}`, name, region, image, password))
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
 		if err != nil {
 			return err
@@ -449,7 +452,7 @@ var replicateCmd = &cobra.Command{
 			m = result.(map[string]interface{})["database"].(map[string]interface{})
 		}
 		username := result.(map[string]interface{})["username"].(string)
-		password := result.(map[string]interface{})["password"].(string)
+		password = result.(map[string]interface{})["password"].(string)
 		var dbId, dbHost string
 		fmt.Println(original)
 		if original.Type == "logical" {
@@ -460,7 +463,7 @@ var replicateCmd = &cobra.Command{
 			dbHost = m["Hostname"].(string)
 		}
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
-		dbSettings := settings.DatabaseSettings{
+		dbSettings = &settings.DatabaseSettings{
 			Host:     dbHost,
 			Username: username,
 			Password: password,
@@ -470,7 +473,7 @@ var replicateCmd = &cobra.Command{
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", dbUrl)
-		config.AddDatabase(dbId, &dbSettings)
+		config.AddDatabase(dbId, dbSettings)
 		config.InvalidateDbNamesCache()
 		return nil
 	},
