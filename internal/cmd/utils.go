@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -47,4 +49,24 @@ func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
 		url = dbSettings.GetURL()
 	}
 	return url
+}
+
+func printTable(title string, header []string, data [][]string) {
+	table := tablewriter.NewWriter(os.Stdout)
+
+	table.SetHeader(header)
+	table.SetHeaderLine(false)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAutoFormatHeaders(true)
+
+	table.SetBorder(false)
+	table.SetAutoWrapText(false)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetColumnSeparator("  ")
+	table.SetNoWhiteSpace(true)
+	table.SetTablePadding("     ")
+
+	table.AppendBulk(data)
+
+	table.Render()
 }
