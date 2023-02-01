@@ -109,7 +109,7 @@ func getDatabases() ([]turso.Database, error) {
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd)
+	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, dropCmd)
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -345,6 +345,45 @@ var destroyCmd = &cobra.Command{
 			settings.InvalidateDbNamesCache()
 		}
 		settings.DeleteDatabase(name)
+		return nil
+	},
+}
+
+var dropCmd = &cobra.Command{
+	Use:   "drop database_name region",
+	Short: "Drop a database from a given region.",
+	Args: cobra.MatchAll(
+		cobra.ExactArgs(2),
+		dbNameValidator(0),
+		regionArgValidator(1),
+	),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db, err := getDatabase(args[0])
+		if err != nil {
+			return err
+		}
+
+		region := args[1]
+		if db.Type != "logical" {
+			return fmt.Errorf("database '%s' does not support the drop operation", db.Name)
+		}
+
+		instances, err := turso.Instances.List(db.Name)
+		if err != nil {
+			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
+		}
+
+		instance := findInstanceFromRegion(instances, region)
+		if instance == nil {
+			return fmt.Errorf("could not find any instance of database %s on region %s", db.Name, region)
+		}
+
+		err = turso.Instances.Delete(db.Name, instance.Name)
+		if err != nil {
+			return fmt.Errorf("could not delete instance %s from region %s: %w", instance.Name, region, err)
+		}
+
+		fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance.Name), emph(region), emph(db.Name))
 		return nil
 	},
 }
