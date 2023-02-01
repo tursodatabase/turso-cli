@@ -2,3 +2,5 @@
 dist/
 completions
 internal/cmd/version.txt
+.turso_history
+.vscode/
