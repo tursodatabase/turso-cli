@@ -380,7 +380,12 @@ var dropCmd = &cobra.Command{
 
 		err = turso.Instances.Delete(db.Name, instance.Name)
 		if err != nil {
-			return fmt.Errorf("could not delete instance %s from region %s: %w", instance.Name, region, err)
+			// TODO: remove this once wait stopped bug is fixed
+			time.Sleep(3 * time.Second)
+			err = turso.Instances.Delete(db.Name, instance.Name)
+			if err != nil {
+				return fmt.Errorf("could not delete instance %s from region %s: %w", instance.Name, region, err)
+			}
 		}
 
 		fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance.Name), emph(region), emph(db.Name))
