@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -209,7 +209,7 @@ var createCmd = &cobra.Command{
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err == nil {
 				var result interface{}
 				if err := json.Unmarshal(body, &result); err == nil {
@@ -219,7 +219,7 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
@@ -448,7 +448,7 @@ var replicateCmd = &cobra.Command{
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
 		}
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}

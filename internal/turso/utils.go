@@ -2,12 +2,12 @@ package turso
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
 func Unmarshall[T any](r *http.Response) (T, error) {
-	d, err := ioutil.ReadAll(r.Body)
+	d, err := io.ReadAll(r.Body)
 	t := new(T)
 	if err != nil {
 		return *t, err
