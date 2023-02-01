@@ -1,4 +1,4 @@
-package clients
+package turso
 
 import (
 	"encoding/json"

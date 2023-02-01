@@ -7,12 +7,16 @@ import (
 	"net/url"
 )
 
-type client struct {
+type Client struct {
 	base  *url.URL
 	token string
 }
 
-func (t *client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
+func New(base *url.URL, token string) *Client {
+	return &Client{base, token}
+}
+
+func (t *Client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
 	url := t.base.JoinPath(path).String()
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -23,7 +27,7 @@ func (t *client) newRequest(method, path string, body io.Reader) (*http.Request,
 	return req, nil
 }
 
-func (t *client) do(method, path string, body io.Reader) (*http.Response, error) {
+func (t *Client) do(method, path string, body io.Reader) (*http.Response, error) {
 	req, err := t.newRequest(method, path, body)
 	if err != nil {
 		return nil, err
@@ -31,14 +35,14 @@ func (t *client) do(method, path string, body io.Reader) (*http.Response, error)
 	return http.DefaultClient.Do(req)
 }
 
-func (t *client) Get(path string, body io.Reader) (*http.Response, error) {
+func (t *Client) Get(path string, body io.Reader) (*http.Response, error) {
 	return t.do("GET", path, body)
 }
 
-func (t *client) Post(path string, body io.Reader) (*http.Response, error) {
+func (t *Client) Post(path string, body io.Reader) (*http.Response, error) {
 	return t.do("POST", path, body)
 }
 
-func (t *client) Delete(path string, body io.Reader) (*http.Response, error) {
+func (t *Client) Delete(path string, body io.Reader) (*http.Response, error) {
 	return t.do("DELETE", path, body)
 }

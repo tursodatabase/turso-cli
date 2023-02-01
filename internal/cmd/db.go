@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/fatih/color"
 	"github.com/lucasepe/codename"
 	"github.com/spf13/cobra"
@@ -54,7 +54,7 @@ var regionIds = []string{
 	"yyz",
 }
 
-func extractDatabaseNames(databases []clients.Database) []string {
+func extractDatabaseNames(databases []turso.Database) []string {
 	names := make([]string, 0)
 	for _, database := range databases {
 		name := database.Name
@@ -74,10 +74,10 @@ func fetchDatabaseNames() []string {
 	return extractDatabaseNames(databases)
 }
 
-func getDatabase(name string) (clients.Database, error) {
+func getDatabase(name string) (turso.Database, error) {
 	databases, err := getDatabases()
 	if err != nil {
-		return clients.Database{}, err
+		return turso.Database{}, err
 	}
 
 	for _, database := range databases {
@@ -86,7 +86,7 @@ func getDatabase(name string) (clients.Database, error) {
 		}
 	}
 
-	return clients.Database{}, fmt.Errorf("database with name %s not found", name)
+	return turso.Database{}, fmt.Errorf("database with name %s not found", name)
 }
 
 func getDatabaseNames() []string {
@@ -103,8 +103,8 @@ func getDatabaseNames() []string {
 	return names
 }
 
-func getDatabases() ([]clients.Database, error) {
-	return clients.Databases.List()
+func getDatabases() ([]turso.Database, error) {
+	return turso.Databases.List()
 }
 
 func init() {

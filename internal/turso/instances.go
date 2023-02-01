@@ -1,10 +1,12 @@
-package clients
+package turso
 
 import (
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 )
 
 type Instance struct {
@@ -15,10 +17,10 @@ type Instance struct {
 }
 
 type instances struct {
-	c *client
+	c *clients.Client
 }
 
-var Instances = &instances{Turso}
+var Instances = &instances{Client}
 
 func NewInstances(base *url.URL, token string) *instances {
 	return &instances{NewTurso(base, token)}

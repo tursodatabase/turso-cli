@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -71,7 +71,7 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	resp, err := clients.Turso.Get("/v1/databases", nil)
+	resp, err := turso.Client.Get("/v1/databases", nil)
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 

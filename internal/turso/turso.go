@@ -1,14 +1,16 @@
-package clients
+package turso
 
 import (
 	"fmt"
 	"log"
 	"net/url"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 )
 
-var Turso = initTurso()
+var Client = initTurso()
 
-func initTurso() *client {
+func initTurso() *clients.Client {
 	serialized := getTursoUrl()
 	base, err := url.Parse(serialized)
 	if err != nil {
@@ -21,6 +23,6 @@ func initTurso() *client {
 	return NewTurso(base, token)
 }
 
-func NewTurso(base *url.URL, token string) *client {
-	return &client{base, token}
+func NewTurso(base *url.URL, token string) *clients.Client {
+	return clients.New(base, token)
 }

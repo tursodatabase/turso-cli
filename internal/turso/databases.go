@@ -1,8 +1,10 @@
-package clients
+package turso
 
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 )
 
 type Database struct {
@@ -14,10 +16,10 @@ type Database struct {
 }
 
 type databases struct {
-	c *client
+	c *clients.Client
 }
 
-var Databases = &databases{Turso}
+var Databases = &databases{Client}
 
 func (d *databases) List() ([]Database, error) {
 	r, err := d.c.Get("/v2/databases", nil)
