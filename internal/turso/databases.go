@@ -76,11 +76,7 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 	}
 
 	if res.StatusCode != http.StatusOK {
-		type ErrorResponse struct{ Error interface{} }
-		if result, err := unmarshal[ErrorResponse](res); err == nil {
-			return nil, fmt.Errorf("%s", result.Error)
-		}
-		return nil, fmt.Errorf("response failed with status %s", res.Status)
+		parseResponseError(res)
 	}
 
 	data, err := unmarshal[*CreateDatabaseResponse](res)

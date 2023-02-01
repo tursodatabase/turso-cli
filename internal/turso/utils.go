@@ -3,6 +3,7 @@ package turso
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -21,4 +22,12 @@ func marshal(data interface{}) (io.Reader, error) {
 	buf := &bytes.Buffer{}
 	err := json.NewEncoder(buf).Encode(data)
 	return buf, err
+}
+
+func parseResponseError(res *http.Response) error {
+	type ErrorResponse struct{ Error interface{} }
+	if result, err := unmarshal[ErrorResponse](res); err == nil {
+		return fmt.Errorf("%s", result.Error)
+	}
+	return fmt.Errorf("response failed with status %s", res.Status)
 }
