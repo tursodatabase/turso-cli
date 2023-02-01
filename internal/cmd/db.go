@@ -198,6 +198,10 @@ var createCmd = &cobra.Command{
 			Password: res.Password,
 		}
 
+		if _, err = client.Instances.Create(name, res.Password, region, image); err != nil {
+			return fmt.Errorf("failed to create instance for database %s: %w", name, err)
+		}
+
 		fmt.Printf("HTTP connection string:\n\n")
 		dbUrl := dbSettings.GetURL()
 		fmt.Printf("   %s\n\n", dbUrl)
