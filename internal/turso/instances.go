@@ -53,3 +53,29 @@ func (i *InstancesClient) Delete(db, instance string) error {
 
 	return nil
 }
+
+func (d *InstancesClient) Create(dbName, password, region, image string) (*Instance, error) {
+	type Body struct{ Password, Region, Image string }
+	body, err := marshal(Body{password, region, image})
+	if err != nil {
+		return nil, fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	url := fmt.Sprintf("/v2/databases/%s/instances", dbName)
+	res, err := d.client.Post(url, body)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, parseResponseError(res)
+	}
+
+	instance, err := unmarshal[*Instance](res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize response: %w", err)
+	}
+
+	return instance, nil
+}
