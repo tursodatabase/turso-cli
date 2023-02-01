@@ -309,41 +309,20 @@ var destroyCmd = &cobra.Command{
 			return fmt.Errorf("You must specify a database name to delete it.")
 		}
 
-		accessToken, err := getAccessToken()
-		if err != nil {
-			return fmt.Errorf("please login with %s", emph("turso auth login"))
-		}
-		host := getHost()
-		url := fmt.Sprintf("%s/v2/databases/%s", host, name)
-		if force {
-			url = fmt.Sprintf("%s?force=true", url)
-		}
-		bearer := "Bearer " + accessToken
-		req, err := http.NewRequest("DELETE", url, nil)
-		if err != nil {
-			return err
-		}
-		req.Header.Add("Authorization", bearer)
-		s := spinner.New(spinner.CharSets[14], 40*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Destroying database %s... ", emph(name))
-		s.Start()
 		start := time.Now()
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		s.Stop()
-		if err != nil {
+		s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
+		if err := turso.Databases.Delete(name); err != nil {
 			return err
 		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Failed to destroy database: %s", resp.Status)
-		}
-		end := time.Now()
-		elapsed := end.Sub(start)
+		s.Stop()
+		elapsed := time.Since(start)
+
 		fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
 		settings, err := settings.ReadSettings()
 		if err == nil {
 			settings.InvalidateDbNamesCache()
 		}
+
 		settings.DeleteDatabase(name)
 		return nil
 	},

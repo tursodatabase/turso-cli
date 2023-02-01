@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/olekukonko/tablewriter"
@@ -89,4 +91,11 @@ func printTable(title string, header []string, data [][]string) {
 	table.AppendBulk(data)
 
 	table.Render()
+}
+
+func startSpinner(text string) *spinner.Spinner {
+	s := spinner.New(spinner.CharSets[14], 40*time.Millisecond)
+	s.Prefix = text
+	s.Start()
+	return s
 }
