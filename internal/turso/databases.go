@@ -51,3 +51,42 @@ func (d *DatabasesClient) Delete(database string) error {
 
 	return nil
 }
+
+type CreateDatabaseResponse struct {
+	Database Database
+	Username string
+	Password string
+}
+
+func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseResponse, error) {
+	type Body struct{ Name, Region, Image string }
+	body, err := Marshal(Body{name, region, image})
+	if err != nil {
+		return nil, fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	res, err := d.client.Post("/v2/databases", body)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusUnprocessableEntity {
+		return nil, fmt.Errorf("Database name '%s' is not available", name)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		type ErrorResponse struct{ Error interface{} }
+		if result, err := Unmarshall[ErrorResponse](res); err == nil {
+			return nil, fmt.Errorf("%s", result.Error)
+		}
+		return nil, fmt.Errorf("response failed with status %s", res.Status)
+	}
+
+	data, err := Unmarshall[*CreateDatabaseResponse](res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize response: %w", err)
+	}
+
+	return data, nil
+}
