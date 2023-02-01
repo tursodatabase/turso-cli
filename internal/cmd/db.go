@@ -109,7 +109,7 @@ func getDatabases() ([]turso.Database, error) {
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, dropCmd)
+	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, dropCmd, showCmd)
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -389,6 +389,51 @@ var dropCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance.Name), emph(region), emph(db.Name))
+		return nil
+	},
+}
+
+var showCmd = &cobra.Command{
+	Use:   "show database_name",
+	Short: "Show information from a database.",
+	Args: cobra.MatchAll(
+		cobra.ExactArgs(1),
+		dbNameValidator(0),
+	),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db, err := getDatabase(args[0])
+		if err != nil {
+			return err
+		}
+
+		if db.Type != "logical" {
+			return fmt.Errorf("database '%s' does not support the show operation", db.Name)
+		}
+
+		config, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		instances, err := turso.Instances.List(db.Name)
+		if err != nil {
+			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
+		}
+
+		fmt.Println("NAME:   ", db.Name)
+		fmt.Println("URL:    ", getDatabaseUrl(config, db))
+		fmt.Println("ID:     ", db.ID)
+		fmt.Println("REGIONS:", displayRegions(instances))
+		fmt.Println()
+
+		data := [][]string{}
+		for _, instance := range instances {
+			data = append(data, []string{instance.Name, instance.Type, instance.Region})
+		}
+
+		fmt.Print("Database Instances:\n")
+		printTable("foo", []string{"name", "type", "region"}, data)
+
 		return nil
 	},
 }
