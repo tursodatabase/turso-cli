@@ -132,6 +132,13 @@ func startSpinner(text string) *spinner.Spinner {
 	return s
 }
 
+func startLoadingBar(text string) *spinner.Spinner {
+	s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
+	s.Prefix = text
+	s.Start()
+	return s
+}
+
 func destroyDatabase(name string) error {
 	start := time.Now()
 	s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
