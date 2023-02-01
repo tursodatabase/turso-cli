@@ -3,8 +3,6 @@ package turso
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 )
 
 type Database struct {
@@ -15,14 +13,10 @@ type Database struct {
 	Hostname string
 }
 
-type databases struct {
-	c *clients.Client
-}
+type DatabasesClient client
 
-var Databases = &databases{Client}
-
-func (d *databases) List() ([]Database, error) {
-	r, err := d.c.Get("/v2/databases", nil)
+func (d *DatabasesClient) List() ([]Database, error) {
+	r, err := d.client.Get("/v2/databases", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +33,9 @@ func (d *databases) List() ([]Database, error) {
 	return resp.Databases, err
 }
 
-func (d *databases) Delete(database string) error {
+func (d *DatabasesClient) Delete(database string) error {
 	url := fmt.Sprintf("/v2/databases/%s", database)
-	r, err := d.c.Delete(url, nil)
+	r, err := d.client.Delete(url, nil)
 	if err != nil {
 		return err
 	}

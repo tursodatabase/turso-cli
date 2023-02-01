@@ -105,7 +105,7 @@ func getDatabaseNames() []string {
 }
 
 func getDatabases() ([]turso.Database, error) {
-	return turso.Databases.List()
+	return client.Databases.List()
 }
 
 func init() {
@@ -350,7 +350,7 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
-		instances, err := turso.Instances.List(db.Name)
+		instances, err := client.Instances.List(db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
