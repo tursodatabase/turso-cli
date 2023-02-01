@@ -29,7 +29,7 @@ func (d *DatabasesClient) List() ([]Database, error) {
 	type ListResponse struct {
 		Databases []Database `json:"databases"`
 	}
-	resp, err := Unmarshall[ListResponse](r)
+	resp, err := unmarshal[ListResponse](r)
 	return resp.Databases, err
 }
 
@@ -60,7 +60,7 @@ type CreateDatabaseResponse struct {
 
 func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseResponse, error) {
 	type Body struct{ Name, Region, Image string }
-	body, err := Marshal(Body{name, region, image})
+	body, err := marshal(Body{name, region, image})
 	if err != nil {
 		return nil, fmt.Errorf("could not serialize request body: %w", err)
 	}
@@ -77,13 +77,13 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 
 	if res.StatusCode != http.StatusOK {
 		type ErrorResponse struct{ Error interface{} }
-		if result, err := Unmarshall[ErrorResponse](res); err == nil {
+		if result, err := unmarshal[ErrorResponse](res); err == nil {
 			return nil, fmt.Errorf("%s", result.Error)
 		}
 		return nil, fmt.Errorf("response failed with status %s", res.Status)
 	}
 
-	data, err := Unmarshall[*CreateDatabaseResponse](res)
+	data, err := unmarshal[*CreateDatabaseResponse](res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize response: %w", err)
 	}

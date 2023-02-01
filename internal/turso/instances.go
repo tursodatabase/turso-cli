@@ -27,7 +27,7 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 	}
 
 	type ListResponse struct{ Instances []Instance }
-	resp, err := Unmarshall[ListResponse](r)
+	resp, err := unmarshal[ListResponse](r)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (i *InstancesClient) Delete(db, instance string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusBadRequest {
-		body, _ := Unmarshall[struct{ Error string }](r)
+		body, _ := unmarshal[struct{ Error string }](r)
 		return errors.New(body.Error)
 	}
 

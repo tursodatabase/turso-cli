@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func Unmarshall[T any](r *http.Response) (T, error) {
+func unmarshal[T any](r *http.Response) (T, error) {
 	d, err := io.ReadAll(r.Body)
 	t := new(T)
 	if err != nil {
@@ -17,7 +17,7 @@ func Unmarshall[T any](r *http.Response) (T, error) {
 	return *t, nil
 }
 
-func Marshal(data interface{}) (io.Reader, error) {
+func marshal(data interface{}) (io.Reader, error) {
 	buf := &bytes.Buffer{}
 	err := json.NewEncoder(buf).Encode(data)
 	return buf, err
