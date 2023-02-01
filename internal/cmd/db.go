@@ -308,23 +308,7 @@ var destroyCmd = &cobra.Command{
 		if name == "" {
 			return fmt.Errorf("You must specify a database name to delete it.")
 		}
-
-		start := time.Now()
-		s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
-		if err := turso.Databases.Delete(name); err != nil {
-			return err
-		}
-		s.Stop()
-		elapsed := time.Since(start)
-
-		fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
-		settings, err := settings.ReadSettings()
-		if err == nil {
-			settings.InvalidateDbNamesCache()
-		}
-
-		settings.DeleteDatabase(name)
-		return nil
+		return destroyDatabase(name)
 	},
 }
 
@@ -337,38 +321,7 @@ var dropCmd = &cobra.Command{
 		regionArgValidator(1),
 	),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := getDatabase(args[0])
-		if err != nil {
-			return err
-		}
-
-		region := args[1]
-		if db.Type != "logical" {
-			return fmt.Errorf("database '%s' does not support the drop operation", db.Name)
-		}
-
-		instances, err := turso.Instances.List(db.Name)
-		if err != nil {
-			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
-		}
-
-		instance := findInstanceFromRegion(instances, region)
-		if instance == nil {
-			return fmt.Errorf("could not find any instance of database %s on region %s", db.Name, region)
-		}
-
-		err = turso.Instances.Delete(db.Name, instance.Name)
-		if err != nil {
-			// TODO: remove this once wait stopped bug is fixed
-			time.Sleep(3 * time.Second)
-			err = turso.Instances.Delete(db.Name, instance.Name)
-			if err != nil {
-				return fmt.Errorf("could not delete instance %s from region %s: %w", instance.Name, region, err)
-			}
-		}
-
-		fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance.Name), emph(region), emph(db.Name))
-		return nil
+		return destroyDatabaseRegion(args[0], args[1])
 	},
 }
 

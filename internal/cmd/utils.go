@@ -99,3 +99,56 @@ func startSpinner(text string) *spinner.Spinner {
 	s.Start()
 	return s
 }
+
+func destroyDatabase(name string) error {
+	start := time.Now()
+	s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
+	if err := turso.Databases.Delete(name); err != nil {
+		return err
+	}
+	s.Stop()
+	elapsed := time.Since(start)
+
+	fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
+	settings, err := settings.ReadSettings()
+	if err == nil {
+		settings.InvalidateDbNamesCache()
+	}
+
+	settings.DeleteDatabase(name)
+	return nil
+}
+
+func destroyDatabaseRegion(database, region string) error {
+	db, err := getDatabase(database)
+	if err != nil {
+		return err
+	}
+
+	if db.Type != "logical" {
+		return fmt.Errorf("database '%s' does not support the destroy operation with region argument", db.Name)
+	}
+
+	instances, err := turso.Instances.List(db.Name)
+	if err != nil {
+		return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
+	}
+
+	instance := findInstanceFromRegion(instances, region)
+	if instance == nil {
+		return fmt.Errorf("could not find any instance of database %s on region %s", db.Name, region)
+	}
+
+	err = turso.Instances.Delete(db.Name, instance.Name)
+	if err != nil {
+		// TODO: remove this once wait stopped bug is fixed
+		time.Sleep(3 * time.Second)
+		err = turso.Instances.Delete(db.Name, instance.Name)
+		if err != nil {
+			return fmt.Errorf("could not delete instance %s from region %s: %w", instance.Name, region, err)
+		}
+	}
+
+	fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance.Name), emph(region), emph(db.Name))
+	return nil
+}
