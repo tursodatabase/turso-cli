@@ -11,6 +11,7 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 func dbNameValidator(argIndex int) cobra.PositionalArgs {
@@ -31,13 +32,26 @@ func regionArgValidator(argIndex int) cobra.PositionalArgs {
 	}
 }
 
-func findInstanceFromRegion(instances []turso.Instance, region string) *turso.Instance {
+func filterInstancesByRegion(instances []turso.Instance, region string) []turso.Instance {
+	result := []turso.Instance{}
 	for _, instance := range instances {
 		if instance.Region == region {
-			return &instance
+			result = append(result, instance)
 		}
 	}
-	return nil
+	return result
+}
+
+func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others []turso.Instance) {
+	result := []turso.Instance{}
+	for _, instance := range instances {
+		if instance.Type == "primary" {
+			primary = &instance
+			continue
+		}
+		result = append(result, instance)
+	}
+	return primary, result
 }
 
 func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
@@ -119,7 +133,7 @@ func destroyDatabase(name string) error {
 	return nil
 }
 
-func destroyDatabaseRegion(database, region string) error {
+func destroyDatabaseReplicas(database, region string) error {
 	db, err := getDatabase(database)
 	if err != nil {
 		return err
@@ -134,21 +148,39 @@ func destroyDatabaseRegion(database, region string) error {
 		return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 	}
 
-	instance := findInstanceFromRegion(instances, region)
-	if instance == nil {
-		return fmt.Errorf("could not find any instance of database %s on region %s", db.Name, region)
+	instances = filterInstancesByRegion(instances, region)
+	if len(instances) == 0 {
+		return fmt.Errorf("could not find any instances of database %s on region %s", db.Name, region)
 	}
 
-	err = turso.Instances.Delete(db.Name, instance.Name)
-	if err != nil {
+	primary, replicas := extractPrimary(instances)
+	g := errgroup.Group{}
+	for i := range replicas {
+		replica := replicas[i]
+		g.Go(func() error { return destroyDatabaseInstance(db.Name, replica.Name) })
+	}
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Destroyed %d instances in region %s of database %s.\n", len(replicas), emph(region), emph(db.Name))
+	if primary != nil {
+		destroyAllCmd := fmt.Sprintf("turso db destoy %s --all", database)
+		fmt.Printf("Primary was not destroyed. To destroy it, with the whole database, run '%s'", destroyAllCmd)
+	}
+
+	return nil
+}
+
+func destroyDatabaseInstance(database, instance string) error {
+	if err := turso.Instances.Delete(database, instance); err != nil {
 		// TODO: remove this once wait stopped bug is fixed
 		time.Sleep(3 * time.Second)
-		err = turso.Instances.Delete(db.Name, instance.Name)
+		err = turso.Instances.Delete(database, instance)
 		if err != nil {
-			return fmt.Errorf("could not delete instance %s from region %s: %w", instance.Name, region, err)
+			return fmt.Errorf("could not delete instance %s: %w", instance, err)
 		}
 	}
-
-	fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance.Name), emph(region), emph(db.Name))
 	return nil
 }

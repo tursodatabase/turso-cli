@@ -320,7 +320,7 @@ var destroyCmd = &cobra.Command{
 			return fmt.Errorf("invalid arguments: %w", err)
 		}
 
-		return destroyDatabaseRegion(args[0], args[1])
+		return destroyDatabaseReplicas(args[0], args[1])
 	},
 }
 
