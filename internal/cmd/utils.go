@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -32,4 +33,18 @@ func findInstanceFromRegion(instances []turso.Instance, region string) *turso.In
 		}
 	}
 	return nil
+}
+
+func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
+	dbSettings := settings.GetDatabaseSettings(db.ID)
+	if dbSettings == nil {
+		// Backwards compatibility with old settings files.
+		dbSettings = settings.GetDatabaseSettings(db.Name)
+	}
+
+	url := "<n/a>"
+	if dbSettings != nil {
+		url = dbSettings.GetURL()
+	}
+	return url
 }

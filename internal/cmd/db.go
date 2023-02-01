@@ -544,21 +544,10 @@ var listCmd = &cobra.Command{
 		typeWidth := 12
 		fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", regionWidth, "REGION", "URL")
 		for _, database := range databases {
-			id := database.ID
 			name := database.Name
 			ty := database.Type
 			region := database.Region
-			dbSettings := settings.GetDatabaseSettings(id)
-			if dbSettings == nil {
-				// Backwards compatibility with old settings files.
-				dbSettings = settings.GetDatabaseSettings(name)
-			}
-			var url string
-			if dbSettings != nil {
-				url = dbSettings.GetURL()
-			} else {
-				url = "<n/a>"
-			}
+			url := getDatabaseUrl(settings, database)
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
 			fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, regionWidth, regionText, url)
 		}
