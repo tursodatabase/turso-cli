@@ -26,11 +26,11 @@ func (d *databases) List() ([]Database, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get database listing: %s", r.Status)
 	}
-	defer r.Body.Close()
 
 	type ListResponse struct {
 		Databases []Database `json:"databases"`
