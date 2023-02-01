@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
@@ -49,6 +50,25 @@ func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
 		url = dbSettings.GetURL()
 	}
 	return url
+}
+
+func displayRegions(instances []turso.Instance) string {
+	regions := make(map[string]bool)
+	for _, instance := range instances {
+		region := instance.Region
+		regions[region] = regions[region] || (instance.Type == "primary")
+	}
+
+	list := make([]string, 0)
+	for region, primary := range regions {
+		tag := region
+		if primary {
+			tag = emph(region) + " (primary)"
+		}
+		list = append(list, tag)
+	}
+
+	return strings.Join(list, ", ")
 }
 
 func printTable(title string, header []string, data [][]string) {
