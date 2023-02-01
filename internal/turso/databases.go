@@ -22,7 +22,7 @@ type Database struct {
 }
 
 func (s *DatabasesService) List() ([]Database, error) {
-	url := fmt.Sprintf("/v1/databases")
+	url := fmt.Sprintf("/v2/databases")
 	req, err := s.client.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err

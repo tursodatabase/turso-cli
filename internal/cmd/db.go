@@ -74,6 +74,21 @@ func fetchDatabaseNames() []string {
 	return extractDatabaseNames(databases)
 }
 
+func getDatabase(name string) (turso.Database, error) {
+	databases, err := getDatabases()
+	if err != nil {
+		return turso.Database{}, err
+	}
+
+	for _, database := range databases {
+		if database.Name == name {
+			return database, nil
+		}
+	}
+
+	return turso.Database{}, fmt.Errorf("database with name %s not found", name)
+}
+
 func getDatabaseNames() []string {
 	settings, err := settings.ReadSettings()
 	if err != nil {
@@ -174,7 +189,7 @@ var createCmd = &cobra.Command{
 			return err
 		}
 		host := getHost()
-		url := fmt.Sprintf("%s/v1/databases", host)
+		url := fmt.Sprintf("%s/v2/databases", host)
 		bearer := "Bearer " + accessToken
 		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s"}`, name, region, image))
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
@@ -307,7 +322,7 @@ var destroyCmd = &cobra.Command{
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
 		host := getHost()
-		url := fmt.Sprintf("%s/v1/databases/%s", host, name)
+		url := fmt.Sprintf("%s/v2/databases/%s", host, name)
 		if force {
 			url = fmt.Sprintf("%s?force=true", url)
 		}
@@ -384,7 +399,17 @@ var replicateCmd = &cobra.Command{
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
 		host := getHost()
+
+		original, err := getDatabase(name)
+		if err != nil {
+			return fmt.Errorf("please login with %s", emph("turso auth login"))
+		}
+
 		url := fmt.Sprintf("%s/v1/databases", host)
+		if original.Type == "logical" {
+			url = fmt.Sprintf("%s/v2/databases/%s/instances", host, name)
+		}
+
 		bearer := "Bearer " + accessToken
 		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s", "type": "replica"}`, name, region, image))
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
@@ -417,11 +442,23 @@ var replicateCmd = &cobra.Command{
 		}
 		end := time.Now()
 		elapsed := end.Sub(start)
-		m := result.(map[string]interface{})["database"].(map[string]interface{})
+		var m map[string]interface{}
+		if original.Type == "logical" {
+			m = result.(map[string]interface{})["instance"].(map[string]interface{})
+		} else {
+			m = result.(map[string]interface{})["database"].(map[string]interface{})
+		}
 		username := result.(map[string]interface{})["username"].(string)
 		password := result.(map[string]interface{})["password"].(string)
-		dbId := m["DbId"].(string)
-		dbHost := m["Hostname"].(string)
+		var dbId, dbHost string
+		fmt.Println(original)
+		if original.Type == "logical" {
+			dbId = m["Uuid"].(string)
+			dbHost = original.Hostname
+		} else {
+			dbId = m["DbId"].(string)
+			dbHost = m["Hostname"].(string)
+		}
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 		dbSettings := settings.DatabaseSettings{
 			Host:     dbHost,
@@ -468,7 +505,7 @@ var listCmd = &cobra.Command{
 				regionWidth = regionLen
 			}
 		}
-		typeWidth := 7
+		typeWidth := 12
 		fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", regionWidth, "REGION", "URL")
 		for _, database := range databases {
 			id := database.ID
