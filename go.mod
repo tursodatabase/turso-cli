@@ -47,4 +47,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 )

@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 func dbNameValidator(argIndex int) cobra.PositionalArgs {
@@ -29,13 +32,26 @@ func regionArgValidator(argIndex int) cobra.PositionalArgs {
 	}
 }
 
-func findInstanceFromRegion(instances []turso.Instance, region string) *turso.Instance {
+func filterInstancesByRegion(instances []turso.Instance, region string) []turso.Instance {
+	result := []turso.Instance{}
 	for _, instance := range instances {
 		if instance.Region == region {
-			return &instance
+			result = append(result, instance)
 		}
 	}
-	return nil
+	return result
+}
+
+func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others []turso.Instance) {
+	result := []turso.Instance{}
+	for _, instance := range instances {
+		if instance.Type == "primary" {
+			primary = &instance
+			continue
+		}
+		result = append(result, instance)
+	}
+	return primary, result
 }
 
 func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
@@ -89,4 +105,82 @@ func printTable(title string, header []string, data [][]string) {
 	table.AppendBulk(data)
 
 	table.Render()
+}
+
+func startSpinner(text string) *spinner.Spinner {
+	s := spinner.New(spinner.CharSets[14], 40*time.Millisecond)
+	s.Prefix = text
+	s.Start()
+	return s
+}
+
+func destroyDatabase(name string) error {
+	start := time.Now()
+	s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
+	if err := turso.Databases.Delete(name); err != nil {
+		return err
+	}
+	s.Stop()
+	elapsed := time.Since(start)
+
+	fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
+	settings, err := settings.ReadSettings()
+	if err == nil {
+		settings.InvalidateDbNamesCache()
+	}
+
+	settings.DeleteDatabase(name)
+	return nil
+}
+
+func destroyDatabaseReplicas(database, region string) error {
+	db, err := getDatabase(database)
+	if err != nil {
+		return err
+	}
+
+	if db.Type != "logical" {
+		return fmt.Errorf("database '%s' does not support the destroy operation with region argument", db.Name)
+	}
+
+	instances, err := turso.Instances.List(db.Name)
+	if err != nil {
+		return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
+	}
+
+	instances = filterInstancesByRegion(instances, region)
+	if len(instances) == 0 {
+		return fmt.Errorf("could not find any instances of database %s on region %s", db.Name, region)
+	}
+
+	primary, replicas := extractPrimary(instances)
+	g := errgroup.Group{}
+	for i := range replicas {
+		replica := replicas[i]
+		g.Go(func() error { return destroyDatabaseInstance(db.Name, replica.Name) })
+	}
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Destroyed %d instances in region %s of database %s.\n", len(replicas), emph(region), emph(db.Name))
+	if primary != nil {
+		destroyAllCmd := fmt.Sprintf("turso db destoy %s --all", database)
+		fmt.Printf("Primary was not destroyed. To destroy it, with the whole database, run '%s'", destroyAllCmd)
+	}
+
+	return nil
+}
+
+func destroyDatabaseInstance(database, instance string) error {
+	if err := turso.Instances.Delete(database, instance); err != nil {
+		// TODO: remove this once wait stopped bug is fixed
+		time.Sleep(3 * time.Second)
+		err = turso.Instances.Delete(database, instance)
+		if err != nil {
+			return fmt.Errorf("could not delete instance %s: %w", instance, err)
+		}
+	}
+	return nil
 }

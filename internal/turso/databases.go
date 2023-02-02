@@ -26,15 +26,34 @@ func (d *databases) List() ([]Database, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get database listing: %s", r.Status)
 	}
-	defer r.Body.Close()
 
 	type ListResponse struct {
 		Databases []Database `json:"databases"`
 	}
 	resp, err := Unmarshall[ListResponse](r)
 	return resp.Databases, err
+}
+
+func (d *databases) Delete(database string) error {
+	url := fmt.Sprintf("/v2/databases/%s", database)
+	r, err := d.c.Delete(url, nil)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not find database %s", database)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to delete database: %s", r.Status)
+	}
+
+	return nil
 }

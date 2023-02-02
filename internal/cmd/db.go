@@ -23,8 +23,9 @@ var emph = color.New(color.FgBlue, color.Bold).SprintFunc()
 var warn = color.New(color.FgYellow, color.Bold).SprintFunc()
 
 var canary bool
-var force bool
 var region string
+var allFlag bool
+var instanceFlag string
 var regionIds = []string{
 	"ams",
 	"cdg",
@@ -109,13 +110,14 @@ func getDatabases() ([]turso.Database, error) {
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, dropCmd, showCmd)
+	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, showCmd)
+	destroyCmd.Flags().BoolVar(&allFlag, "all", false, "Destroy all regions of the database.")
+	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return regionIds, cobra.ShellCompDirectiveDefault
 	})
-	destroyCmd.Flags().BoolVar(&force, "force", false, "Force deletion.")
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 }
 
@@ -299,97 +301,30 @@ func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string
 }
 
 var destroyCmd = &cobra.Command{
-	Use:               "destroy database_name",
+	Use:               "destroy database_name [region]",
 	Short:             "Destroy a database.",
-	Args:              cobra.ExactArgs(1),
+	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
-		if name == "" {
-			return fmt.Errorf("You must specify a database name to delete it.")
+		if allFlag {
+			return destroyDatabase(name)
 		}
 
-		accessToken, err := getAccessToken()
-		if err != nil {
-			return fmt.Errorf("please login with %s", emph("turso auth login"))
-		}
-		host := getHost()
-		url := fmt.Sprintf("%s/v2/databases/%s", host, name)
-		if force {
-			url = fmt.Sprintf("%s?force=true", url)
-		}
-		bearer := "Bearer " + accessToken
-		req, err := http.NewRequest("DELETE", url, nil)
-		if err != nil {
-			return err
-		}
-		req.Header.Add("Authorization", bearer)
-		s := spinner.New(spinner.CharSets[14], 40*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Destroying database %s... ", emph(name))
-		s.Start()
-		start := time.Now()
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		s.Stop()
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Failed to destroy database: %s", resp.Status)
-		}
-		end := time.Now()
-		elapsed := end.Sub(start)
-		fmt.Printf("Destroyed database %s in %d seconds.\n", emph(name), int(elapsed.Seconds()))
-		settings, err := settings.ReadSettings()
-		if err == nil {
-			settings.InvalidateDbNamesCache()
-		}
-		settings.DeleteDatabase(name)
-		return nil
-	},
-}
-
-var dropCmd = &cobra.Command{
-	Use:   "drop database_name region",
-	Short: "Drop a database from a given region.",
-	Args: cobra.MatchAll(
-		cobra.ExactArgs(2),
-		dbNameValidator(0),
-		regionArgValidator(1),
-	),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := getDatabase(args[0])
-		if err != nil {
-			return err
+		if instanceFlag != "" {
+			return destroyDatabaseInstance(name, instanceFlag)
 		}
 
-		region := args[1]
-		if db.Type != "logical" {
-			return fmt.Errorf("database '%s' does not support the drop operation", db.Name)
+		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
+			return fmt.Errorf("db destroy should receive a region argument or a flag")
 		}
 
-		instances, err := turso.Instances.List(db.Name)
-		if err != nil {
-			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
+		validateDestroyRegion := cobra.MatchAll(dbNameValidator(0), regionArgValidator(1))
+		if err := validateDestroyRegion(cmd, args); err != nil {
+			return fmt.Errorf("invalid arguments: %w", err)
 		}
 
-		instance := findInstanceFromRegion(instances, region)
-		if instance == nil {
-			return fmt.Errorf("could not find any instance of database %s on region %s", db.Name, region)
-		}
-
-		err = turso.Instances.Delete(db.Name, instance.Name)
-		if err != nil {
-			// TODO: remove this once wait stopped bug is fixed
-			time.Sleep(3 * time.Second)
-			err = turso.Instances.Delete(db.Name, instance.Name)
-			if err != nil {
-				return fmt.Errorf("could not delete instance %s from region %s: %w", instance.Name, region, err)
-			}
-		}
-
-		fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance.Name), emph(region), emph(db.Name))
-		return nil
+		return destroyDatabaseReplicas(args[0], args[1])
 	},
 }
 
