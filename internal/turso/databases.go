@@ -29,7 +29,7 @@ func (d *DatabasesClient) List() ([]Database, error) {
 	type ListResponse struct {
 		Databases []Database `json:"databases"`
 	}
-	resp, err := Unmarshall[ListResponse](r)
+	resp, err := unmarshal[ListResponse](r)
 	return resp.Databases, err
 }
 
@@ -50,4 +50,39 @@ func (d *DatabasesClient) Delete(database string) error {
 	}
 
 	return nil
+}
+
+type CreateDatabaseResponse struct {
+	Database Database
+	Username string
+	Password string
+}
+
+func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseResponse, error) {
+	type Body struct{ Name, Region, Image string }
+	body, err := marshal(Body{name, region, image})
+	if err != nil {
+		return nil, fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	res, err := d.client.Post("/v2/databases", body)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusUnprocessableEntity {
+		return nil, fmt.Errorf("Database name '%s' is not available", name)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		parseResponseError(res)
+	}
+
+	data, err := unmarshal[*CreateDatabaseResponse](res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize response: %w", err)
+	}
+
+	return data, nil
 }

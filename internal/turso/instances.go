@@ -27,7 +27,7 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 	}
 
 	type ListResponse struct{ Instances []Instance }
-	resp, err := Unmarshall[ListResponse](r)
+	resp, err := unmarshal[ListResponse](r)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (i *InstancesClient) Delete(db, instance string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusBadRequest {
-		body, _ := Unmarshall[struct{ Error string }](r)
+		body, _ := unmarshal[struct{ Error string }](r)
 		return errors.New(body.Error)
 	}
 
@@ -52,4 +52,30 @@ func (i *InstancesClient) Delete(db, instance string) error {
 	}
 
 	return nil
+}
+
+func (d *InstancesClient) Create(dbName, password, region, image string) (*Instance, error) {
+	type Body struct{ Password, Region, Image string }
+	body, err := marshal(Body{password, region, image})
+	if err != nil {
+		return nil, fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	url := fmt.Sprintf("/v2/databases/%s/instances", dbName)
+	res, err := d.client.Post(url, body)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, parseResponseError(res)
+	}
+
+	instance, err := unmarshal[*Instance](res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize response: %w", err)
+	}
+
+	return instance, nil
 }

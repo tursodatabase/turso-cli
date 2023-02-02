@@ -178,75 +178,36 @@ var createCmd = &cobra.Command{
 		} else {
 			image = "latest"
 		}
-		accessToken, err := getAccessToken()
-		if err != nil {
-			return err
-		}
-		host := getHost()
-		url := fmt.Sprintf("%s/v2/databases", host)
-		bearer := "Bearer " + accessToken
-		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s"}`, name, region, image))
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
-		if err != nil {
-			return err
-		}
-		req.Header.Add("Authorization", bearer)
-		s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
-		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
-		s.Prefix = fmt.Sprintf("Creating database %s to %s ", emph(name), emph(regionText))
-		s.Start()
 		start := time.Now()
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		s.Stop()
+
+		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
+		description := fmt.Sprintf("Creating database %s in %s ", emph(name), emph(regionText))
+		bar := startLoadingBar(description)
+		res, err := client.Databases.Create(name, region, image)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == http.StatusUnprocessableEntity {
-			return fmt.Errorf("Database name '%s' is not available", emph(name))
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			body, err := io.ReadAll(resp.Body)
-			if err == nil {
-				var result interface{}
-				if err := json.Unmarshal(body, &result); err == nil {
-					return fmt.Errorf("Failed to create database: %s [%s]", resp.Status, result.(map[string]interface{})["error"])
-				}
-			}
-			return fmt.Errorf("Failed to create database: %s", resp.Status)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		var result interface{}
-		if err := json.Unmarshal(body, &result); err != nil {
-			return err
-		}
-		end := time.Now()
-		elapsed := end.Sub(start)
-		m := result.(map[string]interface{})["database"].(map[string]interface{})
-		username := result.(map[string]interface{})["username"].(string)
-		password := result.(map[string]interface{})["password"].(string)
-		dbId := m["DbId"].(string)
-		dbHost := m["Hostname"].(string)
+		bar.Stop()
+		elapsed := time.Since(start)
 		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
+
 		dbSettings := settings.DatabaseSettings{
-			Name:     name,
-			Host:     dbHost,
-			Username: username,
-			Password: password,
+			Name:     res.Database.Name,
+			Host:     res.Database.Hostname,
+			Username: res.Username,
+			Password: res.Password,
 		}
+
+		if _, err = client.Instances.Create(name, res.Password, region, image); err != nil {
+			return fmt.Errorf("failed to create instance for database %s: %w", name, err)
+		}
+
 		fmt.Printf("HTTP connection string:\n\n")
 		dbUrl := dbSettings.GetURL()
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
-		config.AddDatabase(dbId, &dbSettings)
+		config.AddDatabase(res.Database.ID, &dbSettings)
 		config.InvalidateDbNamesCache()
 		return nil
 	},
