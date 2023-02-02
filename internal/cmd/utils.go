@@ -16,8 +16,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var client = createTursoClient()
-
 func createTursoClient() *turso.Client {
 	tursoUrl, err := url.Parse(getTursoUrl())
 	if err != nil {
@@ -139,7 +137,7 @@ func startLoadingBar(text string) *spinner.Spinner {
 	return s
 }
 
-func destroyDatabase(name string) error {
+func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
 	s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
 	if err := client.Databases.Delete(name); err != nil {
@@ -158,8 +156,8 @@ func destroyDatabase(name string) error {
 	return nil
 }
 
-func destroyDatabaseReplicas(database, region string) error {
-	db, err := getDatabase(database)
+func destroyDatabaseReplicas(client *turso.Client, database, region string) error {
+	db, err := getDatabase(client, database)
 	if err != nil {
 		return err
 	}
@@ -182,7 +180,7 @@ func destroyDatabaseReplicas(database, region string) error {
 	g := errgroup.Group{}
 	for i := range replicas {
 		replica := replicas[i]
-		g.Go(func() error { return destroyDatabaseInstance(db.Name, replica.Name) })
+		g.Go(func() error { return destroyDatabaseInstance(client, db.Name, replica.Name) })
 	}
 
 	if err := g.Wait(); err != nil {
@@ -198,7 +196,7 @@ func destroyDatabaseReplicas(database, region string) error {
 	return nil
 }
 
-func destroyDatabaseInstance(database, instance string) error {
+func destroyDatabaseInstance(client *turso.Client, database, instance string) error {
 	if err := client.Instances.Delete(database, instance); err != nil {
 		// TODO: remove this once wait stopped bug is fixed
 		time.Sleep(3 * time.Second)

@@ -67,16 +67,16 @@ func extractDatabaseNames(databases []turso.Database) []string {
 	return names
 }
 
-func fetchDatabaseNames() []string {
-	databases, err := getDatabases()
+func fetchDatabaseNames(client *turso.Client) []string {
+	databases, err := getDatabases(client)
 	if err != nil {
 		return []string{}
 	}
 	return extractDatabaseNames(databases)
 }
 
-func getDatabase(name string) (turso.Database, error) {
-	databases, err := getDatabases()
+func getDatabase(client *turso.Client, name string) (turso.Database, error) {
+	databases, err := getDatabases(client)
 	if err != nil {
 		return turso.Database{}, err
 	}
@@ -90,21 +90,21 @@ func getDatabase(name string) (turso.Database, error) {
 	return turso.Database{}, fmt.Errorf("database with name %s not found", name)
 }
 
-func getDatabaseNames() []string {
+func getDatabaseNames(client *turso.Client) []string {
 	settings, err := settings.ReadSettings()
 	if err != nil {
-		return fetchDatabaseNames()
+		return fetchDatabaseNames(client)
 	}
 	cached_names := settings.GetDbNamesCache()
 	if cached_names != nil {
 		return cached_names
 	}
-	names := fetchDatabaseNames()
+	names := fetchDatabaseNames(client)
 	settings.SetDbNamesCache(names)
 	return names
 }
 
-func getDatabases() ([]turso.Database, error) {
+func getDatabases(client *turso.Client) ([]turso.Database, error) {
 	return client.Databases.List()
 }
 
@@ -178,6 +178,7 @@ var createCmd = &cobra.Command{
 		} else {
 			image = "latest"
 		}
+		client := createTursoClient()
 		start := time.Now()
 
 		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
@@ -256,7 +257,7 @@ func isValidRegion(region string) bool {
 }
 func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
-		return getDatabaseNames(), cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
@@ -267,13 +268,14 @@ var destroyCmd = &cobra.Command{
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		client := createTursoClient()
 		name := args[0]
 		if allFlag {
-			return destroyDatabase(name)
+			return destroyDatabase(client, name)
 		}
 
 		if instanceFlag != "" {
-			return destroyDatabaseInstance(name, instanceFlag)
+			return destroyDatabaseInstance(client, name, instanceFlag)
 		}
 
 		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
@@ -285,7 +287,7 @@ var destroyCmd = &cobra.Command{
 			return fmt.Errorf("invalid arguments: %w", err)
 		}
 
-		return destroyDatabaseReplicas(args[0], args[1])
+		return destroyDatabaseReplicas(client, args[0], args[1])
 	},
 }
 
@@ -297,7 +299,8 @@ var showCmd = &cobra.Command{
 		dbNameValidator(0),
 	),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := getDatabase(args[0])
+		client := createTursoClient()
+		db, err := getDatabase(client, args[0])
 		if err != nil {
 			return err
 		}
@@ -310,7 +313,6 @@ var showCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		instances, err := client.Instances.List(db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
@@ -339,7 +341,7 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	if len(args) == 0 {
-		return getDatabaseNames(), cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
@@ -377,7 +379,7 @@ var replicateCmd = &cobra.Command{
 		}
 		host := getHost()
 
-		original, err := getDatabase(name)
+		original, err := getDatabase(createTursoClient(), name)
 		if err != nil {
 			return fmt.Errorf("please login with %s", emph("turso auth login"))
 		}
@@ -466,7 +468,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		databases, err := getDatabases()
+		databases, err := getDatabases(createTursoClient())
 		if err != nil {
 			return err
 		}
