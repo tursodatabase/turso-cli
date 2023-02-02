@@ -435,9 +435,8 @@ var replicateCmd = &cobra.Command{
 		username := result.(map[string]interface{})["username"].(string)
 		password = result.(map[string]interface{})["password"].(string)
 		var dbId, dbHost string
-		fmt.Println(original)
 		if original.Type == "logical" {
-			dbId = m["Uuid"].(string)
+			dbId = m["uuid"].(string)
 			dbHost = original.Hostname
 		} else {
 			dbId = m["DbId"].(string)
