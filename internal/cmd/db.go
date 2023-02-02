@@ -285,7 +285,7 @@ var destroyCmd = &cobra.Command{
 			return fmt.Errorf("invalid arguments: %w", err)
 		}
 
-		return destroyDatabaseReplicas(args[0], args[1])
+		return destroyDatabaseReplicas(createTursoClient(), args[0], args[1])
 	},
 }
 
