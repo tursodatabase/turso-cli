@@ -16,8 +16,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var client = createTursoClient()
-
 func createTursoClient() *turso.Client {
 	tursoUrl, err := url.Parse(getTursoUrl())
 	if err != nil {
