@@ -327,7 +327,6 @@ var showCmd = &cobra.Command{
 
 		fmt.Println("NAME:   ", db.Name)
 		fmt.Println("URL:    ", getDatabaseUrl(config, db))
-		fmt.Println("ID:     ", db.ID)
 		fmt.Println("PRIMARY REGION:", db.PrimaryRegion)
 		fmt.Println("REGIONS:", strings.Join(regions, ", "))
 		fmt.Println()
