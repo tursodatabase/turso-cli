@@ -182,7 +182,7 @@ func destroyDatabaseReplicas(client *turso.Client, database, region string) erro
 	g := errgroup.Group{}
 	for i := range replicas {
 		replica := replicas[i]
-		g.Go(func() error { return destroyDatabaseInstance(db.Name, replica.Name) })
+		g.Go(func() error { return destroyDatabaseInstance(client, db.Name, replica.Name) })
 	}
 
 	if err := g.Wait(); err != nil {
@@ -198,7 +198,7 @@ func destroyDatabaseReplicas(client *turso.Client, database, region string) erro
 	return nil
 }
 
-func destroyDatabaseInstance(database, instance string) error {
+func destroyDatabaseInstance(client *turso.Client, database, instance string) error {
 	if err := client.Instances.Delete(database, instance); err != nil {
 		// TODO: remove this once wait stopped bug is fixed
 		time.Sleep(3 * time.Second)

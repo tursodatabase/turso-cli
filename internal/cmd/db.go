@@ -275,7 +275,7 @@ var destroyCmd = &cobra.Command{
 		}
 
 		if instanceFlag != "" {
-			return destroyDatabaseInstance(name, instanceFlag)
+			return destroyDatabaseInstance(client, name, instanceFlag)
 		}
 
 		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
