@@ -330,7 +330,7 @@ var showCmd = &cobra.Command{
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable("foo", []string{"name", "type", "region"}, data)
+		printTable([]string{"name", "type", "region"}, data)
 
 		return nil
 	},

@@ -103,7 +103,7 @@ func displayRegions(instances []turso.Instance) string {
 	return strings.Join(list, ", ")
 }
 
-func printTable(title string, header []string, data [][]string) {
+func printTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 
 	table.SetHeader(header)
