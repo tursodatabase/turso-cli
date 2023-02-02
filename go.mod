@@ -1,6 +1,6 @@
 module github.com/chiselstrike/iku-turso-cli
 
-go 1.17
+go 1.19
 
 require (
 	github.com/briandowns/spinner v1.20.0

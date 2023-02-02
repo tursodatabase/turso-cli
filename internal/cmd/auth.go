@@ -71,15 +71,7 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	client, err := turso.NewClient(getHost(), token, nil)
-	if err != nil {
-		return false
-	}
-	req, err := client.NewRequest("GET", "/v1/databases", nil)
-	if err != nil {
-		return false
-	}
-	resp, err := client.Do(req)
+	resp, err := turso.Client.Get("/v1/databases", nil)
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 

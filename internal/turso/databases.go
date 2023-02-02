@@ -1,59 +1,40 @@
 package turso
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 )
 
-type DatabasesService service
-
-type ListDatabasesResponse struct {
-	Databases []Database `json:"databases"`
-}
-
 type Database struct {
-	ID       string
+	ID       string `json:"dbId"`
 	Name     string
 	Type     string
 	Region   string
 	Hostname string
 }
 
-func (s *DatabasesService) List() ([]Database, error) {
-	url := fmt.Sprintf("/v2/databases")
-	req, err := s.client.NewRequest("GET", url, nil)
+type databases struct {
+	c *clients.Client
+}
+
+var Databases = &databases{Client}
+
+func (d *databases) List() ([]Database, error) {
+	r, err := d.c.Get("/v2/databases", nil)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
+
+	if r.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get database listing: %s", r.Status)
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Failed to get database listing: %s", resp.Status)
+	defer r.Body.Close()
+
+	type ListResponse struct {
+		Databases []Database `json:"databases"`
 	}
-	defer resp.Body.Close()
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	response := make(map[string]interface{})
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, err
-	}
-	databases := response["databases"].([]interface{})
-	result := make([]Database, 0)
-	for _, db := range databases {
-		d := db.(map[string]interface{})
-		result = append(result, Database{
-			ID:       d["DbId"].(string),
-			Name:     d["Name"].(string),
-			Type:     d["Type"].(string),
-			Region:   d["Region"].(string),
-			Hostname: d["Hostname"].(string),
-		})
-	}
-	return result, nil
+	resp, err := Unmarshall[ListResponse](r)
+	return resp.Databases, err
 }
