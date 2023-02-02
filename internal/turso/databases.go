@@ -6,11 +6,13 @@ import (
 )
 
 type Database struct {
-	ID       string `json:"dbId"`
-	Name     string
-	Type     string
-	Region   string
-	Hostname string
+	ID            string `json:"dbId"`
+	Name          string
+	Type          string
+	Region        string
+	Regions       []string
+	PrimaryRegion string
+	Hostname      string
 }
 
 type DatabasesClient client
