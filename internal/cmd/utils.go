@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -13,6 +15,22 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
+
+var client = createTursoClient()
+
+func createTursoClient() *turso.Client {
+	tursoUrl, err := url.Parse(getTursoUrl())
+	if err != nil {
+		log.Fatal(fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", getTursoUrl(), err))
+	}
+
+	token, err := getAccessToken()
+	if err != nil {
+		log.Fatal(fmt.Errorf("error creating Turso client: %w", err))
+	}
+
+	return turso.New(tursoUrl, token)
+}
 
 func dbNameValidator(argIndex int) cobra.PositionalArgs {
 	return func(cmd *cobra.Command, args []string) error {
@@ -117,7 +135,7 @@ func startSpinner(text string) *spinner.Spinner {
 func destroyDatabase(name string) error {
 	start := time.Now()
 	s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
-	if err := turso.Databases.Delete(name); err != nil {
+	if err := client.Databases.Delete(name); err != nil {
 		return err
 	}
 	s.Stop()
@@ -143,7 +161,7 @@ func destroyDatabaseReplicas(database, region string) error {
 		return fmt.Errorf("database '%s' does not support the destroy operation with region argument", db.Name)
 	}
 
-	instances, err := turso.Instances.List(db.Name)
+	instances, err := client.Instances.List(db.Name)
 	if err != nil {
 		return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 	}
@@ -174,13 +192,21 @@ func destroyDatabaseReplicas(database, region string) error {
 }
 
 func destroyDatabaseInstance(database, instance string) error {
-	if err := turso.Instances.Delete(database, instance); err != nil {
+	if err := client.Instances.Delete(database, instance); err != nil {
 		// TODO: remove this once wait stopped bug is fixed
 		time.Sleep(3 * time.Second)
-		err = turso.Instances.Delete(database, instance)
+		err = client.Instances.Delete(database, instance)
 		if err != nil {
 			return fmt.Errorf("could not delete instance %s: %w", instance, err)
 		}
 	}
 	return nil
+}
+
+func getTursoUrl() string {
+	host := os.Getenv("TURSO_API_BASEURL")
+	if host == "" {
+		host = "https://api.chiseledge.com"
+	}
+	return host
 }

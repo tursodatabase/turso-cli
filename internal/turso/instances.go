@@ -4,9 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
-
-	"github.com/chiselstrike/iku-turso-cli/internal/clients"
 )
 
 type Instance struct {
@@ -16,18 +13,10 @@ type Instance struct {
 	Region string
 }
 
-type instances struct {
-	c *clients.Client
-}
+type InstancesClient client
 
-var Instances = &instances{Client}
-
-func NewInstances(base *url.URL, token string) *instances {
-	return &instances{NewTurso(base, token)}
-}
-
-func (i *instances) List(db string) ([]Instance, error) {
-	r, err := i.c.Get(fmt.Sprintf("v2/databases/%s/instances", db), nil)
+func (i *InstancesClient) List(db string) ([]Instance, error) {
+	r, err := i.client.Get(fmt.Sprintf("v2/databases/%s/instances", db), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +35,8 @@ func (i *instances) List(db string) ([]Instance, error) {
 	return resp.Instances, nil
 }
 
-func (i *instances) Delete(db, instance string) error {
-	r, err := i.c.Delete(fmt.Sprintf("v2/databases/%s/instances/%s", db, instance), nil)
+func (i *InstancesClient) Delete(db, instance string) error {
+	r, err := i.client.Delete(fmt.Sprintf("v2/databases/%s/instances/%s", db, instance), nil)
 	if err != nil {
 		return err
 	}

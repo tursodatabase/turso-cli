@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -105,7 +105,7 @@ func getDatabaseNames() []string {
 }
 
 func getDatabases() ([]turso.Database, error) {
-	return turso.Databases.List()
+	return client.Databases.List()
 }
 
 func init() {
@@ -209,7 +209,7 @@ var createCmd = &cobra.Command{
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err == nil {
 				var result interface{}
 				if err := json.Unmarshal(body, &result); err == nil {
@@ -219,7 +219,7 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
@@ -350,7 +350,7 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
-		instances, err := turso.Instances.List(db.Name)
+		instances, err := client.Instances.List(db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
@@ -451,7 +451,7 @@ var replicateCmd = &cobra.Command{
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
 		}
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
