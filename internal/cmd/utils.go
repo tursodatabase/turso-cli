@@ -159,7 +159,7 @@ func destroyDatabase(name string) error {
 }
 
 func destroyDatabaseReplicas(client *turso.Client, database, region string) error {
-	db, err := getDatabase(database)
+	db, err := getDatabase(client, database)
 	if err != nil {
 		return err
 	}
