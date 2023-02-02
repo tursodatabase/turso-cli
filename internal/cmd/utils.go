@@ -84,6 +84,20 @@ func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
 	return url
 }
 
+func getInstanceUrl(settings *settings.Settings, db turso.Database, inst turso.Instance) string {
+	dbSettings := settings.GetDatabaseSettings(db.ID)
+	if dbSettings == nil {
+		// Backwards compatibility with old settings files.
+		dbSettings = settings.GetDatabaseSettings(db.Name)
+	}
+
+	url := "<n/a>"
+	if dbSettings != nil {
+		url = fmt.Sprintf("https://%s:%s@%s", dbSettings.Username, dbSettings.Password, inst.Hostname)
+	}
+	return url
+}
+
 func getDatabaseRegions(db turso.Database) string {
 	if db.Type != "logical" {
 		return db.Region

@@ -7,10 +7,11 @@ import (
 )
 
 type Instance struct {
-	Uuid   string
-	Name   string
-	Type   string
-	Region string
+	Uuid     string
+	Name     string
+	Type     string
+	Region   string
+	Hostname string
 }
 
 type InstancesClient client

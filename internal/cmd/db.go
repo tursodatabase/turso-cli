@@ -327,11 +327,12 @@ var showCmd = &cobra.Command{
 
 		data := [][]string{}
 		for _, instance := range instances {
-			data = append(data, []string{instance.Name, instance.Type, instance.Region})
+			url := getInstanceUrl(config, db, instance)
+			data = append(data, []string{instance.Name, instance.Type, instance.Region, url})
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"name", "type", "region"}, data)
+		printTable([]string{"name", "type", "region", "url"}, data)
 
 		return nil
 	},
