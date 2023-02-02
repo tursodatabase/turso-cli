@@ -184,6 +184,7 @@ var createCmd = &cobra.Command{
 		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
 		description := fmt.Sprintf("Creating database %s in %s ", emph(name), emph(regionText))
 		bar := startLoadingBar(description)
+		defer bar.Stop()
 		res, err := client.Databases.Create(name, region, image)
 		if err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)

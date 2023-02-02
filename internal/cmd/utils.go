@@ -156,6 +156,7 @@ func startLoadingBar(text string) *spinner.Spinner {
 func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
 	s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
+	defer s.Stop()
 	if err := client.Databases.Delete(name); err != nil {
 		return err
 	}
