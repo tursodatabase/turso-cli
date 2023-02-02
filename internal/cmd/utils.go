@@ -16,8 +16,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var client = createTursoClient()
-
 func createTursoClient() *turso.Client {
 	tursoUrl, err := url.Parse(getTursoUrl())
 	if err != nil {
@@ -142,7 +140,8 @@ func startLoadingBar(text string) *spinner.Spinner {
 func destroyDatabase(name string) error {
 	start := time.Now()
 	s := startSpinner(fmt.Sprintf("Destroying database %s... ", emph(name)))
-	if err := client.Databases.Delete(name); err != nil {
+	turso := createTursoClient()
+	if err := turso.Databases.Delete(name); err != nil {
 		return err
 	}
 	s.Stop()
@@ -168,7 +167,8 @@ func destroyDatabaseReplicas(database, region string) error {
 		return fmt.Errorf("database '%s' does not support the destroy operation with region argument", db.Name)
 	}
 
-	instances, err := client.Instances.List(db.Name)
+	turso := createTursoClient()
+	instances, err := turso.Instances.List(db.Name)
 	if err != nil {
 		return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 	}
@@ -199,10 +199,11 @@ func destroyDatabaseReplicas(database, region string) error {
 }
 
 func destroyDatabaseInstance(database, instance string) error {
-	if err := client.Instances.Delete(database, instance); err != nil {
+	turso := createTursoClient()
+	if err := turso.Instances.Delete(database, instance); err != nil {
 		// TODO: remove this once wait stopped bug is fixed
 		time.Sleep(3 * time.Second)
-		err = client.Instances.Delete(database, instance)
+		err = turso.Instances.Delete(database, instance)
 		if err != nil {
 			return fmt.Errorf("could not delete instance %s: %w", instance, err)
 		}

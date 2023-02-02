@@ -105,7 +105,8 @@ func getDatabaseNames() []string {
 }
 
 func getDatabases() ([]turso.Database, error) {
-	return client.Databases.List()
+	turso := createTursoClient()
+	return turso.Databases.List()
 }
 
 func init() {
@@ -183,7 +184,8 @@ var createCmd = &cobra.Command{
 		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
 		description := fmt.Sprintf("Creating database %s in %s ", emph(name), emph(regionText))
 		bar := startLoadingBar(description)
-		res, err := client.Databases.Create(name, region, image)
+		turso := createTursoClient()
+		res, err := turso.Databases.Create(name, region, image)
 		if err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
@@ -198,7 +200,7 @@ var createCmd = &cobra.Command{
 			Password: res.Password,
 		}
 
-		if _, err = client.Instances.Create(name, res.Password, region, image); err != nil {
+		if _, err = turso.Instances.Create(name, res.Password, region, image); err != nil {
 			return fmt.Errorf("failed to create instance for database %s: %w", name, err)
 		}
 
@@ -311,7 +313,8 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
-		instances, err := client.Instances.List(db.Name)
+		turso := createTursoClient()
+		instances, err := turso.Instances.List(db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
