@@ -205,8 +205,8 @@ func destroyDatabaseReplicas(client *turso.Client, database, region string) erro
 
 	fmt.Printf("Destroyed %d instances in region %s of database %s.\n", len(replicas), emph(region), emph(db.Name))
 	if primary != nil {
-		destroyAllCmd := fmt.Sprintf("turso db destoy %s --all", database)
-		fmt.Printf("Primary was not destroyed. To destroy it, with the whole database, run '%s'", destroyAllCmd)
+		destroyAllCmd := fmt.Sprintf("turso db destroy %s --all", database)
+		return fmt.Errorf("Primary was not destroyed. To destroy it, with the whole database, run '%s'\n", destroyAllCmd)
 	}
 
 	return nil
