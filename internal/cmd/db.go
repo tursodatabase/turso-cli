@@ -268,9 +268,10 @@ var destroyCmd = &cobra.Command{
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		client := createTursoClient()
 		name := args[0]
 		if allFlag {
-			return destroyDatabase(name)
+			return destroyDatabase(client, name)
 		}
 
 		if instanceFlag != "" {
@@ -286,7 +287,7 @@ var destroyCmd = &cobra.Command{
 			return fmt.Errorf("invalid arguments: %w", err)
 		}
 
-		return destroyDatabaseReplicas(createTursoClient(), args[0], args[1])
+		return destroyDatabaseReplicas(client, args[0], args[1])
 	},
 }
 
