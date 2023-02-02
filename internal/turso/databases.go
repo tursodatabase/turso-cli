@@ -76,7 +76,7 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 	}
 
 	if res.StatusCode != http.StatusOK {
-		parseResponseError(res)
+		return nil, parseResponseError(res)
 	}
 
 	data, err := unmarshal[*CreateDatabaseResponse](res)
