@@ -14,8 +14,8 @@ func unmarshal[T any](r *http.Response) (T, error) {
 	if err != nil {
 		return *t, err
 	}
-	json.Unmarshal(d, &t)
-	return *t, nil
+	err = json.Unmarshal(d, &t)
+	return *t, err
 }
 
 func marshal(data interface{}) (io.Reader, error) {
