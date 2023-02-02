@@ -109,7 +109,7 @@ func getDatabases() ([]turso.Database, error) {
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, dropCmd)
+	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, dropCmd, showCmd)
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -393,6 +393,51 @@ var dropCmd = &cobra.Command{
 	},
 }
 
+var showCmd = &cobra.Command{
+	Use:   "show database_name",
+	Short: "Show information from a database.",
+	Args: cobra.MatchAll(
+		cobra.ExactArgs(1),
+		dbNameValidator(0),
+	),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db, err := getDatabase(args[0])
+		if err != nil {
+			return err
+		}
+
+		if db.Type != "logical" {
+			return fmt.Errorf("database '%s' does not support the show operation", db.Name)
+		}
+
+		config, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		instances, err := turso.Instances.List(db.Name)
+		if err != nil {
+			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
+		}
+
+		fmt.Println("NAME:   ", db.Name)
+		fmt.Println("URL:    ", getDatabaseUrl(config, db))
+		fmt.Println("ID:     ", db.ID)
+		fmt.Println("REGIONS:", displayRegions(instances))
+		fmt.Println()
+
+		data := [][]string{}
+		for _, instance := range instances {
+			data = append(data, []string{instance.Name, instance.Type, instance.Region})
+		}
+
+		fmt.Print("Database Instances:\n")
+		printTable("foo", []string{"name", "type", "region"}, data)
+
+		return nil
+	},
+}
+
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 1 {
 		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
@@ -547,21 +592,10 @@ var listCmd = &cobra.Command{
 		typeWidth := 12
 		fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", regionWidth, "REGION", "URL")
 		for _, database := range databases {
-			id := database.ID
 			name := database.Name
 			ty := database.Type
 			region := database.Region
-			dbSettings := settings.GetDatabaseSettings(id)
-			if dbSettings == nil {
-				// Backwards compatibility with old settings files.
-				dbSettings = settings.GetDatabaseSettings(name)
-			}
-			var url string
-			if dbSettings != nil {
-				url = dbSettings.GetURL()
-			} else {
-				url = "<n/a>"
-			}
+			url := getDatabaseUrl(settings, database)
 			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
 			fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, regionWidth, regionText, url)
 		}
