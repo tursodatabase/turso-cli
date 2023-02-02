@@ -309,7 +309,7 @@ var showCmd = &cobra.Command{
 		}
 
 		if db.Type != "logical" {
-			return fmt.Errorf("database '%s' does not support the show operation", db.Name)
+			return fmt.Errorf("only new databases, of type 'logical', support the show operation")
 		}
 
 		config, err := settings.ReadSettings()
