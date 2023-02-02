@@ -188,10 +188,6 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
-		bar.Stop()
-		elapsed := time.Since(start)
-		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
-
 		dbSettings := settings.DatabaseSettings{
 			Name:     res.Database.Name,
 			Host:     res.Database.Hostname,
@@ -202,6 +198,10 @@ var createCmd = &cobra.Command{
 		if _, err = client.Instances.Create(name, res.Password, region, image); err != nil {
 			return fmt.Errorf("failed to create instance for database %s: %w", name, err)
 		}
+
+		bar.Stop()
+		elapsed := time.Since(start)
+		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 
 		fmt.Printf("HTTP connection string:\n\n")
 		dbUrl := dbSettings.GetURL()
