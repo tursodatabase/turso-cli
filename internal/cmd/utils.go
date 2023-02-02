@@ -114,25 +114,6 @@ func getDatabaseRegions(db turso.Database) string {
 	return strings.Join(regions, ", ")
 }
 
-func displayRegions(instances []turso.Instance) string {
-	regions := make(map[string]bool)
-	for _, instance := range instances {
-		region := instance.Region
-		regions[region] = regions[region] || (instance.Type == "primary")
-	}
-
-	list := make([]string, 0)
-	for region, primary := range regions {
-		tag := region
-		if primary {
-			tag = emph(region) + " (primary)"
-		}
-		list = append(list, tag)
-	}
-
-	return strings.Join(list, ", ")
-}
-
 func printTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 

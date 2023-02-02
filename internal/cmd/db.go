@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -319,11 +321,15 @@ var showCmd = &cobra.Command{
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
 
+		regions := make([]string, len(db.Regions))
+		copy(regions, db.Regions)
+		sort.Strings(regions)
+
 		fmt.Println("NAME:   ", db.Name)
 		fmt.Println("URL:    ", getDatabaseUrl(config, db))
 		fmt.Println("ID:     ", db.ID)
 		fmt.Println("PRIMARY REGION:", db.PrimaryRegion)
-		fmt.Println("REGIONS:", displayRegions(instances))
+		fmt.Println("REGIONS:", strings.Join(regions, ", "))
 		fmt.Println()
 
 		data := [][]string{}
