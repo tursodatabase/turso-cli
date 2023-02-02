@@ -9,11 +9,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/athoscouto/codename"
 	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/fatih/color"
-	"github.com/lucasepe/codename"
 	"github.com/spf13/cobra"
 )
 

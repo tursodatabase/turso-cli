@@ -5,15 +5,18 @@ go 1.19
 require (
 	github.com/briandowns/spinner v1.20.0
 	github.com/fatih/color v1.13.0
-	github.com/lucasepe/codename v0.2.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/spf13/cobra v1.6.1
 )
 
 require (
+	github.com/athoscouto/codename v0.0.3
+	github.com/frankban/quicktest v1.14.4
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/viper v1.15.0
+	golang.org/x/sync v0.1.0
 )
 
 require (
@@ -40,12 +43,9 @@ require (
 )
 
 require (
-	github.com/frankban/quicktest v1.14.4 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
-	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
 )
