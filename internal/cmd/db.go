@@ -330,7 +330,7 @@ var showCmd = &cobra.Command{
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable("foo", []string{"name", "type", "region"}, data)
+		printTable([]string{"name", "type", "region"}, data)
 
 		return nil
 	},
@@ -472,31 +472,13 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		nameWidth := 8
-		regionWidth := 8
+		data := [][]string{}
 		for _, database := range databases {
-			name := database.Name
-			nameLen := len(name)
-			if nameWidth < nameLen {
-				nameWidth = nameLen
-			}
-			region := database.Region
-			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
-			regionLen := len(regionText)
-			if regionWidth < regionLen {
-				regionWidth = regionLen
-			}
-		}
-		typeWidth := 12
-		fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, "NAME", typeWidth, "TYPE", regionWidth, "REGION", "URL")
-		for _, database := range databases {
-			name := database.Name
-			ty := database.Type
-			region := database.Region
 			url := getDatabaseUrl(settings, database)
-			regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
-			fmt.Printf("%-*s  %-*s %-*s  %s\n", nameWidth, name, typeWidth, ty, regionWidth, regionText, url)
+			regions := getDatabaseRegions(database)
+			data = append(data, []string{database.Name, database.Type, regions, url})
 		}
+		printTable([]string{"name", "type", "regions", "url"}, data)
 		settings.SetDbNamesCache(extractDatabaseNames(databases))
 		return nil
 	},

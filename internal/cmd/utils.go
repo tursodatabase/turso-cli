@@ -84,6 +84,22 @@ func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
 	return url
 }
 
+func getDatabaseRegions(db turso.Database) string {
+	if db.Type != "logical" {
+		return db.Region
+	}
+
+	regions := make([]string, 0, len(db.Regions))
+	for _, region := range db.Regions {
+		if region == db.PrimaryRegion {
+			region = fmt.Sprintf("%s (primary)", emph(region))
+		}
+		regions = append(regions, region)
+	}
+
+	return strings.Join(regions, ", ")
+}
+
 func displayRegions(instances []turso.Instance) string {
 	regions := make(map[string]bool)
 	for _, instance := range instances {
@@ -103,7 +119,7 @@ func displayRegions(instances []turso.Instance) string {
 	return strings.Join(list, ", ")
 }
 
-func printTable(title string, header []string, data [][]string) {
+func printTable(header []string, data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 
 	table.SetHeader(header)
