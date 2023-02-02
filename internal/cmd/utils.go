@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/url"
@@ -187,7 +188,11 @@ func destroyDatabase(client *turso.Client, name string) error {
 	return nil
 }
 
-func destroyDatabaseReplicas(client *turso.Client, database, region string) error {
+func destroyDatabaseRegion(client *turso.Client, database, region string) error {
+	if !isValidRegion(region) {
+		return fmt.Errorf("region '%s' is not a valid one", region)
+	}
+
 	db, err := getDatabase(client, database)
 	if err != nil {
 		return err
@@ -211,7 +216,7 @@ func destroyDatabaseReplicas(client *turso.Client, database, region string) erro
 	g := errgroup.Group{}
 	for i := range replicas {
 		replica := replicas[i]
-		g.Go(func() error { return destroyDatabaseInstance(client, db.Name, replica.Name) })
+		g.Go(func() error { return deleteDatabaseInstance(client, db.Name, replica.Name) })
 	}
 
 	if err := g.Wait(); err != nil {
@@ -220,14 +225,23 @@ func destroyDatabaseReplicas(client *turso.Client, database, region string) erro
 
 	fmt.Printf("Destroyed %d instances in region %s of database %s.\n", len(replicas), emph(region), emph(db.Name))
 	if primary != nil {
-		destroyAllCmd := fmt.Sprintf("turso db destroy %s --all", database)
-		return fmt.Errorf("Primary was not destroyed. To destroy it, with the whole database, run '%s'\n", destroyAllCmd)
+		destroyAllCmd := fmt.Sprintf("turso db destoy %s", database)
+		fmt.Printf("Primary was not destroyed. To destroy it, with the whole database, run '%s'", destroyAllCmd)
 	}
 
 	return nil
 }
 
 func destroyDatabaseInstance(client *turso.Client, database, instance string) error {
+	err := deleteDatabaseInstance(client, database, instance)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance), emph(region), emph(database))
+	return nil
+}
+
+func deleteDatabaseInstance(client *turso.Client, database, instance string) error {
 	if err := client.Instances.Delete(database, instance); err != nil {
 		// TODO: remove this once wait stopped bug is fixed
 		time.Sleep(3 * time.Second)
@@ -245,4 +259,27 @@ func getTursoUrl() string {
 		host = "https://api.chiseledge.com"
 	}
 	return host
+}
+
+func promptConfirmation(prompt string) (bool, error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	for i := 0; i < 3; i++ {
+		fmt.Printf("%s [y/n]: ", prompt)
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return false, err
+		}
+
+		input = strings.ToLower(strings.TrimSpace(input))
+		if input == "y" || input == "yes" {
+			return true, nil
+		} else if input == "n" || input == "no" {
+			return false, nil
+		}
+
+		fmt.Println("Please answer with yes or no.")
+	}
+
+	return false, fmt.Errorf("could not get prompt confirmed by user")
 }
