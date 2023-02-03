@@ -270,7 +270,7 @@ func probeClosestRegion() string {
 	// Fly has regions that are not available to users. So let's ensure
 	// that we return a region ID that is actually usable for provisioning
 	// a database.
-	if !isValidRegion(reg.Server) {
+	if isValidRegion(reg.Server) {
 		return reg.Server
 	}
 	return FallbackRegionId
