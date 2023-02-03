@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -307,7 +309,7 @@ var showCmd = &cobra.Command{
 		}
 
 		if db.Type != "logical" {
-			return fmt.Errorf("database '%s' does not support the show operation", db.Name)
+			return fmt.Errorf("only new databases, of type 'logical', support the show operation")
 		}
 
 		config, err := settings.ReadSettings()
@@ -319,19 +321,24 @@ var showCmd = &cobra.Command{
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
 
-		fmt.Println("Name:   ", db.Name)
-		fmt.Println("URL:    ", getDatabaseUrl(config, db))
-		fmt.Println("ID:     ", db.ID)
-		fmt.Println("Regions:", displayRegions(instances))
+		regions := make([]string, len(db.Regions))
+		copy(regions, db.Regions)
+		sort.Strings(regions)
+
+		fmt.Println("Name:          ", db.Name)
+		fmt.Println("URL:           ", getDatabaseUrl(config, db))
+		fmt.Println("ID:            ", db.ID)
+		fmt.Println("Regions:", strings.Join(regions, ", "))
 		fmt.Println()
 
 		data := [][]string{}
 		for _, instance := range instances {
-			data = append(data, []string{instance.Name, instance.Type, instance.Region})
+			url := getInstanceUrl(config, db, instance)
+			data = append(data, []string{instance.Name, instance.Type, instance.Region, url})
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"name", "type", "region"}, data)
+		printTable([]string{"name", "type", "region", "url"}, data)
 
 		return nil
 	},
@@ -434,9 +441,8 @@ var replicateCmd = &cobra.Command{
 		username := result.(map[string]interface{})["username"].(string)
 		password = result.(map[string]interface{})["password"].(string)
 		var dbId, dbHost string
-		fmt.Println(original)
 		if original.Type == "logical" {
-			dbId = m["Uuid"].(string)
+			dbId = m["uuid"].(string)
 			dbHost = original.Hostname
 		} else {
 			dbId = m["DbId"].(string)
