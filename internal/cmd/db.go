@@ -25,6 +25,7 @@ var emph = color.New(color.FgBlue, color.Bold).SprintFunc()
 var warn = color.New(color.FgYellow, color.Bold).SprintFunc()
 
 var canary bool
+var showUrl bool
 var region string
 var allFlag bool
 var instanceFlag string
@@ -121,6 +122,7 @@ func init() {
 		return regionIds, cobra.ShellCompDirectiveDefault
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
+	showCmd.Flags().BoolVar(&showUrl, "url", false, "Show database connection URL.")
 }
 
 var dbCmd = &cobra.Command{
@@ -316,6 +318,12 @@ var showCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if showUrl {
+			fmt.Println(getDatabaseUrl(config, db))
+			return nil
+		}
+
 		instances, err := client.Instances.List(db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
