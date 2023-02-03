@@ -27,8 +27,9 @@ var warn = color.New(color.FgYellow, color.Bold).SprintFunc()
 var canary bool
 var showUrlFlag bool
 var region string
-var allFlag bool
+var yesFlag bool
 var instanceFlag string
+var regionFlag string
 var regionIds = []string{
 	"ams",
 	"cdg",
@@ -114,7 +115,8 @@ func getDatabases(client *turso.Client) ([]turso.Database, error) {
 func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, showCmd)
-	destroyCmd.Flags().BoolVar(&allFlag, "all", false, "Destroy all regions of the database.")
+	destroyCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the destruction of all regions of the database.")
+	destroyCmd.Flags().StringVar(&regionFlag, "region", "", "Pick a database region to destroy.")
 	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
@@ -268,31 +270,38 @@ func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string
 }
 
 var destroyCmd = &cobra.Command{
-	Use:               "destroy database_name [region]",
+	Use:               "destroy database_name",
 	Short:             "Destroy a database.",
-	Args:              cobra.RangeArgs(1, 2),
+	Args:              cobra.MatchAll(cobra.ExactArgs(1), dbNameValidator(0)),
 	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := createTursoClient()
 		name := args[0]
-		if allFlag {
-			return destroyDatabase(client, name)
-		}
-
 		if instanceFlag != "" {
 			return destroyDatabaseInstance(client, name, instanceFlag)
 		}
 
-		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-			return fmt.Errorf("db destroy should receive a region argument or a flag")
+		if regionFlag != "" {
+			return destroyDatabaseRegion(client, name, regionFlag)
 		}
 
-		validateDestroyRegion := cobra.MatchAll(dbNameValidator(0), regionArgValidator(1))
-		if err := validateDestroyRegion(cmd, args); err != nil {
-			return fmt.Errorf("invalid arguments: %w", err)
+		if yesFlag {
+			return destroyDatabase(client, name)
 		}
 
-		return destroyDatabaseReplicas(client, args[0], args[1])
+		fmt.Printf("Database %s, all its replicas, and data will be destroyed.\n", emph(name))
+
+		ok, err := promptConfirmation("Are you sure you want to do this?")
+		if err != nil {
+			return fmt.Errorf("could not get prompt confirmed by user: %w", err)
+		}
+
+		if !ok {
+			fmt.Println("Database destruction avoided.")
+			return nil
+		}
+
+		return destroyDatabase(client, name)
 	},
 }
 
