@@ -218,7 +218,7 @@ func destroyDatabaseInstance(client *turso.Client, database, instance string) er
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Destroyed instance %s in region %s of database %s.\n", emph(instance), emph(region), emph(database))
+	fmt.Printf("Destroyed instance %s of database %s.\n", emph(instance), emph(database))
 	return nil
 }
 
