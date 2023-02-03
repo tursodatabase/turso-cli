@@ -319,10 +319,10 @@ var showCmd = &cobra.Command{
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
 
-		fmt.Println("NAME:   ", db.Name)
+		fmt.Println("Name:   ", db.Name)
 		fmt.Println("URL:    ", getDatabaseUrl(config, db))
 		fmt.Println("ID:     ", db.ID)
-		fmt.Println("REGIONS:", displayRegions(instances))
+		fmt.Println("Regions:", displayRegions(instances))
 		fmt.Println()
 
 		data := [][]string{}
