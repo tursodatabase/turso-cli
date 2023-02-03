@@ -325,10 +325,10 @@ var showCmd = &cobra.Command{
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		fmt.Println("NAME:   ", db.Name)
-		fmt.Println("URL:    ", getDatabaseUrl(config, db))
-		fmt.Println("PRIMARY REGION:", db.PrimaryRegion)
-		fmt.Println("REGIONS:", strings.Join(regions, ", "))
+		fmt.Println("Name:          ", db.Name)
+		fmt.Println("URL:           ", getDatabaseUrl(config, db))
+		fmt.Println("ID:            ", db.ID)
+		fmt.Println("Regions:", strings.Join(regions, ", "))
 		fmt.Println()
 
 		data := [][]string{}
