@@ -210,11 +210,10 @@ var createCmd = &cobra.Command{
 		elapsed := time.Since(start)
 		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
 
-		fmt.Printf("HTTP connection string:\n\n")
-		dbUrl := dbSettings.GetURL()
-		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
+		fmt.Printf("To obtain connection URL, run:\n\n")
+		fmt.Printf("   turso db show --url %s\n\n", name)
 		config.AddDatabase(res.Database.ID, &dbSettings)
 		config.InvalidateDbNamesCache()
 		return nil
