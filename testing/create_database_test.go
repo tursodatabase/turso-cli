@@ -15,7 +15,7 @@ func TestReplication(t *testing.T) {
 	output, err := turso("db", "create", "t1")
 	c.Assert(err, qt.IsNil)
 	c.Assert(output, qt.Contains, "Created database t1")
-	output, err = turso("db", "destroy", "t1")
+	output, err = turso("db", "destroy", "--yes", "t1")
 	c.Assert(err, qt.IsNil)
 	c.Assert(output, qt.Contains, "Destroyed database t1")
 }
