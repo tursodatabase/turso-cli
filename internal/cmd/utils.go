@@ -223,13 +223,9 @@ func destroyDatabaseInstance(client *turso.Client, database, instance string) er
 }
 
 func deleteDatabaseInstance(client *turso.Client, database, instance string) error {
-	if err := client.Instances.Delete(database, instance); err != nil {
-		// TODO: remove this once wait stopped bug is fixed
-		time.Sleep(3 * time.Second)
-		err = client.Instances.Delete(database, instance)
-		if err != nil {
-			return fmt.Errorf("could not delete instance %s: %w", instance, err)
-		}
+	err := client.Instances.Delete(database, instance)
+	if err != nil {
+		return fmt.Errorf("could not delete instance %s: %w", instance, err)
 	}
 	return nil
 }
