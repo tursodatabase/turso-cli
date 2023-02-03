@@ -48,6 +48,10 @@ func (i *InstancesClient) Delete(db, instance string) error {
 		return errors.New(body.Error)
 	}
 
+	if r.StatusCode == http.StatusNotFound {
+		return errors.New("instance not found")
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("response with status code %d", r.StatusCode)
 	}
