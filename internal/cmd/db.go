@@ -30,33 +30,37 @@ var region string
 var yesFlag bool
 var instanceFlag string
 var regionFlag string
-var regionIds = []string{
-	"ams",
-	"cdg",
-	"den",
-	"dfw",
-	"ewr",
-	"fra",
-	"gru",
-	"hkg",
-	"iad",
-	"jnb",
-	"lax",
-	"lhr",
-	"maa",
-	"mad",
-	"mia",
-	"nrt",
-	"ord",
-	"otp",
-	"scl",
-	"sea",
-	"sin",
-	"sjc",
-	"syd",
-	"waw",
-	"yul",
-	"yyz",
+
+func getRegionIds() []string {
+	var regionIds = []string{
+		"ams",
+		"cdg",
+		"den",
+		"dfw",
+		"ewr",
+		"fra",
+		"gru",
+		"hkg",
+		"iad",
+		"jnb",
+		"lax",
+		"lhr",
+		"maa",
+		"mad",
+		"mia",
+		"nrt",
+		"ord",
+		"otp",
+		"scl",
+		"sea",
+		"sin",
+		"sjc",
+		"syd",
+		"waw",
+		"yul",
+		"yyz",
+	}
+	return regionIds
 }
 
 func extractDatabaseNames(databases []turso.Database) []string {
@@ -121,7 +125,7 @@ func init() {
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return regionIds, cobra.ShellCompDirectiveDefault
+		return getRegionIds(), cobra.ShellCompDirectiveDefault
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show database connection URL.")
@@ -257,7 +261,7 @@ func probeClosestRegion() string {
 }
 
 func isValidRegion(region string) bool {
-	for _, regionId := range regionIds {
+	for _, regionId := range getRegionIds() {
 		if region == regionId {
 			return true
 		}
@@ -365,7 +369,7 @@ var showCmd = &cobra.Command{
 
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 1 {
-		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+		return getRegionIds(), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	if len(args) == 0 {
 		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
@@ -518,7 +522,7 @@ var regionsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		defaultRegionId := probeClosestRegion()
 		fmt.Println("ID   LOCATION")
-		for _, regionId := range regionIds {
+		for _, regionId := range getRegionIds() {
 			suffix := ""
 			if regionId == defaultRegionId {
 				suffix = "  [default]"

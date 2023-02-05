@@ -40,7 +40,7 @@ func dbNameValidator(argIndex int) cobra.PositionalArgs {
 func regionArgValidator(argIndex int) cobra.PositionalArgs {
 	return func(cmd *cobra.Command, args []string) error {
 		region := args[argIndex]
-		for _, v := range regionIds {
+		for _, v := range getRegionIds() {
 			if v == region {
 				return nil
 			}
