@@ -39,7 +39,7 @@ func (d *DatabasesClient) Delete(database string) error {
 	url := fmt.Sprintf("/v2/databases/%s", database)
 	r, err := d.client.Delete(url, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete database: %s", err)
 	}
 	defer r.Body.Close()
 
