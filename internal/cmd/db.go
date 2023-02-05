@@ -64,7 +64,7 @@ func extractDatabaseNames(databases []turso.Database) []string {
 	for _, database := range databases {
 		name := database.Name
 		ty := database.Type
-		if ty == "primary" {
+		if ty == "logical" {
 			names = append(names, name)
 		}
 	}
