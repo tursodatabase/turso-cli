@@ -37,18 +37,6 @@ func dbNameValidator(argIndex int) cobra.PositionalArgs {
 	}
 }
 
-func regionArgValidator(argIndex int) cobra.PositionalArgs {
-	return func(cmd *cobra.Command, args []string) error {
-		region := args[argIndex]
-		for _, v := range getRegionIds() {
-			if v == region {
-				return nil
-			}
-		}
-		return fmt.Errorf("there is no %s region available", region)
-	}
-}
-
 func filterInstancesByRegion(instances []turso.Instance, region string) []turso.Instance {
 	result := []turso.Instance{}
 	for _, instance := range instances {
