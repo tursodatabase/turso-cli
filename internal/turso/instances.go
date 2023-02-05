@@ -69,7 +69,7 @@ func (d *InstancesClient) Create(dbName, password, region, image string) (*Insta
 	url := fmt.Sprintf("/v2/databases/%s/instances", dbName)
 	res, err := d.client.Post(url, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new instances for %s: %s", dbName, err)
 	}
 	defer res.Body.Close()
 

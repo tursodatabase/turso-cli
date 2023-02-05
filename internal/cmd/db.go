@@ -206,7 +206,7 @@ var createCmd = &cobra.Command{
 		}
 
 		if _, err = client.Instances.Create(name, res.Password, region, image); err != nil {
-			return fmt.Errorf("failed to create instance for database %s: %w", name, err)
+			return err
 		}
 
 		bar.Stop()
