@@ -70,7 +70,7 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	resp, err := createTursoClient().Get("/v1/databases", nil)
+	resp, err := createTursoClient().Get("/v2/validate/token", nil)
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 
