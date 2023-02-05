@@ -69,7 +69,7 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 
 	res, err := d.client.Post("/v2/databases", body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create database: %s", err)
 	}
 	defer res.Body.Close()
 
