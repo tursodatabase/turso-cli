@@ -20,7 +20,7 @@ type DatabasesClient client
 func (d *DatabasesClient) List() ([]Database, error) {
 	r, err := d.client.Get("/v2/databases", nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get database listing: %s", err)
 	}
 	defer r.Body.Close()
 
