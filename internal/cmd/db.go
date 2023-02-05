@@ -435,7 +435,7 @@ var replicateCmd = &cobra.Command{
 		resp, err := client.Do(req)
 		s.Stop()
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to create database: %s", err)
 		}
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
