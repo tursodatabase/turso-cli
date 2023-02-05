@@ -225,7 +225,7 @@ func destroyDatabaseInstance(client *turso.Client, database, instance string) er
 func deleteDatabaseInstance(client *turso.Client, database, instance string) error {
 	err := client.Instances.Delete(database, instance)
 	if err != nil {
-		return fmt.Errorf("could not delete instance %s: %w", instance, err)
+		return err
 	}
 	return nil
 }

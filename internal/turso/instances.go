@@ -39,7 +39,7 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 func (i *InstancesClient) Delete(db, instance string) error {
 	r, err := i.client.Delete(fmt.Sprintf("v2/databases/%s/instances/%s", db, instance), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to destroy instances %s of %s: %s", instance, db, err)
 	}
 	defer r.Body.Close()
 
