@@ -185,7 +185,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 
 	instances, err := client.Instances.List(db.Name)
 	if err != nil {
-		return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
+		return err
 	}
 
 	instances = filterInstancesByRegion(instances, region)

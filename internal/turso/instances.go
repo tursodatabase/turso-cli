@@ -19,7 +19,7 @@ type InstancesClient client
 func (i *InstancesClient) List(db string) ([]Instance, error) {
 	r, err := i.client.Get(fmt.Sprintf("v2/databases/%s/instances", db), nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list instances of %s: %s", db, err)
 	}
 	defer r.Body.Close()
 
