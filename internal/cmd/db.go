@@ -212,27 +212,11 @@ type Region struct {
 }
 
 func probeClosestRegion(client *turso.Client) string {
-	probeUrl := "https://chisel-region.fly.dev"
-	resp, err := http.Get(probeUrl)
-	if err != nil {
-		fmt.Printf(warn(FallbackWarning))
-		return FallbackRegionId
-	}
-	defer resp.Body.Close()
-
-	reg := Region{}
-	err = json.NewDecoder(resp.Body).Decode(&reg)
+	regions, err := turso.GetRegions(client)
 	if err != nil {
 		return FallbackRegionId
 	}
-
-	// Fly has regions that are not available to users. So let's ensure
-	// that we return a region ID that is actually usable for provisioning
-	// a database.
-	if isValidRegion(client, reg.Server) {
-		return reg.Server
-	}
-	return FallbackRegionId
+	return regions.DefaultRegionId
 }
 
 func isValidRegion(client *turso.Client, region string) bool {
@@ -501,7 +485,6 @@ var regionsCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := createTursoClient()
-		defaultRegionId := probeClosestRegion(client)
 		fmt.Println("ID   LOCATION")
 		regions, err := turso.GetRegions(client)
 		if err != nil {
@@ -509,11 +492,11 @@ var regionsCmd = &cobra.Command{
 		}
 		for idx := range regions.Ids {
 			suffix := ""
-			if regions.Ids[idx] == defaultRegionId {
+			if regions.Ids[idx] == regions.DefaultRegionId {
 				suffix = "  [default]"
 			}
 			line := fmt.Sprintf("%s  %s%s", regions.Ids[idx], regions.Descriptions[idx], suffix)
-			if regions.Ids[idx] == defaultRegionId {
+			if regions.Ids[idx] == regions.DefaultRegionId {
 				line = emph(line)
 			}
 			fmt.Printf("%s\n", line)
