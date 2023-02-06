@@ -105,7 +105,7 @@ func getAccessToken() (string, error) {
 
 	token := settings.GetToken()
 	if token == "" {
-		return "", fmt.Errorf("user not logged in")
+		return "", fmt.Errorf("user not logged in, please use %s", turso.Emph("turso auth login"))
 	}
 
 	return token, nil
