@@ -51,7 +51,7 @@ var tokenCmd = &cobra.Command{
 			return fmt.Errorf("could not retrieve local config: %w", err)
 		}
 		token := settings.GetToken()
-		if len(token) == 0 {
+		if !isJwtTokenValid(token) {
 			return fmt.Errorf("No user logged in. Run `turso auth login` to log in and get a token.")
 		}
 		fmt.Println(token)
