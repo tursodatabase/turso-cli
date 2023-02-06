@@ -3,11 +3,12 @@ package settings
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/kirsle/configdir"
 	"github.com/mitchellh/mapstructure"
+	"github.com/schollz/closestmatch"
 	"github.com/spf13/viper"
 )
 
@@ -116,17 +117,20 @@ func (s *Settings) DeleteDatabase(name string) {
 
 func (s Settings) FindDatabaseByName(name string) (*DatabaseSettings, error) {
 	databases := viper.GetStringMap("databases")
-	db_names := make([]string, 0)
+	dbNames := make([]string, 0)
 	for _, rawSettings := range databases {
 		settings := DatabaseSettings{}
 		mapstructure.Decode(rawSettings, &settings)
 		if settings.Name == name {
 			return &settings, nil
 		}
-		db_names = append(db_names, fmt.Sprintf("'%s'", settings.Name))
+		if settings.Name != "" {
+			dbNames = append(dbNames, settings.Name)
+		}
 	}
-	return nil, fmt.Errorf("provided database name is unknown. Valid database names are: [%s]",
-		strings.Join(db_names, ","))
+	bagSizes := []int{2}
+	cm := closestmatch.New(dbNames, bagSizes)
+	return nil, fmt.Errorf("%s is not a known database. Did you mean %s?", name, turso.Emph(cm.Closest(name)))
 }
 
 func (s *Settings) GetDatabaseSettings(id string) *DatabaseSettings {

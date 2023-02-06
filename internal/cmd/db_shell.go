@@ -95,7 +95,7 @@ func getDatabaseURL(name string) (string, error) {
 	if err != nil {
 		dbSettings, err := config.FindDatabaseByName(name)
 		if err != nil {
-			return "", fmt.Errorf("provided identifier '%s' is neither a valid url, nor known database name: %s", name, err.Error())
+			return "", err
 		}
 		dbUrl = dbSettings.GetURL()
 	} else {

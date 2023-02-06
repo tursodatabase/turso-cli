@@ -48,4 +48,5 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 )
