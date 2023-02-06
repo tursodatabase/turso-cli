@@ -49,7 +49,14 @@ func (t *Client) do(method, path string, body io.Reader) (*http.Response, error)
 	if err != nil {
 		return nil, err
 	}
-	return http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("%s - please login with %s", resp.Status, Emph("turso auth login"))
+	}
+	return resp, nil
 }
 
 func (t *Client) Get(path string, body io.Reader) (*http.Response, error) {
