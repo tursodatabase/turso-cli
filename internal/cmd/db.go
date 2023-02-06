@@ -24,33 +24,13 @@ var region string
 var yesFlag bool
 var instanceFlag string
 var regionFlag string
-var regionIds = []string{
-	"ams",
-	"cdg",
-	"den",
-	"dfw",
-	"ewr",
-	"fra",
-	"gru",
-	"hkg",
-	"iad",
-	"jnb",
-	"lax",
-	"lhr",
-	"maa",
-	"mad",
-	"mia",
-	"nrt",
-	"ord",
-	"otp",
-	"scl",
-	"sea",
-	"sin",
-	"sjc",
-	"syd",
-	"waw",
-	"yul",
-	"yyz",
+
+func getRegionIds(client *turso.Client) []string {
+	regions, err := turso.GetRegions(client)
+	if err != nil {
+		return []string{}
+	}
+	return regions.Ids
 }
 
 func extractDatabaseNames(databases []turso.Database) []string {
@@ -115,7 +95,7 @@ func init() {
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return regionIds, cobra.ShellCompDirectiveDefault
+		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveDefault
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show database connection URL.")
@@ -168,12 +148,13 @@ var createCmd = &cobra.Command{
 		} else {
 			name = args[0]
 		}
+		client := createTursoClient()
 		region := region
-		if region != "" && !isValidRegion(region) {
+		if region != "" && !isValidRegion(client, region) {
 			return fmt.Errorf("region '%s' is not a valid one", region)
 		}
 		if region == "" {
-			region = probeClosestRegion()
+			region = probeClosestRegion(client)
 		}
 		var image string
 		if canary {
@@ -181,10 +162,8 @@ var createCmd = &cobra.Command{
 		} else {
 			image = "latest"
 		}
-		client := createTursoClient()
 		start := time.Now()
-
-		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
+		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
 		description := fmt.Sprintf("Creating database %s in %s ", turso.Emph(name), turso.Emph(regionText))
 		bar := startLoadingBar(description)
 		defer bar.Stop()
@@ -226,31 +205,20 @@ type Region struct {
 	Server string
 }
 
-func probeClosestRegion() string {
-	probeUrl := "https://chisel-region.fly.dev"
-	resp, err := http.Get(probeUrl)
+func probeClosestRegion(client *turso.Client) string {
+	regions, err := turso.GetRegions(client)
 	if err != nil {
 		fmt.Printf(turso.Warn(FallbackWarning))
 		return FallbackRegionId
 	}
-	defer resp.Body.Close()
-
-	reg := Region{}
-	err = json.NewDecoder(resp.Body).Decode(&reg)
-	if err != nil {
-		return FallbackRegionId
-	}
-
-	// Fly has regions that are not available to users. So let's ensure
-	// that we return a region ID that is actually usable for provisioning
-	// a database.
-	if isValidRegion(reg.Server) {
-		return reg.Server
-	}
-	return FallbackRegionId
+	return regions.DefaultRegionId
 }
 
-func isValidRegion(region string) bool {
+func isValidRegion(client *turso.Client, region string) bool {
+	regionIds := getRegionIds(client)
+	if len(regionIds) == 0 {
+		return true
+	}
 	for _, regionId := range regionIds {
 		if region == regionId {
 			return true
@@ -359,7 +327,7 @@ var showCmd = &cobra.Command{
 
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 1 {
-		return regionIds, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	if len(args) == 0 {
 		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
@@ -385,7 +353,8 @@ var replicateCmd = &cobra.Command{
 		if region == "" {
 			return fmt.Errorf("You must specify a database region ID to replicate it.")
 		}
-		if !isValidRegion(region) {
+		tursoClient := createTursoClient()
+		if !isValidRegion(tursoClient, region) {
 			return fmt.Errorf("Invalid region ID. Run %s to see a list of valid region IDs.", turso.Emph("turso db regions"))
 		}
 		var image string
@@ -400,7 +369,7 @@ var replicateCmd = &cobra.Command{
 		}
 		host := getHost()
 
-		original, err := getDatabase(createTursoClient(), name)
+		original, err := getDatabase(tursoClient, name)
 		if err != nil {
 			return fmt.Errorf("please login with %s", turso.Emph("turso auth login"))
 		}
@@ -421,7 +390,7 @@ var replicateCmd = &cobra.Command{
 		}
 		req.Header.Add("Authorization", bearer)
 		s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
-		regionText := fmt.Sprintf("%s (%s)", toLocation(region), region)
+		regionText := fmt.Sprintf("%s (%s)", toLocation(tursoClient, region), region)
 		s.Prefix = fmt.Sprintf("Replicating database %s to %s ", turso.Emph(name), turso.Emph(regionText))
 		s.Start()
 		start := time.Now()
@@ -509,78 +478,36 @@ var regionsCmd = &cobra.Command{
 	Short:             "List available database regions.",
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
-	Run: func(cmd *cobra.Command, args []string) {
-		defaultRegionId := probeClosestRegion()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client := createTursoClient()
 		fmt.Println("ID   LOCATION")
-		for _, regionId := range regionIds {
+		regions, err := turso.GetRegions(client)
+		if err != nil {
+			return err
+		}
+		for idx := range regions.Ids {
 			suffix := ""
-			if regionId == defaultRegionId {
+			if regions.Ids[idx] == regions.DefaultRegionId {
 				suffix = "  [default]"
 			}
-			line := fmt.Sprintf("%s  %s%s", regionId, toLocation(regionId), suffix)
-			if regionId == defaultRegionId {
+			line := fmt.Sprintf("%s  %s%s", regions.Ids[idx], regions.Descriptions[idx], suffix)
+			if regions.Ids[idx] == regions.DefaultRegionId {
 				line = turso.Emph(line)
 			}
 			fmt.Printf("%s\n", line)
 		}
+		return nil
 	},
 }
 
-func toLocation(regionId string) string {
-	switch regionId {
-	case "ams":
-		return "Amsterdam, Netherlands"
-	case "cdg":
-		return "Paris, France"
-	case "den":
-		return "Denver, Colorado (US)"
-	case "dfw":
-		return "Dallas, Texas (US)"
-	case "ewr":
-		return "Secaucus, NJ (US)"
-	case "fra":
-		return "Frankfurt, Germany"
-	case "gru":
-		return "São Paulo, Brazil"
-	case "hkg":
-		return "Hong Kong, Hong Kong"
-	case "iad":
-		return "Ashburn, Virginia (US)"
-	case "jnb":
-		return "Johannesburg, South Africa"
-	case "lax":
-		return "Los Angeles, California (US)"
-	case "lhr":
-		return "London, United Kingdom"
-	case "maa":
-		return "Chennai (Madras), India"
-	case "mad":
-		return "Madrid, Spain"
-	case "mia":
-		return "Miami, Florida (US)"
-	case "nrt":
-		return "Tokyo, Japan"
-	case "ord":
-		return "Chicago, Illinois (US)"
-	case "otp":
-		return "Bucharest, Romania"
-	case "scl":
-		return "Santiago, Chile"
-	case "sea":
-		return "Seattle, Washington (US)"
-	case "sin":
-		return "Singapore"
-	case "sjc":
-		return "Sunnyvale, California (US)"
-	case "syd":
-		return "Sydney, Australia"
-	case "waw":
-		return "Warsaw, Poland"
-	case "yul":
-		return "Montreal, Canada"
-	case "yyz":
-		return "Toronto, Canada"
-	default:
-		return fmt.Sprintf("Region ID: %s", regionId)
+func toLocation(client *turso.Client, regionId string) string {
+	regions, err := turso.GetRegions(client)
+	if err == nil {
+		for idx := range regions.Ids {
+			if regions.Ids[idx] == regionId {
+				return regions.Descriptions[idx]
+			}
+		}
 	}
+	return fmt.Sprintf("Region ID: %s", regionId)
 }

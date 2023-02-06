@@ -37,18 +37,6 @@ func dbNameValidator(argIndex int) cobra.PositionalArgs {
 	}
 }
 
-func regionArgValidator(argIndex int) cobra.PositionalArgs {
-	return func(cmd *cobra.Command, args []string) error {
-		region := args[argIndex]
-		for _, v := range regionIds {
-			if v == region {
-				return nil
-			}
-		}
-		return fmt.Errorf("there is no %s region available", region)
-	}
-}
-
 func filterInstancesByRegion(instances []turso.Instance, region string) []turso.Instance {
 	result := []turso.Instance{}
 	for _, instance := range instances {
@@ -170,7 +158,7 @@ func destroyDatabase(client *turso.Client, name string) error {
 }
 
 func destroyDatabaseRegion(client *turso.Client, database, region string) error {
-	if !isValidRegion(region) {
+	if !isValidRegion(client, region) {
 		return fmt.Errorf("region '%s' is not a valid one", region)
 	}
 
