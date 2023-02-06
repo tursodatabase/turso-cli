@@ -20,7 +20,7 @@ type DatabasesClient client
 func (d *DatabasesClient) List() ([]Database, error) {
 	r, err := d.client.Get("/v2/databases", nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get database listing: %s", err)
 	}
 	defer r.Body.Close()
 
@@ -39,7 +39,7 @@ func (d *DatabasesClient) Delete(database string) error {
 	url := fmt.Sprintf("/v2/databases/%s", database)
 	r, err := d.client.Delete(url, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete database: %s", err)
 	}
 	defer r.Body.Close()
 
@@ -69,7 +69,7 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 
 	res, err := d.client.Post("/v2/databases", body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create database: %s", err)
 	}
 	defer res.Body.Close()
 

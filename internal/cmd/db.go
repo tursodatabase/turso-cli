@@ -15,14 +15,8 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
-
-// Color function for emphasising text.
-var emph = color.New(color.FgBlue, color.Bold).SprintFunc()
-
-var warn = color.New(color.FgYellow, color.Bold).SprintFunc()
 
 var canary bool
 var showUrlFlag bool
@@ -44,7 +38,7 @@ func extractDatabaseNames(databases []turso.Database) []string {
 	for _, database := range databases {
 		name := database.Name
 		ty := database.Type
-		if ty == "primary" {
+		if ty == "logical" {
 			names = append(names, name)
 		}
 	}
@@ -170,7 +164,7 @@ var createCmd = &cobra.Command{
 		}
 		start := time.Now()
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
-		description := fmt.Sprintf("Creating database %s in %s ", emph(name), emph(regionText))
+		description := fmt.Sprintf("Creating database %s in %s ", turso.Emph(name), turso.Emph(regionText))
 		bar := startLoadingBar(description)
 		defer bar.Stop()
 		res, err := client.Databases.Create(name, region, image)
@@ -185,12 +179,12 @@ var createCmd = &cobra.Command{
 		}
 
 		if _, err = client.Instances.Create(name, res.Password, region, image); err != nil {
-			return fmt.Errorf("failed to create instance for database %s: %w", name, err)
+			return err
 		}
 
 		bar.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s to %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
 
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
@@ -214,6 +208,7 @@ type Region struct {
 func probeClosestRegion(client *turso.Client) string {
 	regions, err := turso.GetRegions(client)
 	if err != nil {
+		fmt.Printf(turso.Warn(FallbackWarning))
 		return FallbackRegionId
 	}
 	return regions.DefaultRegionId
@@ -258,7 +253,7 @@ var destroyCmd = &cobra.Command{
 			return destroyDatabase(client, name)
 		}
 
-		fmt.Printf("Database %s, all its replicas, and data will be destroyed.\n", emph(name))
+		fmt.Printf("Database %s, all its replicas, and data will be destroyed.\n", turso.Emph(name))
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
 		if err != nil {
@@ -360,7 +355,7 @@ var replicateCmd = &cobra.Command{
 		}
 		tursoClient := createTursoClient()
 		if !isValidRegion(tursoClient, region) {
-			return fmt.Errorf("Invalid region ID. Run %s to see a list of valid region IDs.", emph("turso db regions"))
+			return fmt.Errorf("Invalid region ID. Run %s to see a list of valid region IDs.", turso.Emph("turso db regions"))
 		}
 		var image string
 		if canary {
@@ -370,13 +365,13 @@ var replicateCmd = &cobra.Command{
 		}
 		accessToken, err := getAccessToken()
 		if err != nil {
-			return fmt.Errorf("please login with %s", emph("turso auth login"))
+			return fmt.Errorf("please login with %s", turso.Emph("turso auth login"))
 		}
 		host := getHost()
 
 		original, err := getDatabase(tursoClient, name)
 		if err != nil {
-			return fmt.Errorf("please login with %s", emph("turso auth login"))
+			return fmt.Errorf("please login with %s", turso.Emph("turso auth login"))
 		}
 
 		url := fmt.Sprintf("%s/v1/databases", host)
@@ -396,14 +391,14 @@ var replicateCmd = &cobra.Command{
 		req.Header.Add("Authorization", bearer)
 		s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
 		regionText := fmt.Sprintf("%s (%s)", toLocation(tursoClient, region), region)
-		s.Prefix = fmt.Sprintf("Replicating database %s to %s ", emph(name), emph(regionText))
+		s.Prefix = fmt.Sprintf("Replicating database %s to %s ", turso.Emph(name), turso.Emph(regionText))
 		s.Start()
 		start := time.Now()
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		s.Stop()
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to create database: %s", err)
 		}
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("Failed to create database: %s", resp.Status)
@@ -435,7 +430,7 @@ var replicateCmd = &cobra.Command{
 			dbId = m["DbId"].(string)
 			dbHost = m["Hostname"].(string)
 		}
-		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", emph(name), emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
 		dbSettings = &settings.DatabaseSettings{
 			Host:     dbHost,
 			Username: username,
@@ -497,7 +492,7 @@ var regionsCmd = &cobra.Command{
 			}
 			line := fmt.Sprintf("%s  %s%s", regions.Ids[idx], regions.Descriptions[idx], suffix)
 			if regions.Ids[idx] == regions.DefaultRegionId {
-				line = emph(line)
+				line = turso.Emph(line)
 			}
 			fmt.Printf("%s\n", line)
 		}

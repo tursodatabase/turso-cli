@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
@@ -105,7 +106,7 @@ func getDatabaseURL(name string) (string, error) {
 
 func runShell(name, dbUrl string) error {
 	if name != dbUrl {
-		fmt.Printf("Connected to %s at %s\n\n", emph(name), dbUrl)
+		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(name), dbUrl)
 	} else {
 		fmt.Printf("Connected to %s\n\n", dbUrl)
 	}

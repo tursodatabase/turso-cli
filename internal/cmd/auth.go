@@ -51,7 +51,7 @@ var tokenCmd = &cobra.Command{
 			return fmt.Errorf("could not retrieve local config: %w", err)
 		}
 		token := settings.GetToken()
-		if len(token) == 0 {
+		if !isJwtTokenValid(token) {
 			return fmt.Errorf("No user logged in. Run `turso auth login` to log in and get a token.")
 		}
 		fmt.Println(token)
@@ -70,7 +70,7 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	resp, err := createTursoClient().Get("/v1/databases", nil)
+	resp, err := createTursoClient().Get("/v2/validate/token", nil)
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 

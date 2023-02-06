@@ -19,7 +19,7 @@ type InstancesClient client
 func (i *InstancesClient) List(db string) ([]Instance, error) {
 	r, err := i.client.Get(fmt.Sprintf("v2/databases/%s/instances", db), nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list instances of %s: %s", db, err)
 	}
 	defer r.Body.Close()
 
@@ -39,7 +39,7 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 func (i *InstancesClient) Delete(db, instance string) error {
 	r, err := i.client.Delete(fmt.Sprintf("v2/databases/%s/instances/%s", db, instance), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to destroy instances %s of %s: %s", instance, db, err)
 	}
 	defer r.Body.Close()
 
@@ -69,7 +69,7 @@ func (d *InstancesClient) Create(dbName, password, region, image string) (*Insta
 	url := fmt.Sprintf("/v2/databases/%s/instances", dbName)
 	res, err := d.client.Post(url, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new instances for %s: %s", dbName, err)
 	}
 	defer res.Body.Close()
 
