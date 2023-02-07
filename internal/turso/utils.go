@@ -63,3 +63,22 @@ func GetRegions(client *Client) (Regions, error) {
 
 	return resp, nil
 }
+
+type DefaultRegionResp struct {
+	Server string `json:"server"`
+}
+
+func GetDefaultRegion() string {
+	r, err := http.Get("https://region.turso.io")
+	if err != nil {
+		return ""
+	}
+	defer r.Body.Close()
+
+	resp, err := unmarshal[DefaultRegionResp](r)
+	if err != nil {
+		return ""
+	}
+
+	return resp.Server
+}
