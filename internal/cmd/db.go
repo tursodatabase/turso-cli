@@ -128,13 +128,12 @@ type Region struct {
 	Server string
 }
 
-func probeClosestRegion(client *turso.Client) string {
-	regions, err := turso.GetRegions(client)
-	if err != nil {
-		fmt.Printf(turso.Warn(FallbackWarning))
+func probeClosestRegion() string {
+	region := turso.GetDefaultRegion()
+	if region == "" {
 		return FallbackRegionId
 	}
-	return regions.DefaultRegionId
+	return region
 }
 
 func isValidRegion(client *turso.Client, region string) bool {
