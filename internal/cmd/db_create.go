@@ -36,7 +36,7 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("region '%s' is not a valid one", region)
 		}
 		if region == "" {
-			region = probeClosestRegion(client)
+			region = probeClosestRegion()
 		}
 		var image string
 		if canary {
