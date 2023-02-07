@@ -40,9 +40,8 @@ func parseResponseError(res *http.Response) error {
 }
 
 type Regions struct {
-	Ids             []string `json:"regionIds"`
-	Descriptions    []string `json:"regionDescriptions"`
-	DefaultRegionId string   `json:"defaultRegionId"`
+	Ids          []string `json:"regionIds"`
+	Descriptions []string `json:"regionDescriptions"`
 }
 
 func GetRegions(client *Client) (Regions, error) {
