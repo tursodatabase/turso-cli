@@ -14,12 +14,12 @@ var regionsCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := createTursoClient()
-		fmt.Println("ID   LOCATION")
 		regions, err := turso.GetRegions(client)
 		if err != nil {
 			return err
 		}
 		defaultRegionId := probeClosestRegion()
+		fmt.Println("ID   LOCATION")
 		for idx := range regions.Ids {
 			suffix := ""
 			if regions.Ids[idx] == defaultRegionId {
