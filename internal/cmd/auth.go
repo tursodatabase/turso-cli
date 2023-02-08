@@ -52,7 +52,7 @@ var tokenCmd = &cobra.Command{
 		}
 		token := settings.GetToken()
 		if !isJwtTokenValid(token) {
-			return fmt.Errorf("No user logged in. Run `turso auth login` to log in and get a token.")
+			return fmt.Errorf("no user logged in. Run `turso auth login` to log in and get a token")
 		}
 		fmt.Println(token)
 		return nil
@@ -87,17 +87,17 @@ func login(cmd *cobra.Command, args []string) error {
 	ch := make(chan string, 1)
 	server, err := createCallbackServer(ch)
 	if err != nil {
-		return fmt.Errorf("Internal error. Cannot create callback: %w", err)
+		return fmt.Errorf("internal error. Cannot create callback: %w", err)
 	}
 
 	port, err := runServer(server)
 	if err != nil {
-		return fmt.Errorf("Internal error. Cannot run authentication server: %w", err)
+		return fmt.Errorf("internal error. Cannot run authentication server: %w", err)
 	}
 
 	err = beginAuth(port)
 	if err != nil {
-		return fmt.Errorf("Internal error. Cannot initiate auth flow: %w", err)
+		return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
 	}
 
 	jwt := <-ch

@@ -45,7 +45,7 @@ var shellCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
-			return fmt.Errorf("Please specify a database name.")
+			return fmt.Errorf("please specify a database name")
 		}
 		dbUrl, err := getDatabaseURL(name)
 		if err != nil {
