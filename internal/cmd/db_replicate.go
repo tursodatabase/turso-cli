@@ -36,15 +36,15 @@ var replicateCmd = &cobra.Command{
 		}
 		name := args[0]
 		if name == "" {
-			return fmt.Errorf("You must specify a database name to replicate it.")
+			return fmt.Errorf("you must specify a database name to replicate it")
 		}
 		region := args[1]
 		if region == "" {
-			return fmt.Errorf("You must specify a database region ID to replicate it.")
+			return fmt.Errorf("you must specify a database region ID to replicate it")
 		}
 		tursoClient := createTursoClient()
 		if !isValidRegion(tursoClient, region) {
-			return fmt.Errorf("Invalid region ID. Run %s to see a list of valid region IDs.", turso.Emph("turso db regions"))
+			return fmt.Errorf("invalid region ID. Run %s to see a list of valid region IDs", turso.Emph("turso db regions"))
 		}
 		var image string
 		if canary {
@@ -87,10 +87,10 @@ var replicateCmd = &cobra.Command{
 		resp, err := client.Do(req)
 		s.Stop()
 		if err != nil {
-			return fmt.Errorf("Failed to create database: %s", err)
+			return fmt.Errorf("failed to create database: %s", err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("Failed to create database: %s", resp.Status)
+			return fmt.Errorf("failed to create database: %s", resp.Status)
 		}
 		defer resp.Body.Close()
 		body, err := io.ReadAll(resp.Body)
