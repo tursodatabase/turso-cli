@@ -41,7 +41,7 @@ var shellCmd = &cobra.Command{
 	Use:               "shell database_name [sql]",
 	Short:             "Start a SQL shell.",
 	Args:              cobra.RangeArgs(1, 2),
-	ValidArgsFunction: replicateArgs,
+	ValidArgsFunction: shellArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
