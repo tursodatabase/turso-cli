@@ -101,6 +101,13 @@ func getDatabaseURL(name string) (string, error) {
 	} else {
 		dbUrl = name
 	}
+	resp, err := doQuery(dbUrl, "SELECT 1")
+	if err != nil {
+		return "", fmt.Errorf("failed to connect: %s", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to connect: %s", resp.Status)
+	}
 	return dbUrl, nil
 }
 
@@ -155,14 +162,7 @@ replLoop:
 }
 
 func query(url, stmt string) error {
-	rawReq := QueryRequest{
-		Statements: []string{stmt},
-	}
-	req, err := json.Marshal(rawReq)
-	if err != nil {
-		return err
-	}
-	resp, err := http.Post(url, "application/json", bytes.NewReader(req))
+	resp, err := doQuery(url, stmt)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,6 @@ func query(url, stmt string) error {
 	if err != nil {
 		return err
 	}
-
 	if resp.StatusCode != http.StatusOK {
 		var err_response ErrorResponse
 		fmt.Fprintf(os.Stderr, "error: Failed to execute SQL statement %s\n", stmt)
@@ -204,4 +203,15 @@ func query(url, stmt string) error {
 		}
 	}
 	return nil
+}
+
+func doQuery(url, stmt string) (*http.Response, error) {
+	rawReq := QueryRequest{
+		Statements: []string{stmt},
+	}
+	req, err := json.Marshal(rawReq)
+	if err != nil {
+		return nil, err
+	}
+	return http.Post(url, "application/json", bytes.NewReader(req))
 }
