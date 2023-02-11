@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 )
 
 // Collection of all turso clients
@@ -33,9 +34,13 @@ func New(base *url.URL, token string) *Client {
 	return c
 }
 
-func (t *Client) newRequest(method, path string, body io.Reader) (*http.Request, error) {
-	url := t.baseUrl.JoinPath(path).String()
-	req, err := http.NewRequest(method, url, body)
+func (t *Client) newRequest(method, urlPath string, body io.Reader) (*http.Request, error) {
+	url, err := url.Parse(t.baseUrl.String())
+	if err != nil {
+		return nil, err
+	}
+	url.Path = path.Join(url.Path, urlPath)
+	req, err := http.NewRequest(method, url.String(), body)
 	if err != nil {
 		return nil, err
 	}
