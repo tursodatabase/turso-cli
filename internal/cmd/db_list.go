@@ -11,6 +11,7 @@ var listCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		settings, err := settings.ReadSettings()
 		if err != nil {
 			return err

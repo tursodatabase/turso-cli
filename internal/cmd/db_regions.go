@@ -13,6 +13,7 @@ var regionsCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		client := createTursoClient()
 		regions, err := turso.GetRegions(client)
 		if err != nil {

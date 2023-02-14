@@ -46,6 +46,7 @@ var tokenCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		settings, err := settings.ReadSettings()
 		if err != nil {
 			return fmt.Errorf("could not retrieve local config: %w", err)
@@ -75,6 +76,7 @@ func isJwtTokenValid(token string) bool {
 }
 
 func login(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return fmt.Errorf("could not retrieve local config: %w", err)
@@ -161,6 +163,7 @@ func runServer(server *http.Server) (int, error) {
 }
 
 func logout(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return fmt.Errorf("could not retrieve local config: %w", err)
