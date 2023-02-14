@@ -56,6 +56,9 @@ var shellCmd = &cobra.Command{
 		if len(args) == 1 {
 			return runShell(name, dbUrl)
 		} else {
+			if len(args[1]) == 0 {
+				return fmt.Errorf("No SQL command to execute")
+			}
 			return query(dbUrl, args[1])
 		}
 	},
