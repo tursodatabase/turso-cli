@@ -16,6 +16,7 @@ var createCmd = &cobra.Command{
 	Args:              cobra.MaximumNArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		config, err := settings.ReadSettings()
 		if err != nil {
 			return err

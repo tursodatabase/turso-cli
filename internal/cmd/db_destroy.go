@@ -20,6 +20,7 @@ var destroyCmd = &cobra.Command{
 	Args:              cobra.MatchAll(cobra.ExactArgs(1), dbNameValidator(0)),
 	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		client := createTursoClient()
 		name := args[0]
 		if instanceFlag != "" {

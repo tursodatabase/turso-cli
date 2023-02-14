@@ -17,6 +17,7 @@ var showCmd = &cobra.Command{
 		dbNameValidator(0),
 	),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		client := createTursoClient()
 		db, err := getDatabase(client, args[0])
 		if err != nil {

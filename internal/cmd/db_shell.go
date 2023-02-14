@@ -47,6 +47,7 @@ var shellCmd = &cobra.Command{
 		if name == "" {
 			return fmt.Errorf("please specify a database name")
 		}
+		cmd.SilenceUsage = true
 		dbUrl, err := getDatabaseURL(name)
 		if err != nil {
 			return err
