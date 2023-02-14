@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -209,6 +210,11 @@ func query(url, stmt string) error {
 			}
 			tbl := table.New(columns...)
 			for _, row := range result.Results.Rows {
+				for idx, v := range row {
+					if f64, ok := v.(float64); ok {
+						row[idx] = strconv.FormatFloat(f64, 'f', -1, 64)
+					}
+				}
 				tbl.AddRow(row...)
 			}
 			tbl.Print()
