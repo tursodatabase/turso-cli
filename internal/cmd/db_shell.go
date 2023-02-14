@@ -236,5 +236,6 @@ func doQuery(url, stmt string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+        url := url + "/queries"
 	return http.Post(url, "application/json", bytes.NewReader(req))
 }
