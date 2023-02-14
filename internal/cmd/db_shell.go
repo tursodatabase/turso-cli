@@ -17,6 +17,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"github.com/xwb1989/sqlparser"
 )
 
 func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -232,8 +233,12 @@ func query(url, stmt string) error {
 }
 
 func doQuery(url, stmt string) (*http.Response, error) {
+	stmts, err := sqlparser.SplitStatementToPieces(stmt)
+	if err != nil {
+		return nil, err
+	}
 	rawReq := QueryRequest{
-		Statements: []string{stmt},
+		Statements: stmts,
 	}
 	req, err := json.Marshal(rawReq)
 	if err != nil {

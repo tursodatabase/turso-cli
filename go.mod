@@ -49,4 +49,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
+	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 // indirect
 )
