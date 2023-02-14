@@ -60,7 +60,7 @@ var replicateCmd = &cobra.Command{
 
 		original, err := getDatabase(tursoClient, name)
 		if err != nil {
-			return fmt.Errorf("please login with %s", turso.Emph("turso auth login"))
+			return err
 		}
 
 		url := fmt.Sprintf("%s/v1/databases", host)
