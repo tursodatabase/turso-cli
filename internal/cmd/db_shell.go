@@ -155,10 +155,22 @@ replLoop:
 		}
 		err = query(dbUrl, line)
 		if err != nil {
-			return err
+			if _, ok := err.(*SqlError); !ok {
+				return err
+			} else {
+				fmt.Fprintln(os.Stderr, err)
+			}
 		}
 	}
 	return nil
+}
+
+type SqlError struct {
+	Message string
+}
+
+func (e *SqlError) Error() string {
+	return e.Message
 }
 
 func query(url, stmt string) error {
@@ -173,12 +185,10 @@ func query(url, stmt string) error {
 	}
 	if resp.StatusCode != http.StatusOK {
 		var err_response ErrorResponse
-		fmt.Fprintf(os.Stderr, "error: Failed to execute SQL statement %s\n", stmt)
 		if err := json.Unmarshal(body, &err_response); err != nil {
-			return nil
+			return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s", stmt)}
 		}
-		fmt.Fprintln(os.Stderr, err_response.Message)
-		return nil
+		return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err_response.Message)}
 	}
 
 	var results []QueryResult
@@ -186,9 +196,11 @@ func query(url, stmt string) error {
 		fmt.Printf("error: Failed to parse response from server: %s\n", err.Error())
 		return err
 	}
+	errs := []string{}
 	for _, result := range results {
 		if result.Error != nil {
 			fmt.Printf("error: %s\n", result.Error.Message)
+			errs = append(errs, result.Error.Message)
 		}
 		if result.Results != nil {
 			columns := make([]interface{}, 0)
@@ -202,6 +214,10 @@ func query(url, stmt string) error {
 			tbl.Print()
 		}
 	}
+	if len(errs) > 0 {
+		return &SqlError{(strings.Join(errs, "; "))}
+	}
+
 	return nil
 }
 
