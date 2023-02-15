@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -126,8 +127,9 @@ func beginAuth(port int) error {
 
 	err = browser.OpenURL(authUrl.String())
 	if err != nil {
-		return fmt.Errorf("error opening browser for auth flow: %w", err)
+		fmt.Printf("Please open the following URL to login: %s\n", turso.Emph(authUrl.String()))
 	}
+
 	return nil
 }
 
