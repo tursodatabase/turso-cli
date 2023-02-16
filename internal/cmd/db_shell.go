@@ -164,7 +164,7 @@ replLoop:
 			if _, ok := err.(*SqlError); !ok {
 				return err
 			} else {
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 			}
 		}
 	}
@@ -199,13 +199,11 @@ func query(url, stmt string) error {
 
 	var results []QueryResult
 	if err := json.Unmarshal(body, &results); err != nil {
-		fmt.Printf("error: Failed to parse response from server: %s\n", err.Error())
 		return err
 	}
 	errs := []string{}
 	for _, result := range results {
 		if result.Error != nil {
-			fmt.Printf("error: %s\n", result.Error.Message)
 			errs = append(errs, result.Error.Message)
 		}
 		if result.Results != nil {
