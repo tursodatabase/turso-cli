@@ -44,7 +44,7 @@ func (d *DatabasesClient) Delete(database string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("could not find database %s", database)
+		return fmt.Errorf("database %s not found. List known databases using %s", Emph(database), Emph("turso db list"))
 	}
 
 	if r.StatusCode != http.StatusOK {
