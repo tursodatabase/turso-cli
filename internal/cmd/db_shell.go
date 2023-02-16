@@ -89,6 +89,25 @@ type ErrorResponse struct {
 	Message string `json:"error"`
 }
 
+func getTables() string {
+	return `select name from sqlite_schema where
+	type = 'table'
+	and name not like 'sqlite_%'
+	and name != '_litestream_seq'
+	and name != '_litestream_lock'
+	and name != 'libsql_wasm_func_table'
+	order by name`
+}
+
+func getSchema() string {
+	return `select sql from sqlite_schema where
+	name not like 'sqlite_%'
+	and name != '_litestream_seq'
+	and name != '_litestream_lock'
+	and name != 'libsql_wasm_func_table'
+	order by name`
+}
+
 func getDatabaseURL(name string) (string, error) {
 	config, err := settings.ReadSettings()
 	if err != nil {
@@ -138,7 +157,7 @@ func runShell(name, dbUrl string) error {
 	l.CaptureExitSignal()
 
 	fmt.Printf("Welcome to Turso SQL shell!\n\n")
-	fmt.Printf("Type \".quit\" to exit the shell.\n\n")
+	fmt.Printf("Type \".quit\" to exit the shell, \".tables\" to list all tables, and \".schema\" to show table schemas.\n\n")
 replLoop:
 	for {
 		line, err := l.Readline()
@@ -158,6 +177,24 @@ replLoop:
 		switch line {
 		case ".quit":
 			break replLoop
+		case ".tables":
+			{
+				err = query(dbUrl, getTables())
+				if err != nil {
+					return err
+				}
+			}
+			continue
+		case ".schema":
+			{
+				{
+					err = query(dbUrl, getSchema())
+					if err != nil {
+						return err
+					}
+				}
+				continue
+			}
 		}
 		err = query(dbUrl, line)
 		if err != nil {
