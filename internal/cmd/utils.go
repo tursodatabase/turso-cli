@@ -18,14 +18,22 @@ import (
 )
 
 func createTursoClient() *turso.Client {
-	tursoUrl, err := url.Parse(getTursoUrl())
-	if err != nil {
-		log.Fatal(fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", getTursoUrl(), err))
-	}
-
 	token, err := getAccessToken()
 	if err != nil {
 		log.Fatal(fmt.Errorf("error creating Turso client: %w", err))
+	}
+
+	return tursoClient(&token)
+}
+
+func createUnauthenticatedTursoClient() *turso.Client {
+	return tursoClient(nil)
+}
+
+func tursoClient(token *string) *turso.Client {
+	tursoUrl, err := url.Parse(getTursoUrl())
+	if err != nil {
+		log.Fatal(fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", getTursoUrl(), err))
 	}
 
 	return turso.New(tursoUrl, token)

@@ -3,7 +3,9 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -103,6 +105,18 @@ func login(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
 	}
 
+	versionChannel := make(chan string, 1)
+
+	go func() {
+		latestVersion, err := fetchLatestVersion()
+		if err != nil {
+			// On error we just behave as the version check has never happend
+			versionChannel <- version
+			return
+		}
+		versionChannel <- latestVersion
+	}()
+
 	jwt := <-ch
 
 	err = settings.SetToken(jwt)
@@ -111,8 +125,44 @@ func login(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error persisting token on local config: %w", err)
 	}
+
+	latestVersion := <-versionChannel
+
 	fmt.Println("✔  Success!")
+
+	if version != latestVersion {
+
+		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", turso.Emph("Turso CLI"))
+		fmt.Printf("You're currently using version %s while latest available version is %s.\n", turso.Emph(version), turso.Emph(latestVersion))
+		fmt.Printf("Please consider updating to get new features and more stable experience.\n\n")
+	}
+
 	return nil
+}
+
+func fetchLatestVersion() (string, error) {
+	resp, err := createUnauthenticatedTursoClient().Get("/releases/latest", nil)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error getting latest release: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var versionResp struct {
+		Version string `json:"latest"`
+	}
+	if err := json.Unmarshal(body, &versionResp); err != nil {
+		return "", err
+	}
+	if len(versionResp.Version) == 0 {
+		return "", fmt.Errorf("got empty version for latest release")
+	}
+	return versionResp.Version, nil
 }
 
 func beginAuth(port int) error {
