@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
@@ -79,9 +78,8 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 		req.Header.Add("Authorization", bearer)
-		s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
 		regionText := fmt.Sprintf("%s (%s)", toLocation(tursoClient, region), region)
-		s.Prefix = fmt.Sprintf("Replicating database %s to %s ", turso.Emph(name), turso.Emph(regionText))
+		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", turso.Emph(name), turso.Emph(regionText)))
 		s.Start()
 		start := time.Now()
 		client := &http.Client{}

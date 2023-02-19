@@ -124,23 +124,16 @@ func printTable(header []string, data [][]string) {
 	table.Render()
 }
 
-func startSpinner(text string) *spinner.Spinner {
-	s := spinner.New(spinner.CharSets[14], 40*time.Millisecond)
-	s.Prefix = text
-	s.Start()
-	return s
-}
-
 func startLoadingBar(text string) *spinner.Spinner {
 	s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
-	s.Prefix = text
+	s.Suffix = "\n" + text
 	s.Start()
 	return s
 }
 
 func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
-	s := startSpinner(fmt.Sprintf("Destroying database %s... ", turso.Emph(name)))
+	s := startLoadingBar(fmt.Sprintf("Destroying database %s... ", turso.Emph(name)))
 	defer s.Stop()
 	if err := client.Databases.Delete(name); err != nil {
 		return err
