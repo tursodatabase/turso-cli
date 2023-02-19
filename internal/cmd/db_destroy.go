@@ -17,7 +17,7 @@ func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string
 var destroyCmd = &cobra.Command{
 	Use:               "destroy database_name",
 	Short:             "Destroy a database.",
-	Args:              cobra.MatchAll(cobra.ExactArgs(1), dbNameValidator(0)),
+	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: destroyArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true

@@ -17,12 +17,9 @@ func showShellArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 }
 
 var showCmd = &cobra.Command{
-	Use:   "show database_name",
-	Short: "Show information from a database.",
-	Args: cobra.MatchAll(
-		cobra.ExactArgs(1),
-		dbNameValidator(0),
-	),
+	Use:               "show database_name",
+	Short:             "Show information from a database.",
+	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: showShellArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
