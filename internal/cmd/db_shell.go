@@ -22,19 +22,7 @@ import (
 
 func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
-		databases, err := getDatabases(createTursoClient())
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
-		result := make([]string, 0)
-		for _, database := range databases {
-			name := database.Name
-			ty := database.Type
-			if ty == "logical" {
-				result = append(result, name)
-			}
-		}
-		return result, cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }

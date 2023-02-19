@@ -9,6 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func showShellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
+	}
+	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
 var showCmd = &cobra.Command{
 	Use:   "show database_name",
 	Short: "Show information from a database.",
@@ -16,6 +23,7 @@ var showCmd = &cobra.Command{
 		cobra.ExactArgs(1),
 		dbNameValidator(0),
 	),
+	ValidArgsFunction: showShellArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client := createTursoClient()
