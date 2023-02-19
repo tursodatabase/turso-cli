@@ -30,7 +30,7 @@ func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 		for _, database := range databases {
 			name := database.Name
 			ty := database.Type
-			if ty == "primary" {
+			if ty == "logical" {
 				result = append(result, name)
 			}
 		}
