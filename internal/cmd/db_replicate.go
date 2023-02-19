@@ -112,12 +112,10 @@ var replicateCmd = &cobra.Command{
 		}
 		username := result.(map[string]interface{})["username"].(string)
 		password = result.(map[string]interface{})["password"].(string)
-		var dbId, dbHost string
+		var dbHost string
 		if original.Type == "logical" {
-			dbId = m["uuid"].(string)
 			dbHost = original.Hostname
 		} else {
-			dbId = m["DbId"].(string)
 			dbHost = m["Hostname"].(string)
 		}
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
@@ -131,8 +129,6 @@ var replicateCmd = &cobra.Command{
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", dbUrl)
-		config.AddDatabase(dbId, dbSettings)
-		config.InvalidateDbNamesCache()
 		return nil
 	},
 }
