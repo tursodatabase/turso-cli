@@ -241,6 +241,8 @@ func query(url, stmt string) error {
 				for idx, v := range row {
 					if f64, ok := v.(float64); ok {
 						row[idx] = strconv.FormatFloat(f64, 'f', -1, 64)
+					} else if v == nil {
+						row[idx] = "NULL"
 					}
 				}
 				tbl.AddRow(row...)
