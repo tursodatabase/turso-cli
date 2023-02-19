@@ -13,7 +13,6 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -37,12 +36,6 @@ func tursoClient(token *string) *turso.Client {
 	}
 
 	return turso.New(tursoUrl, token)
-}
-
-func dbNameValidator(argIndex int) cobra.PositionalArgs {
-	return func(cmd *cobra.Command, args []string) error {
-		return nil
-	}
 }
 
 func filterInstancesByRegion(instances []turso.Instance, region string) []turso.Instance {
