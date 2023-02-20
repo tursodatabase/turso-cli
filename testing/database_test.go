@@ -32,6 +32,13 @@ func testCreate(c *qt.C, dbName string, region *string, canary bool, tc testCase
 	defer testDestroy(c, dbName)
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Created database "+dbName)
+
+	if region != nil {
+		output, err = turso("db", "show", dbName)
+		c.Assert(err, qt.IsNil, qt.Commentf(output))
+		c.Assert(output, qt.Contains, "Regions:  "+*region)
+	}
+
 	if tc != nil {
 		tc(c, dbName)
 	}
