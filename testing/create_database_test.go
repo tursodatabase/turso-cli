@@ -16,12 +16,16 @@ func testDestroy(c *qt.C, dbName string) {
 	c.Assert(output, qt.Contains, "Destroyed database "+dbName)
 }
 
+func testCreate(c *qt.C, dbName string) {
+	output, err := turso("db", "create", dbName)
+	defer testDestroy(c, dbName)
+	c.Assert(err, qt.IsNil)
+	c.Assert(output, qt.Contains, "Created database "+dbName)
+}
+
 func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
-	output, err := turso("db", "create", "t1")
-	defer testDestroy(c, "t1")
-	c.Assert(err, qt.IsNil)
-	c.Assert(output, qt.Contains, "Created database t1")
+	testCreate(c, "t1")
 }
 
 func turso(args ...string) (string, error) {
