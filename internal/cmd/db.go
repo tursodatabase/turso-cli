@@ -7,6 +7,7 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var canary bool
@@ -108,7 +109,17 @@ var dbCmd = &cobra.Command{
 	Short: "Manage databases",
 }
 
+const ENV_ACCESS_TOKEN = "TURSO_API_TOKEN"
+
 func getAccessToken() (string, error) {
+	envToken := os.Getenv(ENV_ACCESS_TOKEN)
+	if envToken != "" {
+		return envToken, nil
+	}
+	flagToken := viper.GetString("token")
+	if flagToken != "" {
+		return flagToken, nil
+	}
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return "", fmt.Errorf("could not read local settings")
