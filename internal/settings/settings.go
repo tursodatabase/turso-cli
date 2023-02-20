@@ -11,11 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type DbNamesCache struct {
-	ExpirationTime int64    `json:"expiration_time"`
-	DbNames        []string `json:"db_names"`
-}
-
 type DatabaseSettings struct {
 	Name     string  `json:"name"`
 	Host     string  `json:"host"`
@@ -60,29 +55,57 @@ func ReadSettings() (*Settings, error) {
 }
 
 const DB_NAMES_CACHE_KEY = "cached_db_names"
+const DB_NAMES_CACHE_TTL_SECONDS = 30 * 60
+const DB_NAMES_CACHE_VALUE_FIELD_NAME = "db_names"
 
 func (s *Settings) SetDbNamesCache(dbNames []string) {
-	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{time.Now().Unix() + 30*60, dbNames})
+	setCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_VALUE_FIELD_NAME, DB_NAMES_CACHE_TTL_SECONDS, dbNames)
+}
+
+func (s *Settings) GetDbNamesCache() []string {
+	return getCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_VALUE_FIELD_NAME)
+}
+
+func (s *Settings) InvalidateDbNamesCache() {
+	invalidateCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_VALUE_FIELD_NAME)
+}
+
+const REGIONS_CACHE_KEY = "cached_region_names"
+const REGIONS_CACHE_TTL_SECONDS = 24 * 60 * 60
+const REGIONS_CACHE_VALUE_FIELD_NAME = "region_names"
+
+func (s *Settings) SetRegionsCache(regions []string) {
+	setCache(REGIONS_CACHE_KEY, REGIONS_CACHE_VALUE_FIELD_NAME, REGIONS_CACHE_TTL_SECONDS, regions)
+}
+
+func (s *Settings) GetRegionsCache() []string {
+	return getCache(REGIONS_CACHE_KEY, REGIONS_CACHE_VALUE_FIELD_NAME)
+}
+
+func setCache(cacheKey string, valueFieldName string, ttl int64, value []string) {
+	viper.Set(cacheKey+"."+valueFieldName, value)
+	viper.Set(cacheKey+".expiration_time", time.Now().Unix()+ttl)
 	err := viper.WriteConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
 	}
 }
 
-func (s *Settings) GetDbNamesCache() []string {
-	expirationTime := viper.GetInt64(DB_NAMES_CACHE_KEY + ".expiration_time")
+func getCache(cacheKey string, valueFieldName string) []string {
+	expirationTime := viper.GetInt64(cacheKey + ".expiration_time")
 	if expirationTime == 0 {
 		return nil
 	}
 	if expirationTime <= time.Now().Unix() {
-		s.InvalidateDbNamesCache()
+		invalidateCache(cacheKey, valueFieldName)
 		return nil
 	}
-	return viper.GetStringSlice(DB_NAMES_CACHE_KEY + ".db_names")
+	return viper.GetStringSlice(cacheKey + "." + valueFieldName)
 }
 
-func (s *Settings) InvalidateDbNamesCache() {
-	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{0, []string{}})
+func invalidateCache(cacheKey string, valueFieldName string) {
+	viper.Set(DB_NAMES_CACHE_KEY+".expiration_time", 0)
+	viper.Set(DB_NAMES_CACHE_KEY+"."+valueFieldName, []string{})
 	err := viper.WriteConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)

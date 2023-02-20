@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -14,6 +15,10 @@ var regionsCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
 		client := createTursoClient()
 		regions, err := turso.GetRegions(client)
 		if err != nil {
@@ -32,6 +37,7 @@ var regionsCmd = &cobra.Command{
 			}
 			fmt.Printf("%s\n", line)
 		}
+		settings.SetRegionsCache(regions.Ids)
 		return nil
 	},
 }
