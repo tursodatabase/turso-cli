@@ -108,7 +108,13 @@ var dbCmd = &cobra.Command{
 	Short: "Manage databases",
 }
 
+const ENV_ACCESS_TOKEN = "TURSO_API_TOKEN"
+
 func getAccessToken() (string, error) {
+	envToken := os.Getenv(ENV_ACCESS_TOKEN)
+	if envToken != "" {
+		return envToken, nil
+	}
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return "", fmt.Errorf("could not read local settings")
