@@ -11,11 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type DbNamesCache struct {
-	ExpirationTime int64    `json:"expiration_time"`
-	DbNames        []string `json:"db_names"`
-}
-
 type DatabaseSettings struct {
 	Name     string  `json:"name"`
 	Host     string  `json:"host"`
@@ -63,7 +58,8 @@ const DB_NAMES_CACHE_KEY = "cached_db_names"
 const DB_NAMES_CACHE_TTL_SECONDS = 30 * 60
 
 func (s *Settings) SetDbNamesCache(dbNames []string) {
-	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{time.Now().Unix() + DB_NAMES_CACHE_TTL_SECONDS, dbNames})
+	viper.Set(DB_NAMES_CACHE_KEY+".db_names", dbNames)
+	viper.Set(DB_NAMES_CACHE_KEY+".expiration_time", time.Now().Unix()+DB_NAMES_CACHE_TTL_SECONDS)
 	err := viper.WriteConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
@@ -83,7 +79,8 @@ func (s *Settings) GetDbNamesCache() []string {
 }
 
 func (s *Settings) InvalidateDbNamesCache() {
-	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{0, []string{}})
+	viper.Set(DB_NAMES_CACHE_KEY+".expiration_time", 0)
+	viper.Set(DB_NAMES_CACHE_KEY+".db_names", []string{})
 	err := viper.WriteConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
