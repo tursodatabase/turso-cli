@@ -56,6 +56,25 @@ func TestDbCreation(t *testing.T) {
 	}
 }
 
+func testReplicate(c *qt.C, dbName string, region string, canary bool) {
+	args := []string{"db", "replicate", dbName, region}
+	if canary {
+		args = append(args, "--canary")
+	}
+	output, err := turso(args...)
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Contains, "Replicated database "+dbName)
+}
+
+func TestDbReplication(t *testing.T) {
+	c := qt.New(t)
+	for _, canary := range []bool{false, true} {
+		testCreate(c, "t1", nil, canary, func(canary bool) testCase {
+			return func(c *qt.C, dbName string) { testReplicate(c, dbName, "ams", canary) }
+		}(canary))
+	}
+}
+
 func turso(args ...string) (string, error) {
 	cmd := exec.Command("../cmd/turso/turso", args...)
 	output, err := cmd.CombinedOutput()
