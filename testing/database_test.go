@@ -12,13 +12,15 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
+type testCase func(c *qt.C, dbName string)
+
 func testDestroy(c *qt.C, dbName string) {
 	output, err := turso("db", "destroy", "--yes", dbName)
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Destroyed database "+dbName)
 }
 
-func testCreate(c *qt.C, dbName string, region *string, canary bool) {
+func testCreate(c *qt.C, dbName string, region *string, canary bool, tc testCase) {
 	args := []string{"db", "create", dbName}
 	if region != nil {
 		args = append(args, "--region", *region)
@@ -30,6 +32,9 @@ func testCreate(c *qt.C, dbName string, region *string, canary bool) {
 	defer testDestroy(c, dbName)
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Created database "+dbName)
+	if tc != nil {
+		tc(c, dbName)
+	}
 }
 
 func TestDbCreation(t *testing.T) {
@@ -39,12 +44,12 @@ func TestDbCreation(t *testing.T) {
 		wg.Add(4)
 		go func() {
 			defer wg.Done()
-			testCreate(c, "t1", nil, canary)
+			testCreate(c, "t1", nil, canary, nil)
 		}()
 		for _, region := range []string{"waw", "gru", "sea"} {
 			go func(region string, canary bool) {
 				defer wg.Done()
-				testCreate(c, "t1-"+region, &region, canary)
+				testCreate(c, "t1-"+region, &region, canary, nil)
 			}(region, canary)
 		}
 		wg.Wait()
