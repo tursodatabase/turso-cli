@@ -6,6 +6,7 @@ package main
 import (
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
@@ -34,10 +35,19 @@ func testCreate(c *qt.C, dbName string, region *string, canary bool) {
 func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
 	for _, canary := range []bool{false, true} {
-		testCreate(c, "t1", nil, canary)
+		var wg sync.WaitGroup
+		wg.Add(4)
+		go func() {
+			defer wg.Done()
+			testCreate(c, "t1", nil, canary)
+		}()
 		for _, region := range []string{"waw", "gru", "sea"} {
-			testCreate(c, "t1-"+region, &region, canary)
+			go func(region string, canary bool) {
+				defer wg.Done()
+				testCreate(c, "t1-"+region, &region, canary)
+			}(region, canary)
 		}
+		wg.Wait()
 	}
 }
 
