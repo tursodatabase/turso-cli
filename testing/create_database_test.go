@@ -10,14 +10,16 @@ import (
 	"testing"
 )
 
+func testDestroy(c *qt.C, dbName string) {
+	output, err := turso("db", "destroy", "--yes", dbName)
+	c.Assert(err, qt.IsNil)
+	c.Assert(output, qt.Contains, "Destroyed database "+dbName)
+}
+
 func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
 	output, err := turso("db", "create", "t1")
-	defer func() {
-		output, err = turso("db", "destroy", "--yes", "t1")
-		c.Assert(err, qt.IsNil)
-		c.Assert(output, qt.Contains, "Destroyed database t1")
-	}()
+	defer testDestroy(c, "t1")
 	c.Assert(err, qt.IsNil)
 	c.Assert(output, qt.Contains, "Created database t1")
 }
