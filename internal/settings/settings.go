@@ -60,9 +60,10 @@ func ReadSettings() (*Settings, error) {
 }
 
 const DB_NAMES_CACHE_KEY = "cached_db_names"
+const DB_NAMES_CACHE_TTL_SECONDS = 30 * 60
 
 func (s *Settings) SetDbNamesCache(dbNames []string) {
-	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{time.Now().Unix() + 30*60, dbNames})
+	viper.Set(DB_NAMES_CACHE_KEY, DbNamesCache{time.Now().Unix() + DB_NAMES_CACHE_TTL_SECONDS, dbNames})
 	err := viper.WriteConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
