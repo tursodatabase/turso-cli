@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestReplication(t *testing.T) {
+func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
 	output, err := turso("db", "create", "t1")
 	c.Assert(err, qt.IsNil)
