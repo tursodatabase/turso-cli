@@ -70,6 +70,18 @@ func (s *Settings) InvalidateDbNamesCache() {
 	invalidateCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_VALUE_FIELD_NAME)
 }
 
+const REGIONS_CACHE_KEY = "cached_region_names"
+const REGIONS_CACHE_TTL_SECONDS = 24 * 60 * 60
+const REGIONS_CACHE_VALUE_FIELD_NAME = "region_names"
+
+func (s *Settings) SetRegionsCache(regions []string) {
+	setCache(REGIONS_CACHE_KEY, REGIONS_CACHE_VALUE_FIELD_NAME, REGIONS_CACHE_TTL_SECONDS, regions)
+}
+
+func (s *Settings) GetRegionsCache() []string {
+	return getCache(REGIONS_CACHE_KEY, REGIONS_CACHE_VALUE_FIELD_NAME)
+}
+
 func setCache(cacheKey string, valueFieldName string, ttl int64, value []string) {
 	viper.Set(cacheKey+"."+valueFieldName, value)
 	viper.Set(cacheKey+".expiration_time", time.Now().Unix()+ttl)
