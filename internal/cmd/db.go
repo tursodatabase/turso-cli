@@ -17,9 +17,20 @@ var instanceFlag string
 var regionFlag string
 
 func getRegionIds(client *turso.Client) []string {
+	settings, err := settings.ReadSettings()
+	var cached_names []string
+	if err == nil {
+		cached_names = settings.GetRegionsCache()
+		if cached_names != nil {
+			return cached_names
+		}
+	}
 	regions, err := turso.GetRegions(client)
 	if err != nil {
 		return []string{}
+	}
+	if settings != nil {
+		settings.SetRegionsCache(regions.Ids)
 	}
 	return regions.Ids
 }
