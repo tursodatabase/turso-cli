@@ -4,10 +4,11 @@
 package main
 
 import (
-	qt "github.com/frankban/quicktest"
 	"os"
 	"os/exec"
 	"testing"
+
+	qt "github.com/frankban/quicktest"
 )
 
 func testDestroy(c *qt.C, dbName string) {
