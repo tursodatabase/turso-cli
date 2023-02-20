@@ -6,7 +6,6 @@ package main
 import (
 	"os"
 	"os/exec"
-	"sync"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
@@ -44,22 +43,23 @@ func testCreate(c *qt.C, dbName string, region *string, canary bool, tc testCase
 	}
 }
 
+func runSql(c *qt.C, dbName string) {
+	output, err := turso("db", "shell", dbName, "create table test(a int, b text)")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	output, err = turso("db", "shell", dbName, "insert into test values(123, 'foobar')")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	output, err = turso("db", "shell", dbName, "select * from test")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+}
+
 func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
 	for _, canary := range []bool{false, true} {
-		var wg sync.WaitGroup
-		wg.Add(4)
-		go func() {
-			defer wg.Done()
-			testCreate(c, "t1", nil, canary, nil)
-		}()
+		testCreate(c, "t1", nil, canary, runSql)
 		for _, region := range []string{"waw", "gru", "sea"} {
-			go func(region string, canary bool) {
-				defer wg.Done()
-				testCreate(c, "t1-"+region, &region, canary, nil)
-			}(region, canary)
+			testCreate(c, "t1-"+region, &region, canary, runSql)
 		}
-		wg.Wait()
 	}
 }
 
@@ -75,8 +75,9 @@ func testReplicate(c *qt.C, dbName string, region string, canary bool) {
 
 func TestDbReplication(t *testing.T) {
 	c := qt.New(t)
+	primaryRegion := "waw"
 	for _, canary := range []bool{false, true} {
-		testCreate(c, "t1", nil, canary, func(canary bool) testCase {
+		testCreate(c, "r1", &primaryRegion, canary, func(canary bool) testCase {
 			return func(c *qt.C, dbName string) { testReplicate(c, dbName, "ams", canary) }
 		}(canary))
 	}
