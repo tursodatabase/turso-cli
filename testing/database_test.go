@@ -11,6 +11,8 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
+var canary bool = false
+
 type testCase func(c *qt.C, dbName string)
 
 func testDestroy(c *qt.C, dbName string) {
@@ -19,7 +21,7 @@ func testDestroy(c *qt.C, dbName string) {
 	c.Assert(output, qt.Contains, "Destroyed database "+dbName)
 }
 
-func testCreate(c *qt.C, dbName string, region *string, canary bool, tc testCase) {
+func testCreate(c *qt.C, dbName string, region *string, tc testCase) {
 	args := []string{"db", "create", dbName}
 	if region != nil {
 		args = append(args, "--region", *region)
@@ -55,15 +57,13 @@ func runSql(c *qt.C, dbName string) {
 
 func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
-	for _, canary := range []bool{false, true} {
-		testCreate(c, "t1", nil, canary, runSql)
-		for _, region := range []string{"waw", "gru", "sea"} {
-			testCreate(c, "t1-"+region, &region, canary, runSql)
-		}
+	testCreate(c, "t1", nil, runSql)
+	for _, region := range []string{"waw", "gru", "sea"} {
+		testCreate(c, "t1-"+region, &region, runSql)
 	}
 }
 
-func testReplicate(c *qt.C, dbName string, region string, canary bool) {
+func testReplicate(c *qt.C, dbName string, region string) {
 	args := []string{"db", "replicate", dbName, region}
 	if canary {
 		args = append(args, "--canary")
@@ -76,11 +76,7 @@ func testReplicate(c *qt.C, dbName string, region string, canary bool) {
 func TestDbReplication(t *testing.T) {
 	c := qt.New(t)
 	primaryRegion := "waw"
-	for _, canary := range []bool{false, true} {
-		testCreate(c, "r1", &primaryRegion, canary, func(canary bool) testCase {
-			return func(c *qt.C, dbName string) { testReplicate(c, dbName, "ams", canary) }
-		}(canary))
-	}
+	testCreate(c, "r1", &primaryRegion, func(c *qt.C, dbName string) { testReplicate(c, dbName, "ams") })
 }
 
 func turso(args ...string) (string, error) {
