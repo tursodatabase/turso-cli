@@ -16,8 +16,15 @@ func testDestroy(c *qt.C, dbName string) {
 	c.Assert(output, qt.Contains, "Destroyed database "+dbName)
 }
 
-func testCreate(c *qt.C, dbName string) {
-	output, err := turso("db", "create", dbName)
+func testCreate(c *qt.C, dbName string, region *string, canary bool) {
+	args := []string{"db", "create", dbName}
+	if region != nil {
+		args = append(args, "--region", *region)
+	}
+	if canary {
+		args = append(args, "--canary")
+	}
+	output, err := turso(args...)
 	defer testDestroy(c, dbName)
 	c.Assert(err, qt.IsNil)
 	c.Assert(output, qt.Contains, "Created database "+dbName)
@@ -25,7 +32,12 @@ func testCreate(c *qt.C, dbName string) {
 
 func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
-	testCreate(c, "t1")
+	for _, canary := range []bool{false, true} {
+		testCreate(c, "t1", nil, canary)
+		for _, region := range []string{"waw", "gru", "sea"} {
+			testCreate(c, "t1-"+region, &region, canary)
+		}
+	}
 }
 
 func turso(args ...string) (string, error) {
