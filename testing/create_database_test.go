@@ -13,7 +13,7 @@ import (
 
 func testDestroy(c *qt.C, dbName string) {
 	output, err := turso("db", "destroy", "--yes", dbName)
-	c.Assert(err, qt.IsNil)
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Destroyed database "+dbName)
 }
 
@@ -27,7 +27,7 @@ func testCreate(c *qt.C, dbName string, region *string, canary bool) {
 	}
 	output, err := turso(args...)
 	defer testDestroy(c, dbName)
-	c.Assert(err, qt.IsNil)
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Created database "+dbName)
 }
 
