@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -245,6 +246,18 @@ func query(url, stmt string) error {
 						row[idx] = strconv.FormatFloat(f64, 'f', -1, 64)
 					} else if v == nil {
 						row[idx] = "NULL"
+					} else if m, ok := v.(map[string]interface{}); ok {
+						if value, ok := m["base64"]; ok {
+							if base64Value, ok := value.(string); ok {
+								bytes := make([]byte, base64.StdEncoding.DecodedLen(len(base64Value)))
+								count, err := base64.StdEncoding.Decode(bytes, []byte(base64Value))
+								if err != nil {
+									row[idx] = base64Value
+								} else {
+									row[idx] = bytes[:count]
+								}
+							}
+						}
 					}
 				}
 				tbl.AddRow(row...)
