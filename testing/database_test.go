@@ -13,6 +13,7 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
+// Change this to true if you want to test canary image
 var canary bool = false
 
 type testCase func(c *qt.C, dbName string)
