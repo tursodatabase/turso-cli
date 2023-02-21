@@ -67,7 +67,7 @@ var createCmd = &cobra.Command{
 
 		bar.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s to %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s in %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
 
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
