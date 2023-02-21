@@ -6,7 +6,9 @@ package main
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
+	"time"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -63,20 +65,72 @@ func TestDbCreation(t *testing.T) {
 	}
 }
 
-func testReplicate(c *qt.C, dbName string, region string) {
-	args := []string{"db", "replicate", dbName, region}
+func testReplicate(c *qt.C, dbName string) {
+	args := []string{"db", "replicate", dbName, "ams"}
 	if canary {
 		args = append(args, "--canary")
 	}
 	output, err := turso(args...)
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Replicated database "+dbName)
+
+	output, err = turso("db", "show", dbName)
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Contains, "Regions:  ams, waw")
+	c.Assert(output, qt.Contains, "primary     waw")
+	c.Assert(output, qt.Contains, "replica     ams")
+	primaryPattern := "primary     waw        "
+	start := strings.Index(output, primaryPattern) + len(primaryPattern)
+	end := start + strings.Index(output[start:], " ")
+	primaryUrl := output[start:end]
+	replicaPattern := "replica     ams        "
+	start = strings.Index(output, replicaPattern) + len(replicaPattern)
+	end = start + strings.Index(output[start:], " ")
+	replicaUrl := output[start:end]
+
+	// Create table on primary
+	output, err = turso("db", "shell", primaryUrl, "create table test(a int, b text)")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	// Insert row on primary
+	output, err = turso("db", "shell", primaryUrl, "insert into test values(123, 'foobar')")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+
+	// We have to give replication time to happen
+	time.Sleep(30 * time.Second)
+
+	// Select that row on replica
+	output, err = turso("db", "shell", replicaUrl, "select * from test")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+	// Select that row on primary
+	output, err = turso("db", "shell", primaryUrl, "select * from test")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+
+	// Create table on replica
+	output, err = turso("db", "shell", replicaUrl, "create table test2(a int, b text)")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	// Insert row on replica
+	output, err = turso("db", "shell", replicaUrl, "insert into test2 values(123, 'foobar')")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	// Select that row on primary
+	output, err = turso("db", "shell", primaryUrl, "select * from test2")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+
+	// We have to give replication time to happen
+	time.Sleep(30 * time.Second)
+
+	// Select that row on replica
+	output, err = turso("db", "shell", replicaUrl, "select * from test2")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
 }
 
 func TestDbReplication(t *testing.T) {
 	c := qt.New(t)
 	primaryRegion := "waw"
-	testCreate(c, "r1", &primaryRegion, func(c *qt.C, dbName string) { testReplicate(c, dbName, "ams") })
+	testCreate(c, "r1", &primaryRegion, testReplicate)
 }
 
 func turso(args ...string) (string, error) {
