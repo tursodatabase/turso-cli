@@ -89,32 +89,20 @@ func testReplicate(c *qt.C, dbName string) {
 	end = start + strings.Index(output[start:], " ")
 	replicaUrl := output[start:end]
 
-	// Create table on primary
+	// Create table test on primary
 	output, err = turso("db", "shell", primaryUrl, "create table test(a int, b text)")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	// Insert row on primary
+	// Insert row to test on primary
 	output, err = turso("db", "shell", primaryUrl, "insert into test values(123, 'foobar')")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 
-	// We have to give replication time to happen
-	time.Sleep(30 * time.Second)
-
-	// Select that row on replica
-	output, err = turso("db", "shell", replicaUrl, "select * from test")
-	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
-	// Select that row on primary
-	output, err = turso("db", "shell", primaryUrl, "select * from test")
-	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
-
-	// Create table on replica
+	// Create table test2 on replica (forwarded to primary)
 	output, err = turso("db", "shell", replicaUrl, "create table test2(a int, b text)")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	// Insert row on replica
+	// Insert row to test2 on replica (forwarded to primary)
 	output, err = turso("db", "shell", replicaUrl, "insert into test2 values(123, 'foobar')")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	// Select that row on primary
+	// Select row from test2 on primary
 	output, err = turso("db", "shell", primaryUrl, "select * from test2")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
@@ -122,7 +110,16 @@ func testReplicate(c *qt.C, dbName string) {
 	// We have to give replication time to happen
 	time.Sleep(30 * time.Second)
 
-	// Select that row on replica
+	// Select row from test on replica
+	output, err = turso("db", "shell", replicaUrl, "select * from test")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+	// Select row from test on primary
+	output, err = turso("db", "shell", primaryUrl, "select * from test")
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+
+	// Select row from test2 on replica
 	output, err = turso("db", "shell", replicaUrl, "select * from test2")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
