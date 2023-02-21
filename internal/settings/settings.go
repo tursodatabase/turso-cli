@@ -33,6 +33,10 @@ type Settings struct{}
 
 func ReadSettings() (*Settings, error) {
 	configPath := configdir.LocalConfig("turso")
+	configPathFlag := viper.GetString("config-path")
+	if len(configPathFlag) > 0 {
+		configPath = configPathFlag
+	}
 	err := configdir.MakePath(configPath)
 	if err != nil {
 		return nil, err
