@@ -85,10 +85,14 @@ func login(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
 	if isJwtTokenValid(settings.GetToken()) {
-		fmt.Println("✔  Success! Existing JWT still valid")
+		username := settings.GetUsername()
+		if len(username) > 0 {
+			fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, turso.Emph("turso auth logout"))
+		} else {
+			fmt.Println("✔  Success! Existing JWT still valid")
+		}
 		return nil
 	}
-	fmt.Println("Waiting for authentication...")
 	ch := make(chan string, 1)
 	server, err := createCallbackServer(ch)
 	if err != nil {
@@ -100,10 +104,13 @@ func login(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("internal error. Cannot run authentication server: %w", err)
 	}
 
-	err = beginAuth(port)
+	url, err := beginAuth(port)
 	if err != nil {
 		return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
 	}
+	fmt.Println("Visit this URL on this device to log in:")
+	fmt.Println(url)
+	fmt.Println("Waiting for authentication...")
 
 	versionChannel := make(chan string, 1)
 
@@ -118,17 +125,23 @@ func login(cmd *cobra.Command, args []string) error {
 	}()
 
 	jwt := <-ch
+	username := <-ch
 
-	err = settings.SetToken(jwt)
 	server.Shutdown(context.Background())
 
+	err = settings.SetToken(jwt)
 	if err != nil {
 		return fmt.Errorf("error persisting token on local config: %w", err)
 	}
 
+	err = settings.SetUsername(username)
+	if err != nil {
+		return fmt.Errorf("error persisting username on local config: %w", err)
+	}
+
 	latestVersion := <-versionChannel
 
-	fmt.Println("✔  Success!")
+	fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 	if version != latestVersion {
 
@@ -165,10 +178,10 @@ func fetchLatestVersion() (string, error) {
 	return versionResp.Version, nil
 }
 
-func beginAuth(port int) error {
+func beginAuth(port int) (string, error) {
 	authUrl, err := url.Parse(getHost())
 	if err != nil {
-		return fmt.Errorf("error parsing auth URL: %w", err)
+		return "", fmt.Errorf("error parsing auth URL: %w", err)
 	}
 	authUrl.RawQuery = url.Values{
 		"port":     {strconv.Itoa(port)},
@@ -177,13 +190,13 @@ func beginAuth(port int) error {
 
 	err = browser.OpenURL(authUrl.String())
 	if err != nil {
-		fmt.Printf("Please open the following URL to login: %s\n", turso.Emph(authUrl.String()))
+		fmt.Printf("error: Unable to open browser")
 	}
 
-	return nil
+	return authUrl.String(), nil
 }
 
-func createCallbackServer(jwtCh chan string) (*http.Server, error) {
+func createCallbackServer(ch chan string) (*http.Server, error) {
 	tmpl, err := template.New("login.html").Parse(LOGIN_HTML)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse login callback template: %w", err)
@@ -192,7 +205,8 @@ func createCallbackServer(jwtCh chan string) (*http.Server, error) {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		jwtCh <- q.Get("jwt")
+		ch <- q.Get("jwt")
+		ch <- q.Get("username")
 
 		w.WriteHeader(200)
 		tmpl.Execute(w, q.Get("username"))
@@ -226,6 +240,7 @@ func logout(cmd *cobra.Command, args []string) error {
 		fmt.Println("No user logged in.")
 	} else {
 		settings.SetToken("")
+		settings.SetUsername("")
 		fmt.Println("Logged out.")
 	}
 
