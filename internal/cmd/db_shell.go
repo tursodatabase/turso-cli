@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -260,7 +261,7 @@ func query(url, stmt string) error {
 								if err != nil {
 									row[idx] = base64Value
 								} else {
-									row[idx] = bytes[:count]
+									row[idx] = hex.EncodeToString(bytes[:count])
 								}
 							}
 						}
