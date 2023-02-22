@@ -51,6 +51,16 @@ var showCmd = &cobra.Command{
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
 
+		if showInstanceUrlFlag != "" {
+			for _, instance := range instances {
+				if instance.Name == showInstanceUrlFlag {
+					fmt.Println(getInstanceUrl(config, db, instance))
+					return nil
+				}
+			}
+			return fmt.Errorf("instance %s of database %s not found", showInstanceUrlFlag, db.Name)
+		}
+
 		regions := make([]string, len(db.Regions))
 		copy(regions, db.Regions)
 		sort.Strings(regions)

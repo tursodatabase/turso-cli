@@ -12,6 +12,7 @@ import (
 
 var canary bool
 var showUrlFlag bool
+var showInstanceUrlFlag string
 var region string
 var yesFlag bool
 var instanceFlag string
@@ -102,6 +103,7 @@ func init() {
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show database connection URL.")
+	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show connection URL for a selected instance of a database. Instance is selected by instance name.")
 }
 
 var dbCmd = &cobra.Command{
