@@ -131,7 +131,7 @@ func testReplicate(c *qt.C, dbName string, configPath *string) {
 	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
 
 	// We have to give replication time to happen
-	time.Sleep(30 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// Select row from test on replica
 	output, err = turso(configPath, "db", "shell", replicaUrl, "select * from test")
