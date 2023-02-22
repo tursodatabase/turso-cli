@@ -120,6 +120,7 @@ func login(cmd *cobra.Command, args []string) error {
 	}()
 
 	jwt := <-ch
+	username := <-ch
 
 	err = settings.SetToken(jwt)
 	server.Shutdown(context.Background())
@@ -185,7 +186,7 @@ func beginAuth(port int) (string, error) {
 	return authUrl.String(), nil
 }
 
-func createCallbackServer(jwtCh chan string) (*http.Server, error) {
+func createCallbackServer(ch chan string) (*http.Server, error) {
 	tmpl, err := template.New("login.html").Parse(LOGIN_HTML)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse login callback template: %w", err)
@@ -194,7 +195,8 @@ func createCallbackServer(jwtCh chan string) (*http.Server, error) {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		jwtCh <- q.Get("jwt")
+		ch <- q.Get("jwt")
+		ch <- q.Get("username")
 
 		w.WriteHeader(200)
 		tmpl.Execute(w, q.Get("username"))
