@@ -220,7 +220,7 @@ func query(url, stmt string) error {
 	if resp.StatusCode != http.StatusOK {
 		var err_response ErrorResponse
 		if err := json.Unmarshal(body, &err_response); err != nil {
-			return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s", stmt)}
+			return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err)}
 		}
 		return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err_response.Message)}
 	}
