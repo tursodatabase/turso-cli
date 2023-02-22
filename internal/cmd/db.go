@@ -12,6 +12,7 @@ import (
 
 var canary bool
 var showUrlFlag bool
+var showInstanceUrlFlag string
 var region string
 var yesFlag bool
 var instanceFlag string
@@ -34,6 +35,18 @@ func getRegionIds(client *turso.Client) []string {
 		settings.SetRegionsCache(regions.Ids)
 	}
 	return regions.Ids
+}
+
+func getInstanceNames(client *turso.Client, dbName string) []string {
+	instances, err := client.Instances.List(dbName)
+	if err != nil {
+		return nil
+	}
+	result := []string{}
+	for _, instance := range instances {
+		result = append(result, instance.Name)
+	}
+	return result
 }
 
 func extractDatabaseNames(databases []turso.Database) []string {
@@ -98,10 +111,17 @@ func init() {
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveDefault
+		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show database connection URL.")
+	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show connection URL for a selected instance of a database. Instance is selected by instance name.")
+	showCmd.RegisterFlagCompletionFunc("instance-url", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 1 {
+			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	})
 }
 
 var dbCmd = &cobra.Command{
