@@ -222,7 +222,13 @@ func query(url, stmt string) error {
 		if err := json.Unmarshal(body, &err_response); err != nil {
 			return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err)}
 		}
-		return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err_response.Message)}
+		var msg string
+		if err_response.Message == "interactive transaction not allowed in HTTP queries" {
+			msg = "Transactions are only supported in the shell using semicolons to separate each statement.\nFor example: \"BEGIN; [your SQL statements]; END\""
+		} else {
+			msg = fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err_response.Message)
+		}
+		return &SqlError{msg}
 	}
 
 	var results []QueryResult
