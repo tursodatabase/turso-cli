@@ -173,3 +173,12 @@ func (s *Settings) SetToken(token string) error {
 func (s *Settings) GetToken() string {
 	return viper.GetString("token")
 }
+
+func (s *Settings) SetUsername(username string) error {
+	viper.Set("username", username)
+	return viper.WriteConfig()
+}
+
+func (s *Settings) GetUsername() string {
+	return viper.GetString("username")
+}

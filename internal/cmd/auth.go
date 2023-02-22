@@ -85,7 +85,12 @@ func login(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
 	if isJwtTokenValid(settings.GetToken()) {
-		fmt.Println("✔  Success! Existing JWT still valid")
+		username := settings.GetUsername()
+		if len(username) > 0 {
+			fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, turso.Emph("turso auth logout"))
+		} else {
+			fmt.Println("✔  Success! Existing JWT still valid")
+		}
 		return nil
 	}
 	ch := make(chan string, 1)
@@ -122,11 +127,16 @@ func login(cmd *cobra.Command, args []string) error {
 	jwt := <-ch
 	username := <-ch
 
-	err = settings.SetToken(jwt)
 	server.Shutdown(context.Background())
 
+	err = settings.SetToken(jwt)
 	if err != nil {
 		return fmt.Errorf("error persisting token on local config: %w", err)
+	}
+
+	err = settings.SetUsername(username)
+	if err != nil {
+		return fmt.Errorf("error persisting username on local config: %w", err)
 	}
 
 	latestVersion := <-versionChannel
@@ -230,6 +240,7 @@ func logout(cmd *cobra.Command, args []string) error {
 		fmt.Println("No user logged in.")
 	} else {
 		settings.SetToken("")
+		settings.SetUsername("")
 		fmt.Println("Logged out.")
 	}
 
