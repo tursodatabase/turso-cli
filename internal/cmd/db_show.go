@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 
@@ -61,12 +64,37 @@ var showCmd = &cobra.Command{
 		data := [][]string{}
 		for _, instance := range instances {
 			url := getInstanceUrl(config, db, instance)
-			data = append(data, []string{instance.Name, instance.Type, instance.Region, url})
+			version := fetchInstanceVersion(url)
+			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, url})
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"name", "type", "region", "url"}, data)
+		printTable([]string{"name", "type", "region", "version", "url"}, data)
 
 		return nil
 	},
+}
+
+func fetchInstanceVersion(baseUrl string) string {
+	u, err := url.JoinPath(baseUrl, "/version")
+	if err != nil {
+		return fmt.Sprintf("fetch failed: %s", err)
+	}
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return fmt.Sprintf("fetch failed: %s", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Sprintf("fetch failed: %s", err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return "0.3.1-"
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Sprintf("fetch failed: %s", err)
+	}
+	return string(respBody)
 }
