@@ -190,7 +190,7 @@ func beginAuth(port int) (string, error) {
 
 	err = browser.OpenURL(authUrl.String())
 	if err != nil {
-		fmt.Printf("error: Unable to open browser")
+		fmt.Println("error: Unable to open browser.")
 	}
 
 	return authUrl.String(), nil
