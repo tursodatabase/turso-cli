@@ -14,6 +14,7 @@ var canary bool
 var showUrlFlag bool
 var showInstanceUrlFlag string
 var region string
+var passwordFlag string
 var yesFlag bool
 var instanceFlag string
 var regionFlag string
@@ -120,6 +121,10 @@ func init() {
 		if len(args) == 1 {
 			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
 		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	})
+	changePasswordCmd.Flags().StringVarP(&passwordFlag, "password", "p", "", "Value of new password to be set on database")
+	changePasswordCmd.RegisterFlagCompletionFunc("password", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
 }
