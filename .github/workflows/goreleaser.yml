@@ -28,10 +28,16 @@ jobs:
           args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.IKUCTL_GITHUB_TOKEN }}
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo "{ \"Version\":\"$GITHUB_REF_NAME\"}")
+        shell: bash
+      - name: Echo
+        run: echo ${{ steps.get_version.outputs.VERSION }}
       - name: Update Turso backoffice
         uses: fjogeleit/http-request-action@v1
         with:
             url: 'https://api.chiseledge.com/releases'
             method: 'POST'
-            data: "{ \"Version\":\"$GITHUB_REF_NAME\"}"
+            data: ${{ steps.get_version.outputs.VERSION }}
             bearerToken: ${{ secrets.TURSO_BACKOFFICE_PASSCODE }}
