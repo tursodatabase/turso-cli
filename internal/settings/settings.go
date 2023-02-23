@@ -165,6 +165,15 @@ func (s *Settings) GetDatabaseSettings(id string) *DatabaseSettings {
 	return &settings
 }
 
+func (s *Settings) SetDatabasePassword(id string, password string) error {
+	viper.Set(fmt.Sprintf("databases.%s.password", id), password)
+	err := viper.WriteConfig()
+	if err != nil {
+		return fmt.Errorf("error saving settings: %s", err)
+	}
+	return nil
+}
+
 func (s *Settings) SetToken(token string) error {
 	viper.Set("token", token)
 	return viper.WriteConfig()

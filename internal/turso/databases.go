@@ -88,3 +88,27 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 
 	return data, nil
 }
+
+func (d *DatabasesClient) ChangePassword(database string, newPassword string) error {
+	type Body struct{ Password string }
+	body, err := marshal(Body{newPassword})
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+	url := fmt.Sprintf("/v2/databases/%s/password", database)
+	r, err := d.client.Post(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to change database password: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("database %s not found. List known databases using %s", Emph(database), Emph("turso db list"))
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to change database password: %s", r.Status)
+	}
+
+	return nil
+}
