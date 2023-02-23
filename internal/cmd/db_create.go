@@ -71,8 +71,8 @@ var createCmd = &cobra.Command{
 
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
-		fmt.Printf("To obtain connection URL, run:\n\n")
-		fmt.Printf("   turso db show --url %s\n\n", name)
+		fmt.Printf("To see information about the database, including a connection URL, run:\n\n")
+		fmt.Printf("   turso db show %s\n\n", name)
 		config.AddDatabase(res.Database.ID, &dbSettings)
 		config.InvalidateDbNamesCache()
 		return nil
