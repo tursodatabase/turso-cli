@@ -28,3 +28,10 @@ jobs:
           args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.IKUCTL_GITHUB_TOKEN }}
+      - name: Update Turso backoffice
+        uses: fjogeleit/http-request-action@v1
+        with:
+            url: 'https://api.chiseledge.com/releases'
+            method: 'POST'
+            data: '{ "Version":"$GITHUB_REF_NAME"}'
+            bearerToken: ${{ secrets.TURSO_BACKOFFICE_PASSCODE }}
