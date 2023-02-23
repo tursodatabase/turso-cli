@@ -106,12 +106,18 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 	c.Assert(output, qt.Contains, "Regions:  ams, waw")
 	c.Assert(output, qt.Contains, "primary     waw")
 	c.Assert(output, qt.Contains, "replica     ams")
-	primaryPattern := "primary     waw        "
+	primaryPattern := "primary     waw"
 	start := strings.Index(output, primaryPattern) + len(primaryPattern)
+	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
+	start = start + strings.Index(output[start:], " ")
+	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
 	end := start + strings.Index(output[start:], " ")
 	primaryUrl := output[start:end]
-	replicaPattern := "replica     ams        "
+	replicaPattern := "replica     ams"
 	start = strings.Index(output, replicaPattern) + len(replicaPattern)
+	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
+	start = start + strings.Index(output[start:], " ")
+	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
 	end = start + strings.Index(output[start:], " ")
 	replicaUrl := output[start:end]
 
