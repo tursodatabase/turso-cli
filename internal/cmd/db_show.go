@@ -71,11 +71,20 @@ var showCmd = &cobra.Command{
 		fmt.Println("Regions: ", strings.Join(regions, ", "))
 		fmt.Println()
 
+		versions := [](chan string){}
+		urls := []string{}
+		for idx, instance := range instances {
+			urls = append(urls, getInstanceUrl(config, db, instance))
+			versions = append(versions, make(chan string, 1))
+			go func(idx int) {
+				versions[idx] <- fetchInstanceVersion(urls[idx])
+			}(idx)
+		}
+
 		data := [][]string{}
-		for _, instance := range instances {
-			url := getInstanceUrl(config, db, instance)
-			version := fetchInstanceVersion(url)
-			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, url})
+		for idx, instance := range instances {
+			version := <-versions[idx]
+			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, urls[idx]})
 		}
 
 		fmt.Print("Database Instances:\n")
