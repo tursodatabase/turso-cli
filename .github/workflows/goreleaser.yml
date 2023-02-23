@@ -33,5 +33,5 @@ jobs:
         with:
             url: 'https://api.chiseledge.com/releases'
             method: 'POST'
-            data: '{ "Version":"$GITHUB_REF_NAME"}'
+            data: "{ \"Version\":\"$GITHUB_REF_NAME\"}"
             bearerToken: ${{ secrets.TURSO_BACKOFFICE_PASSCODE }}
