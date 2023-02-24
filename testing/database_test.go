@@ -14,6 +14,7 @@ import (
 	"time"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/google/uuid"
 )
 
 // Change this to true if you want to test canary image
@@ -65,6 +66,7 @@ func TestDbCreation(t *testing.T) {
 	var doneWG sync.WaitGroup
 	doneWG.Add(4)
 	c := qt.New(t)
+	dbNamePrefix := uuid.NewString()
 	go func() {
 		defer doneWG.Done()
 		dir, err := os.MkdirTemp("", "turso-test-settings-*")
@@ -72,7 +74,7 @@ func TestDbCreation(t *testing.T) {
 			log.Fatal(err)
 		}
 		defer os.RemoveAll(dir)
-		testCreate(c, "t1", nil, &dir, func(c *qt.C, dbName string, configPath *string) {
+		testCreate(c, dbNamePrefix, nil, &dir, func(c *qt.C, dbName string, configPath *string) {
 			runSql(c, dbName, configPath)
 		})
 	}()
@@ -84,7 +86,7 @@ func TestDbCreation(t *testing.T) {
 				log.Fatal(err)
 			}
 			defer os.RemoveAll(dir)
-			testCreate(c, "t1-"+region, &region, &dir, runSql)
+			testCreate(c, dbNamePrefix+"-"+region, &region, &dir, runSql)
 		}(region)
 	}
 	doneWG.Wait()
@@ -160,7 +162,8 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 func TestDbReplication(t *testing.T) {
 	c := qt.New(t)
 	primaryRegion := "waw"
-	testCreate(c, "r1", &primaryRegion, nil, func(c *qt.C, dbName string, configPath *string) {
+	dbNamePrefix := uuid.NewString()
+	testCreate(c, dbNamePrefix, &primaryRegion, nil, func(c *qt.C, dbName string, configPath *string) {
 		createReplica(c, dbName, configPath)
 		runSqlOnPrimaryAndReplica(c, dbName, configPath, "replication_test_table")
 	})
@@ -174,6 +177,7 @@ func TestChangeDbPassword(t *testing.T) {
 	c := qt.New(t)
 	var doneWG sync.WaitGroup
 	doneWG.Add(2)
+	dbNamePrefix := uuid.NewString()
 	go func() {
 		defer doneWG.Done()
 		dir, err := os.MkdirTemp("", "turso-test-settings-*")
@@ -182,7 +186,7 @@ func TestChangeDbPassword(t *testing.T) {
 		}
 		defer os.RemoveAll(dir)
 		primaryRegion := "waw"
-		testCreate(c, "cp1", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
+		testCreate(c, dbNamePrefix+"1", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
 			createReplica(c, dbName, configPath)
 			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before")
 			changePassword(c, dbName, configPath, "new_awesome_password")
@@ -197,7 +201,7 @@ func TestChangeDbPassword(t *testing.T) {
 		}
 		defer os.RemoveAll(dir)
 		primaryRegion := "waw"
-		testCreate(c, "cp2", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
+		testCreate(c, dbNamePrefix+"2", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
 			changePassword(c, dbName, configPath, "new_awesome_password")
 			createReplica(c, dbName, configPath)
 			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before")
