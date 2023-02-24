@@ -112,7 +112,7 @@ var replicateCmd = &cobra.Command{
 		password = result.(map[string]interface{})["password"].(string)
 		var dbHost string
 		if original.Type == "logical" {
-			dbHost = original.Hostname
+			dbHost = m["hostname"].(string)
 		} else {
 			dbHost = m["Hostname"].(string)
 		}
