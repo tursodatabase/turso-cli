@@ -26,7 +26,7 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 var replicateCmd = &cobra.Command{
 	Use:               "replicate database_name region_id",
 	Short:             "Replicate a database.",
-	Args:              cobra.ExactArgs(2),
+	Args:              cobra.RangeArgs(2, 3),
 	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
@@ -72,7 +72,12 @@ var replicateCmd = &cobra.Command{
 		dbSettings := config.GetDatabaseSettings(original.ID)
 		password := dbSettings.Password
 
-		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s", "type": "replica", "password": "%s"}`, name, region, image, password))
+		instanceName := ""
+		if len(args) > 2 {
+			instanceName = args[2]
+		}
+
+		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s", "type": "replica", "password": "%s", "instance_name": "%s"}`, name, region, image, password, instanceName))
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
 		if err != nil {
 			return err
