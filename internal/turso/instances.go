@@ -49,7 +49,8 @@ func (i *InstancesClient) Delete(db, instance string) error {
 	}
 
 	if r.StatusCode == http.StatusNotFound {
-		return errors.New("instance not found")
+		body, _ := unmarshal[struct{ Error string }](r)
+		return errors.New(body.Error)
 	}
 
 	if r.StatusCode != http.StatusOK {
