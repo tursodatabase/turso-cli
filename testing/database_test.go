@@ -92,8 +92,8 @@ func TestDbCreation(t *testing.T) {
 	doneWG.Wait()
 }
 
-func createReplica(c *qt.C, dbName string, configPath *string) {
-	args := []string{"db", "replicate", dbName, "ams"}
+func createReplica(c *qt.C, dbName string, configPath *string, replicaName string) {
+	args := []string{"db", "replicate", dbName, "ams", replicaName}
 	if canary {
 		args = append(args, "--canary")
 	}
@@ -102,7 +102,7 @@ func createReplica(c *qt.C, dbName string, configPath *string) {
 	c.Assert(output, qt.Contains, "Replicated database "+dbName)
 }
 
-func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, tablePrefix string) {
+func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, tablePrefix string, replicaName string) {
 	output, err := turso(configPath, "db", "show", dbName)
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Regions:  ams, waw")
@@ -115,13 +115,9 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
 	end := start + strings.Index(output[start:], " ")
 	primaryUrl := output[start:end]
-	replicaPattern := "replica     ams"
-	start = strings.Index(output, replicaPattern) + len(replicaPattern)
-	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
-	start = start + strings.Index(output[start:], " ")
-	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
-	end = start + strings.Index(output[start:], " ")
-	replicaUrl := output[start:end]
+	output, err = turso(configPath, "db", "show", dbName, "--instance-url", replicaName)
+	c.Assert(err, qt.IsNil, qt.Commentf(output))
+	replicaUrl := strings.TrimSpace(output)
 
 	// Create table test on primary
 	output, err = turso(configPath, "db", "shell", primaryUrl, fmt.Sprintf("create table %s1(a int, b text)", tablePrefix))
@@ -164,8 +160,9 @@ func TestDbReplication(t *testing.T) {
 	primaryRegion := "waw"
 	dbNamePrefix := uuid.NewString()
 	testCreate(c, dbNamePrefix, &primaryRegion, nil, func(c *qt.C, dbName string, configPath *string) {
-		createReplica(c, dbName, configPath)
-		runSqlOnPrimaryAndReplica(c, dbName, configPath, "replication_test_table")
+		replicaName := uuid.NewString()
+		createReplica(c, dbName, configPath, replicaName)
+		runSqlOnPrimaryAndReplica(c, dbName, configPath, "replication_test_table", replicaName)
 	})
 }
 
@@ -187,10 +184,11 @@ func TestChangeDbPassword(t *testing.T) {
 		defer os.RemoveAll(dir)
 		primaryRegion := "waw"
 		testCreate(c, dbNamePrefix+"1", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
-			createReplica(c, dbName, configPath)
-			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before")
+			replicaName := uuid.NewString()
+			createReplica(c, dbName, configPath, replicaName)
+			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before", replicaName)
 			changePassword(c, dbName, configPath, "new_awesome_password")
-			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_after")
+			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_after", replicaName)
 		})
 	}()
 	go func() {
@@ -202,9 +200,10 @@ func TestChangeDbPassword(t *testing.T) {
 		defer os.RemoveAll(dir)
 		primaryRegion := "waw"
 		testCreate(c, dbNamePrefix+"2", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
+			replicaName := uuid.NewString()
 			changePassword(c, dbName, configPath, "new_awesome_password")
-			createReplica(c, dbName, configPath)
-			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before")
+			createReplica(c, dbName, configPath, replicaName)
+			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before", replicaName)
 		})
 	}()
 	doneWG.Wait()
