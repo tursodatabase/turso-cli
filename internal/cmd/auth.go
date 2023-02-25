@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"text/template"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
@@ -197,19 +196,24 @@ func beginAuth(port int) (string, error) {
 }
 
 func createCallbackServer(ch chan string) (*http.Server, error) {
-	tmpl, err := template.New("login.html").Parse(LOGIN_HTML)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse login callback template: %w", err)
-	}
-
 	handler := http.NewServeMux()
+	done := false
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if done {
+			w.WriteHeader(200)
+			return
+		}
 		q := r.URL.Query()
 		ch <- q.Get("jwt")
 		ch <- q.Get("username")
 
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Methods", "*")
+		w.Header().Add("Access-Control-Allow-Headers", "*")
+		w.Header().Add("Access-Control-Max-Age", "0")
+		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(200)
-		tmpl.Execute(w, q.Get("username"))
+		done = true
 	})
 
 	return &http.Server{Handler: handler}, nil
