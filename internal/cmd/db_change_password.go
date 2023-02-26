@@ -17,7 +17,7 @@ func changePasswordShellArgs(cmd *cobra.Command, args []string, toComplete strin
 }
 
 var changePasswordCmd = &cobra.Command{
-	Use:               "change-password database_name new_password",
+	Use:               "change-password database_name",
 	Short:             "Change password to all instances of the database",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: changePasswordShellArgs,
