@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +59,7 @@ var showCmd = &cobra.Command{
 					return nil
 				}
 			}
-			return fmt.Errorf("instance %s of database %s not found", showInstanceUrlFlag, db.Name)
+			return fmt.Errorf("instance %s not found for database %s. List known instances using %s", turso.Emph(showInstanceUrlFlag), turso.Emph(db.Name), turso.Emph("turso db show "+db.Name))
 		}
 
 		regions := make([]string, len(db.Regions))

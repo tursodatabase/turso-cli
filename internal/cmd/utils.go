@@ -207,6 +207,12 @@ func destroyDatabaseInstance(client *turso.Client, database, instance string) er
 func deleteDatabaseInstance(client *turso.Client, database, instance string) error {
 	err := client.Instances.Delete(database, instance)
 	if err != nil {
+		if err.Error() == "could not find database "+database+" to delete instance from" {
+			return fmt.Errorf("database %s not found. List known databases using %s", turso.Emph(database), turso.Emph("turso db list"))
+		}
+		if err.Error() == "could not find instance "+instance+" of database "+database {
+			return fmt.Errorf("instance %s not found for database %s. List known instances using %s", turso.Emph(instance), turso.Emph(database), turso.Emph("turso db show "+database))
+		}
 		return err
 	}
 	return nil
