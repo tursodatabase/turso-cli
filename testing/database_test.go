@@ -167,7 +167,7 @@ func TestDbReplication(t *testing.T) {
 }
 
 func changePassword(c *qt.C, dbName string, configPath *string, newPassword string) {
-	turso(configPath, "db", "change-password", dbName, "-p", newPassword)
+	turso(configPath, "db", "passwd", dbName, "-p", newPassword)
 }
 
 func TestChangeDbPassword(t *testing.T) {
