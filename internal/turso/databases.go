@@ -112,3 +112,24 @@ func (d *DatabasesClient) ChangePassword(database string, newPassword string) er
 
 	return nil
 }
+
+func (d *DatabasesClient) Token(database string) (string, error) {
+	url := fmt.Sprintf("/v2/databases/%s/auth/token", database)
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to get database token: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return "", fmt.Errorf("failed to get database token: %d %s", r.StatusCode, err)
+	}
+
+	type JwtResponse struct{ Jwt string }
+	data, err := unmarshal[JwtResponse](r)
+	if err != nil {
+		return "", err
+	}
+	return data.Jwt, nil
+}
