@@ -35,7 +35,7 @@ func tursoClient(token *string) *turso.Client {
 		log.Fatal(fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", getTursoUrl(), err))
 	}
 
-	return turso.New(tursoUrl, token)
+	return turso.New(tursoUrl, token, &version)
 }
 
 func filterInstancesByRegion(instances []turso.Instance, region string) []turso.Instance {
