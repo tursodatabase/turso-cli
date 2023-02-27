@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"text/template"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
@@ -19,6 +20,8 @@ import (
 
 //go:embed login.html
 var LOGIN_HTML string
+
+var headlessFlag bool
 
 var authCmd = &cobra.Command{
 	Use:               "auth",
@@ -67,6 +70,7 @@ func init() {
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(logoutCmd)
 	authCmd.AddCommand(tokenCmd)
+	loginCmd.Flags().BoolVar(&headlessFlag, "headless", false, "Show access token on the website instead of updating the CLI.")
 }
 
 func isJwtTokenValid(token string) bool {
@@ -92,25 +96,6 @@ func login(cmd *cobra.Command, args []string) error {
 		}
 		return nil
 	}
-	ch := make(chan string, 1)
-	server, err := createCallbackServer(ch)
-	if err != nil {
-		return fmt.Errorf("internal error. Cannot create callback: %w", err)
-	}
-
-	port, err := runServer(server)
-	if err != nil {
-		return fmt.Errorf("internal error. Cannot run authentication server: %w", err)
-	}
-
-	url, err := beginAuth(port)
-	if err != nil {
-		return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
-	}
-	fmt.Println("Visit this URL on this device to log in:")
-	fmt.Println(url)
-	fmt.Println("Waiting for authentication...")
-
 	versionChannel := make(chan string, 1)
 
 	go func() {
@@ -123,24 +108,51 @@ func login(cmd *cobra.Command, args []string) error {
 		versionChannel <- latestVersion
 	}()
 
-	jwt := <-ch
-	username := <-ch
+	if headlessFlag {
+		url, err := beginAuth(0, headlessFlag)
+		if err != nil {
+			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
+		}
+		fmt.Println("Visit this URL on this device to log in:")
+		fmt.Println(url)
+	} else {
+		ch := make(chan string, 1)
+		server, err := createCallbackServer(ch)
+		if err != nil {
+			return fmt.Errorf("internal error. Cannot create callback: %w", err)
+		}
 
-	server.Shutdown(context.Background())
+		port, err := runServer(server)
+		if err != nil {
+			return fmt.Errorf("internal error. Cannot run authentication server: %w", err)
+		}
 
-	err = settings.SetToken(jwt)
-	if err != nil {
-		return fmt.Errorf("error persisting token on local config: %w", err)
-	}
+		url, err := beginAuth(port, headlessFlag)
+		if err != nil {
+			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
+		}
+		fmt.Println("Visit this URL on this device to log in:")
+		fmt.Println(url)
+		fmt.Println("Waiting for authentication...")
 
-	err = settings.SetUsername(username)
-	if err != nil {
-		return fmt.Errorf("error persisting username on local config: %w", err)
+		jwt := <-ch
+		username := <-ch
+
+		server.Shutdown(context.Background())
+
+		err = settings.SetToken(jwt)
+		if err != nil {
+			return fmt.Errorf("error persisting token on local config: %w", err)
+		}
+
+		err = settings.SetUsername(username)
+		if err != nil {
+			return fmt.Errorf("error persisting username on local config: %w", err)
+		}
+		fmt.Printf("✔  Success! Logged in as %s\n", username)
 	}
 
 	latestVersion := <-versionChannel
-
-	fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 	if version != latestVersion {
 
@@ -177,15 +189,21 @@ func fetchLatestVersion() (string, error) {
 	return versionResp.Version, nil
 }
 
-func beginAuth(port int) (string, error) {
+func beginAuth(port int, headless bool) (string, error) {
 	authUrl, err := url.Parse(getHost())
 	if err != nil {
 		return "", fmt.Errorf("error parsing auth URL: %w", err)
 	}
-	authUrl.RawQuery = url.Values{
-		"port":     {strconv.Itoa(port)},
-		"redirect": {"true"},
-	}.Encode()
+	if !headless {
+		authUrl.RawQuery = url.Values{
+			"port":     {strconv.Itoa(port)},
+			"redirect": {"true"},
+		}.Encode()
+	} else {
+		authUrl.RawQuery = url.Values{
+			"redirect": {"false"},
+		}.Encode()
+	}
 
 	err = browser.OpenURL(authUrl.String())
 	if err != nil {
@@ -196,24 +214,18 @@ func beginAuth(port int) (string, error) {
 }
 
 func createCallbackServer(ch chan string) (*http.Server, error) {
+	tmpl, err := template.New("login.html").Parse(LOGIN_HTML)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse login callback template: %w", err)
+	}
 	handler := http.NewServeMux()
-	done := false
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if done {
-			w.WriteHeader(200)
-			return
-		}
 		q := r.URL.Query()
 		ch <- q.Get("jwt")
 		ch <- q.Get("username")
 
-		w.Header().Add("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Access-Control-Allow-Methods", "*")
-		w.Header().Add("Access-Control-Allow-Headers", "*")
-		w.Header().Add("Access-Control-Max-Age", "0")
-		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(200)
-		done = true
+		tmpl.Execute(w, q.Get("username"))
 	})
 
 	return &http.Server{Handler: handler}, nil
