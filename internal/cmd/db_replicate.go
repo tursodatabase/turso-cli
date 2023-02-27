@@ -83,6 +83,7 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 		req.Header.Add("Authorization", bearer)
+		req.Header.Add("TursoCliVersion", version)
 		regionText := fmt.Sprintf("%s (%s)", toLocation(tursoClient, region), region)
 		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", turso.Emph(name), turso.Emph(regionText)))
 		s.Start()
