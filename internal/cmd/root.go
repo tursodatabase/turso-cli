@@ -30,4 +30,5 @@ func init() {
 	if err := viper.BindPFlag("config-path", rootCmd.PersistentFlags().Lookup("config-path")); err != nil {
 		fmt.Fprintf(os.Stderr, "error binding token flag: %s", err)
 	}
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
