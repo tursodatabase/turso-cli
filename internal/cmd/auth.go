@@ -58,7 +58,7 @@ var tokenCmd = &cobra.Command{
 		}
 		token := settings.GetToken()
 		if !isJwtTokenValid(token) {
-			return fmt.Errorf("no user logged in. Run `turso auth login` to log in and get a token")
+			return fmt.Errorf("no user logged in. Run %s to log in and get a token", turso.Emph("turso auth login"))
 		}
 		fmt.Println(token)
 		return nil
