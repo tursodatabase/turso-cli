@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"sort"
 	"strings"
 
@@ -96,11 +97,12 @@ var showCmd = &cobra.Command{
 }
 
 func fetchInstanceVersion(baseUrl string) string {
-	u, err := url.JoinPath(baseUrl, "/version")
+	url, err := url.Parse(baseUrl)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
 	}
-	req, err := http.NewRequest("GET", u, nil)
+	url.Path = path.Join(url.Path, "/version")
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
 	}
