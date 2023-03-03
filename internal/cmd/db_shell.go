@@ -198,7 +198,7 @@ replLoop:
 		}
 		cmd := strings.Join(cmds, "\n")
 		cmds = cmds[:0]
-		l.SetPrompt("→  ")
+		l.SetPrompt(promptFmt("→  "))
 
 		err = query(dbUrl, cmd)
 
