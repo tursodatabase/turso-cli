@@ -150,6 +150,8 @@ func runShell(name, dbUrl string) error {
 
 	fmt.Printf("Welcome to Turso SQL shell!\n\n")
 	fmt.Printf("Type \".quit\" to exit the shell, \".tables\" to list all tables, and \".schema\" to show table schemas.\n\n")
+	var cmds []string
+
 replLoop:
 	for {
 		line, err := l.Readline()
@@ -188,7 +190,18 @@ replLoop:
 				continue
 			}
 		}
-		err = query(dbUrl, line)
+
+		cmds = append(cmds, line)
+		if !strings.HasSuffix(line, ";") {
+			l.SetPrompt("... ")
+			continue
+		}
+		cmd := strings.Join(cmds, " ")
+		cmds = cmds[:0]
+		l.SetPrompt("→  ")
+
+		err = query(dbUrl, cmd)
+
 		if err != nil {
 			if _, ok := err.(*SqlError); !ok {
 				return err
