@@ -133,3 +133,19 @@ func (d *DatabasesClient) Token(database string) (string, error) {
 	}
 	return data.Jwt, nil
 }
+
+func (d *DatabasesClient) Rotate(database string) error {
+	url := fmt.Sprintf("/v2/databases/%s/auth/rotate", database)
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to rotate database keys: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return fmt.Errorf("failed to rotate database keys: %d %s", r.StatusCode, err)
+	}
+
+	return nil
+}
