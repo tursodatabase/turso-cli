@@ -48,8 +48,8 @@ var showCmd = &cobra.Command{
 			return nil
 		}
 
-		if showHranaUrlFlag {
-			fmt.Println(getDatabaseHranaUrl(config, &db))
+		if showWsUrlFlag {
+			fmt.Println(getDatabaseWsUrl(config, &db))
 			return nil
 		}
 
@@ -58,13 +58,13 @@ var showCmd = &cobra.Command{
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
 
-		if showInstanceUrlFlag != "" || showInstanceHranaUrlFlag != "" {
+		if showInstanceUrlFlag != "" || showInstanceWsUrlFlag != "" {
 			for _, instance := range instances {
 				if instance.Name == showInstanceUrlFlag {
 					fmt.Println(getInstanceHttpUrl(config, &db, &instance))
 					return nil
-				} else if instance.Name == showInstanceHranaUrlFlag {
-					fmt.Println(getInstanceHranaUrl(config, &db, &instance))
+				} else if instance.Name == showInstanceWsUrlFlag {
+					fmt.Println(getInstanceWsUrl(config, &db, &instance))
 					return nil
 				}
 			}
@@ -75,11 +75,11 @@ var showCmd = &cobra.Command{
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		fmt.Println("Name:      ", db.Name)
-		fmt.Println("HTTP URL:  ", getDatabaseHttpUrl(config, &db))
-		fmt.Println("Hrana URL: ", getDatabaseHranaUrl(config, &db))
-		fmt.Println("ID:        ", db.ID)
-		fmt.Println("Regions:   ", strings.Join(regions, ", "))
+		fmt.Println("Name:          ", db.Name)
+		fmt.Println("HTTP URL:      ", getDatabaseHttpUrl(config, &db))
+		fmt.Println("WebSocket URL: ", getDatabaseWsUrl(config, &db))
+		fmt.Println("ID:            ", db.ID)
+		fmt.Println("Regions:       ", strings.Join(regions, ", "))
 		fmt.Println()
 
 		versions := [](chan string){}
@@ -95,12 +95,11 @@ var showCmd = &cobra.Command{
 		data := [][]string{}
 		for idx, instance := range instances {
 			version := <-versions[idx]
-			hranaUrl := getInstanceHranaUrl(config, &db, &instance)
-			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, httpUrls[idx], hranaUrl})
+			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, httpUrls[idx]})
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"Name", "Type", "Region", "Version", "HTTP URL", "Hrana URL"}, data)
+		printTable([]string{"Name", "Type", "Region", "Version", "HTTP URL"}, data)
 
 		return nil
 	},

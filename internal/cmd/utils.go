@@ -68,11 +68,11 @@ func getInstanceHttpUrl(settings *settings.Settings, db *turso.Database, inst *t
 	return getUrl(settings, db, inst, "https", 443, true)
 }
 
-func getDatabaseHranaUrl(settings *settings.Settings, db *turso.Database) string {
+func getDatabaseWsUrl(settings *settings.Settings, db *turso.Database) string {
 	return getUrl(settings, db, nil, "wss", 2023, false)
 }
 
-func getInstanceHranaUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
+func getInstanceWsUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
 	return getUrl(settings, db, inst, "wss", 2023, false)
 }
 
