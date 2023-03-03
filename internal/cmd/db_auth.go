@@ -13,6 +13,7 @@ var dbAuthCmd = &cobra.Command{
 
 func init() {
 	dbAuthCmd.AddCommand(dbAuthTokenCmd)
+	dbAuthCmd.AddCommand(dbAuthRotateCmd)
 }
 
 func dbAuthTokenArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -35,6 +36,22 @@ var dbAuthTokenCmd = &cobra.Command{
 			return fmt.Errorf("your database does not support token generation")
 		}
 		fmt.Println(token)
+		return nil
+	},
+}
+
+var dbAuthRotateCmd = &cobra.Command{
+	Use:               "rotate database_name",
+	Short:             "Rotates the keys used to create and verify database tokens",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: dbAuthTokenArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		turso := createTursoClient()
+		if err := turso.Databases.Rotate(args[0]); err != nil {
+			return fmt.Errorf("your database does not support tokens")
+		}
+		fmt.Println("✔  Success! Keys rotated successfully")
 		return nil
 	},
 }
