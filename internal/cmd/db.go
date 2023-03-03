@@ -13,6 +13,8 @@ import (
 var canary bool
 var showUrlFlag bool
 var showInstanceUrlFlag string
+var showHranaUrlFlag bool
+var showInstanceHranaUrlFlag string
 var region string
 var passwordFlag string
 var yesFlag bool
@@ -124,8 +126,10 @@ func init() {
 		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
-	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show database connection URL.")
-	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show connection URL for a selected instance of a database. Instance is selected by instance name.")
+	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
+	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
+	showCmd.Flags().BoolVar(&showHranaUrlFlag, "hrana-url", false, "Show URL for the database Hrana (WebSocket) API.")
+	showCmd.Flags().StringVar(&showInstanceHranaUrlFlag, "instance-hrana-url", "", "Show URL for the Hrana (WebSocket) API of a selected instance of a database. Instance is selected by instance name.")
 	showCmd.RegisterFlagCompletionFunc("instance-url", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 1 {
 			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
