@@ -196,7 +196,7 @@ replLoop:
 			l.SetPrompt("... ")
 			continue
 		}
-		cmd := strings.Join(cmds, " ")
+		cmd := strings.Join(cmds, "\n")
 		cmds = cmds[:0]
 		l.SetPrompt("→  ")
 
