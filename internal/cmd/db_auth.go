@@ -33,8 +33,14 @@ var dbAuthTokenCmd = &cobra.Command{
 	ValidArgsFunction: dbAuthTokenArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		turso := createTursoClient()
-		token, err := turso.Databases.Token(args[0])
+		client := createTursoClient()
+		name := args[0]
+
+		if _, err := getDatabase(client, name); err != nil {
+			return err
+		}
+
+		token, err := client.Databases.Token(name)
 		if err != nil {
 			return fmt.Errorf("your database does not support token generation")
 		}
