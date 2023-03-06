@@ -225,7 +225,9 @@ func createCallbackServer(ch chan string) (*http.Server, error) {
 		ch <- q.Get("username")
 
 		w.WriteHeader(200)
-		tmpl.Execute(w, q.Get("username"))
+		tmpl.Execute(w, map[string]string{
+			"assetsURL": getTursoUrl(),
+		})
 	})
 
 	return &http.Server{Handler: handler}, nil

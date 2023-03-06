@@ -3,19 +3,52 @@
     <title>ChiselStrike</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="description" content="Login to your turso app" />
+    <link rel="stylesheet" href="{{.assetsURL}}/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
-
-  <body>
-    
-    <div class="flex min-h-full items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-
-      <div class="w-5/6 mx-auto">
-        <p>Logged in as <b>{{.}}</b>!</p>
-        <p class="mt-4">Feel free to close this window and return to the terminal :)</p>
-      </div>
-      <div class="w-full w-auto">
-      </div>
+  <body class="instructions">
+    <div class="instructions__container">
+      <header class="instructions__header">
+        <img src="{{.assetsURL}}/images/logo-turso.svg" alt="Turso Logo" />
+      </header>
+      <main class="instructions__main">
+        <section class="result">
+          <img src="{{.assetsURL}}/images/icon-success.svg" alt="" />
+          <h1 class="result__title">Sign in Successful</h1>
+          <p class="result__desc">
+            Your credentials have been automatically generated, feel free to
+            close this window and return to your CLI.
+          </p>
+        </section>
+        <section class="steps">
+          <h2 class="steps__title">Instructions:</h2>
+          <p class="steps__paragraph">
+            Turso is a command-line tool that allows you to manipulate SQLite
+            databases through various commands and options.
+          </p>
+          <p class="steps__paragraph">
+            Get the full expressive power of SQL with a relational database
+            engine, plus the low latency of a local replica near your users.
+          </p>
+          <p class="steps__paragraph">
+            Use the same easy configuration, effortless testing and operational
+            efficiency developers have always enjoyed with SQLite*
+          </p>
+          <p class="steps__paragraph">
+            Put the data you want where you want it while preserving the
+            privacy, security and compliance you need.
+          </p>
+          <a class="steps__link" target="_blank" href="https://chiselstrike.com"
+            >Learn more →</a
+          >
+        </section>
+      </main>
     </div>
   </body>
 </html>
