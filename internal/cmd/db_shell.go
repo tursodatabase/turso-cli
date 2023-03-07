@@ -2,24 +2,19 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
-	"github.com/chzyer/readline"
-	"github.com/fatih/color"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"github.com/xwb1989/sqlparser"
+
+	"github.com/chiselstrike/libsql-shell/src/lib"
 )
 
 func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -28,6 +23,8 @@ func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
+
+var TURSO_WELCOME_MESSAGE = "Welcome to Turso SQL shell!\n\nType \".quit\" to exit the shell, \".tables\" to list all tables, and \".schema\" to show table schemas.\n\n"
 
 var shellCmd = &cobra.Command{
 	Use:               "shell {database_name | replica_url} [sql]",
@@ -42,17 +39,25 @@ var shellCmd = &cobra.Command{
 			return fmt.Errorf("please specify a database name")
 		}
 		cmd.SilenceUsage = true
+
 		dbUrl, err := getDatabaseURL(name)
 		if err != nil {
 			return err
 		}
+
+		db, err := lib.NewDb(dbUrl)
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
 		if len(args) == 1 {
-			return runShell(name, dbUrl)
+			return runShell(cmd, db, name, dbUrl)
 		} else {
 			if len(args[1]) == 0 {
 				return fmt.Errorf("no SQL command to execute")
 			}
-			return query(dbUrl, args[1])
+			return query(db, cmd.OutOrStderr(), args[1])
 		}
 	},
 }
@@ -128,89 +133,22 @@ func getDatabaseURL(name string) (string, error) {
 	return dbUrl, nil
 }
 
-func runShell(name, dbUrl string) error {
+func runShell(cmd *cobra.Command, db *lib.Db, name, dbUrl string) error {
 	if name != dbUrl {
 		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(name), dbUrl)
 	} else {
 		fmt.Printf("Connected to %s\n\n", dbUrl)
 	}
-	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
-	l, err := readline.NewEx(&readline.Config{
-		Prompt:            promptFmt("→  "),
-		HistoryFile:       ".turso_history",
-		InterruptPrompt:   "^C",
-		EOFPrompt:         ".quit",
-		HistorySearchFold: true,
-	})
-	if err != nil {
-		return err
+
+	shellConfig := lib.ShellConfig{
+		InF:            cmd.InOrStdin(),
+		OutF:           cmd.OutOrStdout(),
+		ErrF:           cmd.ErrOrStderr(),
+		HistoryFile:    fmt.Sprintf("%s/.turso_shell_history", os.Getenv("HOME")),
+		WelcomeMessage: &TURSO_WELCOME_MESSAGE,
 	}
-	defer l.Close()
-	l.CaptureExitSignal()
 
-	fmt.Printf("Welcome to Turso SQL shell!\n\n")
-	fmt.Printf("Type \".quit\" to exit the shell, \".tables\" to list all tables, and \".schema\" to show table schemas.\n\n")
-	var cmds []string
-
-replLoop:
-	for {
-		line, err := l.Readline()
-		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
-				break
-			} else {
-				continue
-			}
-		} else if err == io.EOF {
-			break
-		}
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		switch line {
-		case ".quit":
-			break replLoop
-		case ".tables":
-			{
-				err = query(dbUrl, getTables())
-				if err != nil {
-					return err
-				}
-			}
-			continue
-		case ".schema":
-			{
-				{
-					err = query(dbUrl, getSchema())
-					if err != nil {
-						return err
-					}
-				}
-				continue
-			}
-		}
-
-		cmds = append(cmds, line)
-		if !strings.HasSuffix(line, ";") {
-			l.SetPrompt("... ")
-			continue
-		}
-		cmd := strings.Join(cmds, "\n")
-		cmds = cmds[:0]
-		l.SetPrompt(promptFmt("→  "))
-
-		err = query(dbUrl, cmd)
-
-		if err != nil {
-			if _, ok := err.(*SqlError); !ok {
-				return err
-			} else {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-			}
-		}
-	}
-	return nil
+	return db.RunShell(shellConfig)
 }
 
 type SqlError struct {
@@ -221,74 +159,15 @@ func (e *SqlError) Error() string {
 	return e.Message
 }
 
-func query(url, stmt string) error {
-	resp, err := doQuery(url, stmt)
+func query(db *lib.Db, outF io.Writer, statements string) error {
+	results, err := db.ExecuteStatements(statements)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	err = lib.PrintStatementsResult(results, outF, false)
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
-		var err_response ErrorResponse
-		if err := json.Unmarshal(body, &err_response); err != nil {
-			return &SqlError{fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err)}
-		}
-		var msg string
-		if err_response.Message == "interactive transaction not allowed in HTTP queries" {
-			msg = "Transactions are only supported in the shell using semicolons to separate each statement.\nFor example: \"BEGIN; [your SQL statements]; END\""
-		} else {
-			msg = fmt.Sprintf("Failed to execute SQL statement: %s\n%s", stmt, err_response.Message)
-		}
-		return &SqlError{msg}
-	}
-
-	var results []QueryResult
-	if err := json.Unmarshal(body, &results); err != nil {
-		return err
-	}
-	errs := []string{}
-	for _, result := range results {
-		if result.Error != nil {
-			errs = append(errs, result.Error.Message)
-		}
-		if result.Results != nil {
-			columns := make([]interface{}, 0)
-			for _, column := range result.Results.Columns {
-				columns = append(columns, strings.ToUpper(column))
-			}
-			tbl := table.New(columns...)
-			for _, row := range result.Results.Rows {
-				for idx, v := range row {
-					if f64, ok := v.(float64); ok {
-						row[idx] = strconv.FormatFloat(f64, 'f', -1, 64)
-					} else if v == nil {
-						row[idx] = "NULL"
-					} else if m, ok := v.(map[string]interface{}); ok {
-						if value, ok := m["base64"]; ok {
-							if base64Value, ok := value.(string); ok {
-								bytes := make([]byte, base64.StdEncoding.DecodedLen(len(base64Value)))
-								count, err := base64.StdEncoding.Decode(bytes, []byte(base64Value))
-								if err != nil {
-									row[idx] = base64Value
-								} else {
-									row[idx] = hex.EncodeToString(bytes[:count])
-								}
-							}
-						}
-					}
-				}
-				tbl.AddRow(row...)
-			}
-			tbl.Print()
-		}
-	}
-	if len(errs) > 0 {
-		return &SqlError{(strings.Join(errs, "; "))}
-	}
-
 	return nil
 }
 
