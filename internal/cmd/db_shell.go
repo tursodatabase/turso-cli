@@ -105,19 +105,20 @@ func getDatabaseURL(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	// If name is a valid URL, let's just is it directly to connect instead
 	// of looking up an URL from settings.
-	_, err = url.ParseRequestURI(name)
-	var dbUrl string
+	dbUrl := name
+	_, err = url.ParseRequestURI(dbUrl)
 	if err != nil {
-		dbSettings, err := config.FindDatabaseByName(name)
+		client := createTursoClient()
+		db, err := getDatabase(client, name)
 		if err != nil {
 			return "", err
 		}
-		dbUrl = dbSettings.GetURL()
-	} else {
-		dbUrl = name
+		dbUrl = getDatabaseHttpUrl(config, &db)
 	}
+
 	resp, err := doQuery(dbUrl, "SELECT 1")
 	if err != nil {
 		return "", fmt.Errorf("failed to connect: %s", err)

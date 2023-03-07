@@ -88,6 +88,8 @@ func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instanc
 		var urlHost string
 		if inst != nil {
 			urlHost = inst.Hostname
+		} else if db.Hostname != "" {
+			urlHost = db.Hostname
 		} else if dbSettings.Hostname != nil {
 			urlHost = *dbSettings.Hostname
 		} else {
