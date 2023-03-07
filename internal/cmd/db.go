@@ -13,6 +13,8 @@ import (
 var canary bool
 var showUrlFlag bool
 var showInstanceUrlFlag string
+var showWsUrlFlag bool
+var showInstanceWsUrlFlag string
 var region string
 var passwordFlag string
 var yesFlag bool
@@ -124,14 +126,20 @@ func init() {
 		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
-	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show database connection URL.")
-	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show connection URL for a selected instance of a database. Instance is selected by instance name.")
-	showCmd.RegisterFlagCompletionFunc("instance-url", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
+	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
+	showCmd.Flags().StringVar(&showInstanceWsUrlFlag, "instance-ws-url", "", "Show URL for the WebSocket API (Hrana protocol) of a selected instance of a database. Instance is selected by instance name.")
+	showCmd.Flags().BoolVar(&showWsUrlFlag, "ws-url", false, "Show URL for the database WebSocket API (Hrana protocol).")
+
+	completeInstance := func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 1 {
 			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
-	})
+	}
+	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstance)
+	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstance)
+
 	changePasswordCmd.Flags().StringVarP(&passwordFlag, "password", "p", "", "Value of new password to be set on database")
 	changePasswordCmd.RegisterFlagCompletionFunc("password", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return nil, cobra.ShellCompDirectiveNoFileComp

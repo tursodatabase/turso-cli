@@ -60,21 +60,23 @@ func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others
 	return primary, result
 }
 
-func getDatabaseUrl(settings *settings.Settings, db turso.Database) string {
-	dbSettings := settings.GetDatabaseSettings(db.ID)
-	if dbSettings == nil {
-		// Backwards compatibility with old settings files.
-		dbSettings = settings.GetDatabaseSettings(db.Name)
-	}
-
-	url := "<n/a>"
-	if dbSettings != nil {
-		url = dbSettings.GetURL()
-	}
-	return url
+func getDatabaseHttpUrl(settings *settings.Settings, db *turso.Database) string {
+	return getUrl(settings, db, nil, "https", 443, true)
 }
 
-func getInstanceUrl(settings *settings.Settings, db turso.Database, inst turso.Instance) string {
+func getInstanceHttpUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
+	return getUrl(settings, db, inst, "https", 443, true)
+}
+
+func getDatabaseWsUrl(settings *settings.Settings, db *turso.Database) string {
+	return getUrl(settings, db, nil, "wss", 2023, false)
+}
+
+func getInstanceWsUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
+	return getUrl(settings, db, inst, "wss", 2023, false)
+}
+
+func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string, port int, password bool) string {
 	dbSettings := settings.GetDatabaseSettings(db.ID)
 	if dbSettings == nil {
 		// Backwards compatibility with old settings files.
@@ -83,8 +85,32 @@ func getInstanceUrl(settings *settings.Settings, db turso.Database, inst turso.I
 
 	url := "<n/a>"
 	if dbSettings != nil {
-		url = fmt.Sprintf("https://%s:%s@%s", dbSettings.Username, dbSettings.Password, inst.Hostname)
+		var urlHost string
+		if inst != nil {
+			urlHost = inst.Hostname
+		} else if dbSettings.Hostname != nil {
+			urlHost = *dbSettings.Hostname
+		} else {
+			urlHost = dbSettings.Host
+		}
+
+		var urlPort string
+		if (scheme == "http" && port == 80) || (scheme == "https" && port == 443) {
+			urlPort = ""
+		} else {
+			urlPort = fmt.Sprintf(":%v", port)
+		}
+
+		var urlUserinfo string
+		if password {
+			urlUserinfo = fmt.Sprintf("%s:%s@", dbSettings.Username, dbSettings.Password)
+		} else {
+			urlUserinfo = ""
+		}
+
+		url = fmt.Sprintf("%s://%s%s%s", scheme, urlUserinfo, urlHost, urlPort)
 	}
+
 	return url
 }
 

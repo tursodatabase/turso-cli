@@ -44,7 +44,12 @@ var showCmd = &cobra.Command{
 		}
 
 		if showUrlFlag {
-			fmt.Println(getDatabaseUrl(config, db))
+			fmt.Println(getDatabaseHttpUrl(config, &db))
+			return nil
+		}
+
+		if showWsUrlFlag {
+			fmt.Println(getDatabaseWsUrl(config, &db))
 			return nil
 		}
 
@@ -53,44 +58,48 @@ var showCmd = &cobra.Command{
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
 
-		if showInstanceUrlFlag != "" {
+		if showInstanceUrlFlag != "" || showInstanceWsUrlFlag != "" {
 			for _, instance := range instances {
 				if instance.Name == showInstanceUrlFlag {
-					fmt.Println(getInstanceUrl(config, db, instance))
+					fmt.Println(getInstanceHttpUrl(config, &db, &instance))
+					return nil
+				} else if instance.Name == showInstanceWsUrlFlag {
+					fmt.Println(getInstanceWsUrl(config, &db, &instance))
 					return nil
 				}
 			}
-			return fmt.Errorf("instance %s not found for database %s. List known instances using %s", turso.Emph(showInstanceUrlFlag), turso.Emph(db.Name), turso.Emph("turso db show "+db.Name))
+			return fmt.Errorf("instance %s was not found for database %s. List known instances using %s", turso.Emph(showInstanceUrlFlag), turso.Emph(db.Name), turso.Emph("turso db show "+db.Name))
 		}
 
 		regions := make([]string, len(db.Regions))
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		fmt.Println("Name:    ", db.Name)
-		fmt.Println("URL:     ", getDatabaseUrl(config, db))
-		fmt.Println("ID:      ", db.ID)
-		fmt.Println("Regions: ", strings.Join(regions, ", "))
+		fmt.Println("Name:          ", db.Name)
+		fmt.Println("HTTP URL:      ", getDatabaseHttpUrl(config, &db))
+		fmt.Println("WebSocket URL: ", getDatabaseWsUrl(config, &db))
+		fmt.Println("ID:            ", db.ID)
+		fmt.Println("Regions:       ", strings.Join(regions, ", "))
 		fmt.Println()
 
 		versions := [](chan string){}
-		urls := []string{}
+		httpUrls := []string{}
 		for idx, instance := range instances {
-			urls = append(urls, getInstanceUrl(config, db, instance))
+			httpUrls = append(httpUrls, getInstanceHttpUrl(config, &db, &instance))
 			versions = append(versions, make(chan string, 1))
 			go func(idx int) {
-				versions[idx] <- fetchInstanceVersion(urls[idx])
+				versions[idx] <- fetchInstanceVersion(httpUrls[idx])
 			}(idx)
 		}
 
 		data := [][]string{}
 		for idx, instance := range instances {
 			version := <-versions[idx]
-			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, urls[idx]})
+			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, httpUrls[idx]})
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"name", "type", "region", "version", "url"}, data)
+		printTable([]string{"Name", "Type", "Region", "Version", "HTTP URL"}, data)
 
 		return nil
 	},
