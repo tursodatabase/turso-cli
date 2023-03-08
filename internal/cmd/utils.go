@@ -61,22 +61,22 @@ func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others
 }
 
 func getDatabaseHttpUrl(settings *settings.Settings, db *turso.Database) string {
-	return getUrl(settings, db, nil, "https", 443, true)
+	return getUrl(settings, db, nil, "https", true)
 }
 
 func getInstanceHttpUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "https", 443, true)
+	return getUrl(settings, db, inst, "https", true)
 }
 
 func getDatabaseWsUrl(settings *settings.Settings, db *turso.Database) string {
-	return getUrl(settings, db, nil, "wss", 2023, false)
+	return getUrl(settings, db, nil, "wss", false)
 }
 
 func getInstanceWsUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "wss", 2023, false)
+	return getUrl(settings, db, inst, "wss", false)
 }
 
-func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string, port int, password bool) string {
+func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string, password bool) string {
 	dbSettings := settings.GetDatabaseSettings(db.ID)
 	if dbSettings == nil {
 		// Backwards compatibility with old settings files.
@@ -94,13 +94,6 @@ func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instanc
 			urlHost = dbSettings.Host
 		}
 
-		var urlPort string
-		if (scheme == "http" && port == 80) || (scheme == "https" && port == 443) {
-			urlPort = ""
-		} else {
-			urlPort = fmt.Sprintf(":%v", port)
-		}
-
 		var urlUserinfo string
 		if password {
 			urlUserinfo = fmt.Sprintf("%s:%s@", dbSettings.Username, dbSettings.Password)
@@ -108,7 +101,7 @@ func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instanc
 			urlUserinfo = ""
 		}
 
-		url = fmt.Sprintf("%s://%s%s%s", scheme, urlUserinfo, urlHost, urlPort)
+		url = fmt.Sprintf("%s://%s%s", scheme, urlUserinfo, urlHost)
 	}
 
 	return url
