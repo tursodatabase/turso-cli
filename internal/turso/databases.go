@@ -149,3 +149,19 @@ func (d *DatabasesClient) Rotate(database string) error {
 
 	return nil
 }
+
+func (d *DatabasesClient) Update(database string) error {
+	url := fmt.Sprintf("/v2/databases/%s/update", database)
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to update database: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return fmt.Errorf("failed to update database: %d %s", r.StatusCode, err)
+	}
+
+	return nil
+}
