@@ -14,7 +14,7 @@ var accountShowCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		fmt.Printf("Your are currently on %s plan.\n", turso.Emph("starter"))
+		fmt.Printf("You are currently on %s plan.\n", turso.Emph("starter"))
 		fmt.Println()
 		fmt.Println("Storage: 5 GiB")
 		return nil
