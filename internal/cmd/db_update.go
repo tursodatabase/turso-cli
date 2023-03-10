@@ -34,7 +34,7 @@ var dbUpdateCmd = &cobra.Command{
 		}
 
 		if yesFlag {
-			return rotate(client, name)
+			return update(client, name)
 		}
 
 		fmt.Printf("To update %s database, all its replicas must be updated.\n", turso.Emph(name))
