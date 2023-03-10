@@ -40,4 +40,4 @@ jobs:
             url: 'https://api.chiseledge.com/releases'
             method: 'POST'
             data: ${{ steps.get_version.outputs.VERSION }}
-            bearerToken: ${{ secrets.TURSO_BACKOFFICE_PASSCODE }}
+            bearerToken: ${{ secrets.TURSOSTAFF_TOKEN }}
