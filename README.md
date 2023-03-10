@@ -1,5 +1,7 @@
 # Turso CLI
 
+[![Go](https://github.com/chiselstrike/turso-cli/actions/workflows/go.yml/badge.svg)](https://github.com/chiselstrike/turso-cli/actions/workflows/go.yml)
+
 This is the command line interface (CLI) to Turso.
 
 ## Installation
