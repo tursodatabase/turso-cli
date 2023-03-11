@@ -63,11 +63,7 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 
-		url := fmt.Sprintf("%s/v1/databases", host)
-		if original.Type == "logical" {
-			url = fmt.Sprintf("%s/v2/databases/%s/instances", host, name)
-		}
-
+		url := fmt.Sprintf("%s/v2/databases/%s/instances", host, name)
 		bearer := "Bearer " + accessToken
 		dbSettings := config.GetDatabaseSettings(original.ID)
 		password := dbSettings.Password
@@ -108,20 +104,10 @@ var replicateCmd = &cobra.Command{
 		}
 		end := time.Now()
 		elapsed := end.Sub(start)
-		var m map[string]interface{}
-		if original.Type == "logical" {
-			m = result.(map[string]interface{})["instance"].(map[string]interface{})
-		} else {
-			m = result.(map[string]interface{})["database"].(map[string]interface{})
-		}
+		m := result.(map[string]interface{})["instance"].(map[string]interface{})
 		username := result.(map[string]interface{})["username"].(string)
 		password = result.(map[string]interface{})["password"].(string)
-		var dbHost string
-		if original.Type == "logical" {
-			dbHost = m["hostname"].(string)
-		} else {
-			dbHost = m["Hostname"].(string)
-		}
+		dbHost := m["hostname"].(string)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
 		dbSettings = &settings.DatabaseSettings{
 			Host:     dbHost,

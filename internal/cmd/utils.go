@@ -110,10 +110,6 @@ func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instanc
 }
 
 func getDatabaseRegions(db turso.Database) string {
-	if db.Type != "logical" {
-		return db.Region
-	}
-
 	regions := make([]string, 0, len(db.Regions))
 	for _, region := range db.Regions {
 		if region == db.PrimaryRegion {
@@ -180,10 +176,6 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 	db, err := getDatabase(client, database)
 	if err != nil {
 		return err
-	}
-
-	if db.Type != "logical" {
-		return fmt.Errorf("database '%s' does not support the destroy operation with region argument", db.Name)
 	}
 
 	instances, err := client.Instances.List(db.Name)
