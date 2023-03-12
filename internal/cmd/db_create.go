@@ -61,7 +61,7 @@ var createCmd = &cobra.Command{
 			Password: res.Password,
 		}
 
-		if _, err = client.Instances.Create(name, res.Password, region, image); err != nil {
+		if _, err = client.Instances.Create(name, "", res.Password, region, image); err != nil {
 			return err
 		}
 
