@@ -12,21 +12,9 @@ import (
 )
 
 type DatabaseSettings struct {
-	Name     string  `json:"name"`
-	Host     string  `json:"host"`
-	Hostname *string `json:"hostname"`
-	Username string  `json:"username"`
-	Password string  `json:"Password"`
-}
-
-func (s *DatabaseSettings) GetURL() string {
-	var hostname string
-	if s.Hostname != nil {
-		hostname = *s.Hostname
-	} else {
-		hostname = s.Host
-	}
-	return fmt.Sprintf("https://%s:%s@%s", s.Username, s.Password, hostname)
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Password string `json:"Password"`
 }
 
 type Settings struct{}

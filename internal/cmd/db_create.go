@@ -56,7 +56,6 @@ var createCmd = &cobra.Command{
 		}
 		dbSettings := settings.DatabaseSettings{
 			Name:     res.Database.Name,
-			Host:     res.Database.Hostname,
 			Username: res.Username,
 			Password: res.Password,
 		}
