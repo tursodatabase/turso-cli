@@ -1,11 +1,7 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -29,8 +25,8 @@ var replicateCmd = &cobra.Command{
 	Args:              cobra.RangeArgs(2, 3),
 	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-		if name == "" {
+		dbName := args[0]
+		if dbName == "" {
 			return fmt.Errorf("you must specify a database name to replicate it")
 		}
 		region := args[1]
@@ -42,80 +38,42 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		tursoClient := createTursoClient()
-		if !isValidRegion(tursoClient, region) {
+		client := createTursoClient()
+		if !isValidRegion(client, region) {
 			return fmt.Errorf("invalid region ID. Run %s to see a list of valid region IDs", turso.Emph("turso db regions"))
 		}
-		var image string
+
+		image := "latest"
 		if canary {
 			image = "canary"
-		} else {
-			image = "latest"
 		}
-		accessToken, err := getAccessToken()
-		if err != nil {
-			return fmt.Errorf("please login with %s", turso.Emph("turso auth login"))
-		}
-		host := getHost()
 
-		original, err := getDatabase(tursoClient, name)
+		original, err := getDatabase(client, dbName)
 		if err != nil {
 			return err
 		}
-
-		url := fmt.Sprintf("%s/v2/databases/%s/instances", host, name)
-		bearer := "Bearer " + accessToken
 		dbSettings := config.GetDatabaseSettings(original.ID)
 		password := dbSettings.Password
 
-		instanceName := ""
+		name := ""
 		if len(args) > 2 {
-			instanceName = args[2]
+			name = args[2]
 		}
 
-		createDbReq := []byte(fmt.Sprintf(`{"name": "%s", "region": "%s", "image": "%s", "type": "replica", "password": "%s", "instance_name": "%s"}`, name, region, image, password, instanceName))
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(createDbReq))
-		if err != nil {
-			return err
-		}
-		req.Header.Add("Authorization", bearer)
-		req.Header.Add("TursoCliVersion", version)
-		regionText := fmt.Sprintf("%s (%s)", toLocation(tursoClient, region), region)
-		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", turso.Emph(name), turso.Emph(regionText)))
-		s.Start()
+		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
+		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", turso.Emph(dbName), turso.Emph(regionText)))
 		start := time.Now()
-		client := &http.Client{}
-		resp, err := client.Do(req)
+		instance, err := client.Instances.Create(dbName, name, password, region, image)
 		s.Stop()
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)
 		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("failed to create database: %s", resp.Status)
-		}
-		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		var result interface{}
-		if err := json.Unmarshal(body, &result); err != nil {
-			return err
-		}
 		end := time.Now()
 		elapsed := end.Sub(start)
-		m := result.(map[string]interface{})["instance"].(map[string]interface{})
-		username := result.(map[string]interface{})["username"].(string)
-		password = result.(map[string]interface{})["password"].(string)
-		dbHost := m["hostname"].(string)
-		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
-		dbSettings = &settings.DatabaseSettings{
-			Host:     dbHost,
-			Username: username,
-			Password: password,
-		}
+		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(dbName), turso.Emph(regionText), int(elapsed.Seconds()))
+
 		fmt.Printf("HTTP connection string:\n\n")
-		dbUrl := dbSettings.GetURL()
+		dbUrl := getInstanceHttpUrl(config, &original, instance)
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", dbUrl)
