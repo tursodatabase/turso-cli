@@ -83,30 +83,17 @@ func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instanc
 		dbSettings = settings.GetDatabaseSettings(db.Name)
 	}
 
-	url := "<n/a>"
-	if dbSettings != nil {
-		var urlHost string
-		if inst != nil {
-			urlHost = inst.Hostname
-		} else if db.Hostname != "" {
-			urlHost = db.Hostname
-		} else if dbSettings.Hostname != nil {
-			urlHost = *dbSettings.Hostname
-		} else {
-			urlHost = dbSettings.Host
-		}
-
-		var urlUserinfo string
-		if password {
-			urlUserinfo = fmt.Sprintf("%s:%s@", dbSettings.Username, dbSettings.Password)
-		} else {
-			urlUserinfo = ""
-		}
-
-		url = fmt.Sprintf("%s://%s%s", scheme, urlUserinfo, urlHost)
+	host := db.Hostname
+	if inst != nil {
+		host = inst.Hostname
 	}
 
-	return url
+	user := ""
+	if password && dbSettings != nil {
+		user = fmt.Sprintf("%s:%s@", dbSettings.Username, dbSettings.Password)
+	}
+
+	return fmt.Sprintf("%s://%s%s", scheme, user, host)
 }
 
 func getDatabaseRegions(db turso.Database) string {
