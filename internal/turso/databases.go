@@ -111,8 +111,8 @@ func (d *DatabasesClient) ChangePassword(database string, newPassword string) er
 	return nil
 }
 
-func (d *DatabasesClient) Token(database string) (string, error) {
-	url := fmt.Sprintf("/v2/databases/%s/auth/tokens", database)
+func (d *DatabasesClient) Token(database string, expiration string) (string, error) {
+	url := fmt.Sprintf("/v2/databases/%s/auth/tokens?expiration=%s", database, expiration)
 	r, err := d.client.Post(url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to get database token: %w", err)

@@ -12,9 +12,15 @@ var dbAuthCmd = &cobra.Command{
 	Short: "Manage database authentication",
 }
 
+var expFlag expirationFlag
+
 func init() {
 	dbAuthCmd.AddCommand(dbAuthTokenCmd)
 	dbAuthCmd.AddCommand(dbAuthRotateCmd)
+
+	usage := "Choses the expiration strategy of the token. Possible values are 'default' or 'none'."
+	dbAuthTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
+	dbAuthTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
 
 	dbAuthRotateCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
 }
@@ -40,7 +46,7 @@ var dbAuthTokenCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := client.Databases.Token(name)
+		token, err := client.Databases.Token(name, expFlag.String())
 		if err != nil {
 			return fmt.Errorf("your database does not support token generation")
 		}
