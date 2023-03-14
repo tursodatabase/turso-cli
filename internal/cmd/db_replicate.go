@@ -55,15 +55,15 @@ var replicateCmd = &cobra.Command{
 		dbSettings := config.GetDatabaseSettings(original.ID)
 		password := dbSettings.Password
 
-		name := ""
+		instanceName := ""
 		if len(args) > 2 {
-			name = args[2]
+			instanceName = args[2]
 		}
 
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
 		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", turso.Emph(dbName), turso.Emph(regionText)))
 		start := time.Now()
-		instance, err := client.Instances.Create(dbName, name, password, region, image)
+		instance, err := client.Instances.Create(dbName, instanceName, password, region, image)
 		s.Stop()
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)
