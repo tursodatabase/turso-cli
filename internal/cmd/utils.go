@@ -83,37 +83,20 @@ func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instanc
 		dbSettings = settings.GetDatabaseSettings(db.Name)
 	}
 
-	url := "<n/a>"
-	if dbSettings != nil {
-		var urlHost string
-		if inst != nil {
-			urlHost = inst.Hostname
-		} else if db.Hostname != "" {
-			urlHost = db.Hostname
-		} else if dbSettings.Hostname != nil {
-			urlHost = *dbSettings.Hostname
-		} else {
-			urlHost = dbSettings.Host
-		}
-
-		var urlUserinfo string
-		if password {
-			urlUserinfo = fmt.Sprintf("%s:%s@", dbSettings.Username, dbSettings.Password)
-		} else {
-			urlUserinfo = ""
-		}
-
-		url = fmt.Sprintf("%s://%s%s", scheme, urlUserinfo, urlHost)
+	host := db.Hostname
+	if inst != nil {
+		host = inst.Hostname
 	}
 
-	return url
+	user := ""
+	if password && dbSettings != nil {
+		user = fmt.Sprintf("%s:%s@", dbSettings.Username, dbSettings.Password)
+	}
+
+	return fmt.Sprintf("%s://%s%s", scheme, user, host)
 }
 
 func getDatabaseRegions(db turso.Database) string {
-	if db.Type != "logical" {
-		return db.Region
-	}
-
 	regions := make([]string, 0, len(db.Regions))
 	for _, region := range db.Regions {
 		if region == db.PrimaryRegion {
@@ -180,10 +163,6 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 	db, err := getDatabase(client, database)
 	if err != nil {
 		return err
-	}
-
-	if db.Type != "logical" {
-		return fmt.Errorf("database '%s' does not support the destroy operation with region argument", db.Name)
 	}
 
 	instances, err := client.Instances.List(db.Name)

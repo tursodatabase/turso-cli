@@ -5,28 +5,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/kirsle/configdir"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
 
 type DatabaseSettings struct {
-	Name     string  `json:"name"`
-	Host     string  `json:"host"`
-	Hostname *string `json:"hostname"`
-	Username string  `json:"username"`
-	Password string  `json:"Password"`
-}
-
-func (s *DatabaseSettings) GetURL() string {
-	var hostname string
-	if s.Hostname != nil {
-		hostname = *s.Hostname
-	} else {
-		hostname = s.Host
-	}
-	return fmt.Sprintf("https://%s:%s@%s", s.Username, s.Password, hostname)
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Password string `json:"Password"`
 }
 
 type Settings struct{}
@@ -139,19 +126,6 @@ func (s *Settings) DeleteDatabase(name string) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
 	}
-}
-
-func (s Settings) FindDatabaseByName(name string) (*DatabaseSettings, error) {
-
-	databases := viper.GetStringMap("databases")
-	for _, rawSettings := range databases {
-		settings := DatabaseSettings{}
-		mapstructure.Decode(rawSettings, &settings)
-		if settings.Name == name {
-			return &settings, nil
-		}
-	}
-	return nil, fmt.Errorf("database %s not found. List known databases using %s", turso.Emph(name), turso.Emph("turso db list"))
 }
 
 func (s *Settings) GetDatabaseSettings(id string) *DatabaseSettings {

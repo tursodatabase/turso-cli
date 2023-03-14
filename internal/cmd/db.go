@@ -55,11 +55,7 @@ func getInstanceNames(client *turso.Client, dbName string) []string {
 func extractDatabaseNames(databases []turso.Database) []string {
 	names := make([]string, 0)
 	for _, database := range databases {
-		name := database.Name
-		ty := database.Type
-		if ty == "logical" {
-			names = append(names, name)
-		}
+		names = append(names, database.Name)
 	}
 	return names
 }

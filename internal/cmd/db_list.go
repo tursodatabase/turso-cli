@@ -24,9 +24,9 @@ var listCmd = &cobra.Command{
 		for _, database := range databases {
 			httpUrl := getDatabaseHttpUrl(settings, &database)
 			regions := getDatabaseRegions(database)
-			data = append(data, []string{database.Name, database.Type, regions, httpUrl})
+			data = append(data, []string{database.Name, regions, httpUrl})
 		}
-		printTable([]string{"Name", "Type", "Regions", "HTTP URL"}, data)
+		printTable([]string{"Name", "Regions", "HTTP URL"}, data)
 		settings.SetDbNamesCache(extractDatabaseNames(databases))
 		return nil
 	},
