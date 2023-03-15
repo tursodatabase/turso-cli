@@ -18,6 +18,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/viper v1.15.0
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2
+	golang.org/x/exp v0.0.0-20230310171629-522b1b587ee0
 	golang.org/x/sync v0.1.0
 )
 
