@@ -18,7 +18,7 @@ func init() {
 	dbAuthCmd.AddCommand(dbAuthTokenCmd)
 	dbAuthCmd.AddCommand(dbAuthRotateCmd)
 
-	usage := "Choses the expiration strategy of the token. Possible values are 'default' or 'none'."
+	usage := "Token expiration. Possible values are 'default' or 'none'."
 	dbAuthTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
 	dbAuthTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
 
