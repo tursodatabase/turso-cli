@@ -161,6 +161,10 @@ func login(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Please consider updating to get new features and more stable experience.\n\n")
 	}
 
+	firstTime := settings.RegisterUse("auth_login")
+	if firstTime {
+		fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", turso.Emph("turso db create"))
+	}
 	return nil
 }
 

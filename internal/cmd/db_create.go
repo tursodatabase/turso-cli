@@ -74,6 +74,11 @@ var createCmd = &cobra.Command{
 		fmt.Printf("   turso db show %s\n\n", name)
 		config.AddDatabase(res.Database.ID, &dbSettings)
 		config.InvalidateDbNamesCache()
+		firstTime := config.RegisterUse("db_create")
+		if firstTime {
+			fmt.Printf("✏️  Now that you created a database, the next step is to create a replica. Why don't we try?\n\t%s\n\t%s\n",
+				turso.Emph("turso db regions"), turso.Emph(fmt.Sprintf("turso db replicate %s [region]", name)))
+		}
 		return nil
 	},
 }
