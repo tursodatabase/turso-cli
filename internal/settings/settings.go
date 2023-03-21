@@ -113,6 +113,24 @@ func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
 	}
 }
 
+func (s *Settings) AddCommand(cmd string) bool {
+	commands := viper.GetStringMap("commands")
+	var firstTime bool
+
+	if v, ok := commands[cmd].(bool); ok {
+		firstTime = !v
+	} else {
+		firstTime = true
+	}
+	commands[cmd] = true
+	viper.Set("commands", commands)
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
+	}
+	return firstTime
+}
+
 func (s *Settings) DeleteDatabase(name string) {
 	databases := viper.GetStringMap("databases")
 	for id, rawSettings := range databases {
