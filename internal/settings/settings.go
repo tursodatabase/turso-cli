@@ -115,12 +115,9 @@ func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
 
 func (s *Settings) AddCommand(cmd string) bool {
 	commands := viper.GetStringMap("commands")
-	var firstTime bool
-
-	if v, ok := commands[cmd].(bool); ok {
-		firstTime = !v
-	} else {
-		firstTime = true
+	firstTime := true
+	if used, ok := commands[cmd].(bool); ok {
+		firstTime = !used
 	}
 	commands[cmd] = true
 	viper.Set("commands", commands)
