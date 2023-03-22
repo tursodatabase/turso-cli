@@ -37,7 +37,7 @@ func dbAuthTokenArgs(cmd *cobra.Command, args []string, toComplete string) ([]st
 }
 
 var dbAuthTokenCmd = &cobra.Command{
-	Use:               "token database_name",
+	Use:               "generate-token database_name",
 	Short:             "Creates a bearer token to authenticate requests to the database",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbAuthTokenArgs,
