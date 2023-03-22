@@ -20,13 +20,13 @@ var expFlag expirationFlag
 
 func init() {
 	dbAuthCmd.AddCommand(dbGenerateTokenCmd)
-	dbAuthCmd.AddCommand(dbAuthRotateCmd)
+	dbAuthCmd.AddCommand(dbInvalidateTokensCmd)
 
 	usage := "Token expiration. Possible values are 'default' or 'none'."
 	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
 	dbGenerateTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
 
-	dbAuthRotateCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
+	dbInvalidateTokensCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
 }
 
 var dbGenerateTokenCmd = &cobra.Command{
@@ -52,7 +52,7 @@ var dbGenerateTokenCmd = &cobra.Command{
 	},
 }
 
-var dbAuthRotateCmd = &cobra.Command{
+var dbInvalidateTokensCmd = &cobra.Command{
 	Use:               "invalidate-tokens database_name",
 	Short:             "Rotates the keys used to create and verify database tokens making existing tokens invalid",
 	Args:              cobra.ExactArgs(1),
