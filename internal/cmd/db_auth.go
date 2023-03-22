@@ -19,17 +19,17 @@ var dbAuthCmd = &cobra.Command{
 var expFlag expirationFlag
 
 func init() {
-	dbAuthCmd.AddCommand(dbAuthTokenCmd)
+	dbAuthCmd.AddCommand(dbGenerateTokenCmd)
 	dbAuthCmd.AddCommand(dbAuthRotateCmd)
 
 	usage := "Token expiration. Possible values are 'default' or 'none'."
-	dbAuthTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
-	dbAuthTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
+	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
+	dbGenerateTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
 
 	dbAuthRotateCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
 }
 
-var dbAuthTokenCmd = &cobra.Command{
+var dbGenerateTokenCmd = &cobra.Command{
 	Use:               "generate-token database_name",
 	Short:             "Creates a bearer token to authenticate requests to the database",
 	Args:              cobra.ExactArgs(1),
