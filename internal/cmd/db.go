@@ -98,6 +98,13 @@ func getDatabases(client *turso.Client) ([]turso.Database, error) {
 	return client.Databases.List()
 }
 
+func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 1 {
+		return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
 func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, showCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
@@ -105,26 +112,14 @@ func init() {
 	addLocationFlag(destroyCmd, "Pick a database location to destroy.")
 
 	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
-	destroyCmd.RegisterFlagCompletionFunc("instance", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if len(args) == 1 {
-			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
-		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	})
+	destroyCmd.RegisterFlagCompletionFunc("instance", completeInstanceName)
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
-
-	completeInstance := func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if len(args) == 1 {
-			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
-		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
-	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstance)
-	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstance)
+	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
+	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstanceName)
 
 	changePasswordCmd.Flags().StringVarP(&passwordFlag, "password", "p", "", "Value of new password to be set on database")
 	changePasswordCmd.RegisterFlagCompletionFunc("password", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
