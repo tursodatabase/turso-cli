@@ -11,6 +11,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(dbInspectCmd)
+}
+
 func dbInspectArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
 		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
