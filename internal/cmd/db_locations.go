@@ -8,6 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(regionsCmd)
+}
+
 var regionsCmd = &cobra.Command{
 	Use:               "locations",
 	Short:             "List available database locations.",
