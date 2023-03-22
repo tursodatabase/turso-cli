@@ -17,7 +17,7 @@ var dbAuthCmd = &cobra.Command{
 }
 
 func init() {
-	dbAuthCmd.AddCommand(dbInvalidateTokensCmd)
+	dbCmd.AddCommand(dbInvalidateTokensCmd)
 
 	dbInvalidateTokensCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
 }
