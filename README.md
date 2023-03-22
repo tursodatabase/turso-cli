@@ -66,7 +66,7 @@ turso db shell <database name>
 
 ### Replicate database
 
-First, list available locations and pick a region you want to replicate to:
+First, list available locations and pick a location you want to replicate to:
 
 ```bash
 turso db locations

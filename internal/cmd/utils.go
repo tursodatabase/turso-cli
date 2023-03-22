@@ -157,7 +157,7 @@ func destroyDatabase(client *turso.Client, name string) error {
 
 func destroyDatabaseRegion(client *turso.Client, database, region string) error {
 	if !isValidRegion(client, region) {
-		return fmt.Errorf("region '%s' is not a valid one", region)
+		return fmt.Errorf("location '%s' is not a valid one", region)
 	}
 
 	db, err := getDatabase(client, database)
@@ -172,7 +172,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 
 	instances = filterInstancesByRegion(instances, region)
 	if len(instances) == 0 {
-		return fmt.Errorf("could not find any instances of database %s on region %s", db.Name, region)
+		return fmt.Errorf("could not find any instances of database %s in location %s", db.Name, region)
 	}
 
 	primary, replicas := extractPrimary(instances)
@@ -186,7 +186,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 		return err
 	}
 
-	fmt.Printf("Destroyed %d instances in region %s of database %s.\n", len(replicas), turso.Emph(region), turso.Emph(db.Name))
+	fmt.Printf("Destroyed %d instances in location %s of database %s.\n", len(replicas), turso.Emph(region), turso.Emph(db.Name))
 	if primary != nil {
 		destroyAllCmd := fmt.Sprintf("turso db destroy %s", database)
 		fmt.Printf("Primary was not destroyed. To destroy it, with the whole database, run '%s'\n", destroyAllCmd)
