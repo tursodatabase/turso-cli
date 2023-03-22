@@ -48,11 +48,11 @@ var replicateCmd = &cobra.Command{
 			image = "canary"
 		}
 
-		original, err := getDatabase(client, dbName)
+		database, err := getDatabase(client, dbName)
 		if err != nil {
 			return err
 		}
-		dbSettings := config.GetDatabaseSettings(original.ID)
+		dbSettings := config.GetDatabaseSettings(database.ID)
 		password := dbSettings.Password
 
 		instanceName := ""
@@ -73,7 +73,7 @@ var replicateCmd = &cobra.Command{
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(dbName), turso.Emph(regionText), int(elapsed.Seconds()))
 
 		fmt.Printf("URL:\n\n")
-		dbUrl := getInstanceUrl(config, &original, instance)
+		dbUrl := getInstanceUrl(config, &database, instance)
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", dbUrl)
