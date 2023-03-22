@@ -106,11 +106,7 @@ func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) 
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(shellCmd, listCmd, regionsCmd, showCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
-	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
-	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
-	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
-	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstanceName)
+	dbCmd.AddCommand(shellCmd, listCmd, regionsCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
 
 	changePasswordCmd.Flags().StringVarP(&passwordFlag, "password", "p", "", "Value of new password to be set on database")
 	changePasswordCmd.RegisterFlagCompletionFunc("password", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
