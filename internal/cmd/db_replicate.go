@@ -72,8 +72,8 @@ var replicateCmd = &cobra.Command{
 		elapsed := end.Sub(start)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(dbName), turso.Emph(regionText), int(elapsed.Seconds()))
 
-		fmt.Printf("HTTP connection string:\n\n")
-		dbUrl := getInstanceHttpUrl(config, &original, instance)
+		fmt.Printf("URL:\n\n")
+		dbUrl := getInstanceUrl(config, &original, instance)
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", dbUrl)
