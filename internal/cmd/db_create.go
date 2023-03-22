@@ -32,7 +32,7 @@ var createCmd = &cobra.Command{
 			name = args[0]
 		}
 		client := createTursoClient()
-		region := regionFlag
+		region := locationFlag
 		if region != "" && !isValidRegion(client, region) {
 			return fmt.Errorf("location '%s' is not a valid one", region)
 		}

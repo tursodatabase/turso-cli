@@ -27,8 +27,8 @@ var destroyCmd = &cobra.Command{
 			return destroyDatabaseInstance(client, name, instanceFlag)
 		}
 
-		if regionFlag != "" {
-			return destroyDatabaseRegion(client, name, regionFlag)
+		if locationFlag != "" {
+			return destroyDatabaseRegion(client, name, locationFlag)
 		}
 
 		if yesFlag {
