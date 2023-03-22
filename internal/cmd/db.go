@@ -106,7 +106,6 @@ func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) 
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(dbAuthCmd)
 }
 
 var dbCmd = &cobra.Command{
