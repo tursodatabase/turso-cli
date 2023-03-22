@@ -10,15 +10,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-var canary bool
 var showUrlFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlFlag string
-var region string
 var passwordFlag string
 var yesFlag bool
 var instanceFlag string
-var regionFlag string
 
 func getRegionIds(client *turso.Client) []string {
 	settings, err := settings.ReadSettings()
@@ -100,43 +97,15 @@ func getDatabases(client *turso.Client) ([]turso.Database, error) {
 	return client.Databases.List()
 }
 
+func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 1 {
+		return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, showCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
-	destroyCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the destruction of all locations of the database.")
-	destroyCmd.Flags().StringVar(&regionFlag, "location", "", "Pick a database location to destroy.")
-	destroyCmd.RegisterFlagCompletionFunc("location", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	})
-	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
-	destroyCmd.RegisterFlagCompletionFunc("instance", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if len(args) == 1 {
-			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
-		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	})
-	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
-	createCmd.Flags().StringVar(&region, "location", "", "Location ID. If no ID is specified, closest location to you is used by default.")
-	createCmd.RegisterFlagCompletionFunc("location", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	})
-	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
-	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
-	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
-
-	completeInstance := func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if len(args) == 1 {
-			return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
-		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
-	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstance)
-	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstance)
-
-	changePasswordCmd.Flags().StringVarP(&passwordFlag, "password", "p", "", "Value of new password to be set on database")
-	changePasswordCmd.RegisterFlagCompletionFunc("password", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	})
 }
 
 var dbCmd = &cobra.Command{

@@ -7,6 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(dbAuthCmd)
+}
+
 var dbAuthCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Manage database authentication",

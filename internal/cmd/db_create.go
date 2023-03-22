@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(createCmd)
+	addCanaryFlag(createCmd)
+	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
+}
+
 var createCmd = &cobra.Command{
 	Use:               "create [flags] [database_name]",
 	Short:             "Create a database.",
@@ -32,7 +38,7 @@ var createCmd = &cobra.Command{
 			name = args[0]
 		}
 		client := createTursoClient()
-		region := region
+		region := locationFlag
 		if region != "" && !isValidRegion(client, region) {
 			return fmt.Errorf("location '%s' is not a valid one", region)
 		}

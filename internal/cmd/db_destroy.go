@@ -7,6 +7,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(destroyCmd)
+	destroyCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the destruction of all locations of the database.")
+	addLocationFlag(destroyCmd, "Pick a database location to destroy.")
+	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
+	destroyCmd.RegisterFlagCompletionFunc("instance", completeInstanceName)
+}
+
 func destroyArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
 		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
@@ -27,8 +35,8 @@ var destroyCmd = &cobra.Command{
 			return destroyDatabaseInstance(client, name, instanceFlag)
 		}
 
-		if regionFlag != "" {
-			return destroyDatabaseRegion(client, name, regionFlag)
+		if locationFlag != "" {
+			return destroyDatabaseRegion(client, name, locationFlag)
 		}
 
 		if yesFlag {
