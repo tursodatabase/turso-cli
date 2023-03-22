@@ -76,14 +76,6 @@ func getInstanceHttpUrl(settings *settings.Settings, db *turso.Database, inst *t
 	return getUrl(settings, db, inst, "https", true)
 }
 
-func getDatabaseWsUrl(settings *settings.Settings, db *turso.Database) string {
-	return getUrl(settings, db, nil, "wss", false)
-}
-
-func getInstanceWsUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "wss", false)
-}
-
 func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string, password bool) string {
 	dbSettings := settings.GetDatabaseSettings(db.ID)
 	if dbSettings == nil {

@@ -49,23 +49,15 @@ var showCmd = &cobra.Command{
 			return nil
 		}
 
-		if showWsUrlFlag {
-			fmt.Println(getDatabaseWsUrl(config, &db))
-			return nil
-		}
-
 		instances, err := client.Instances.List(db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
 
-		if showInstanceUrlFlag != "" || showInstanceWsUrlFlag != "" {
+		if showInstanceUrlFlag != "" {
 			for _, instance := range instances {
 				if instance.Name == showInstanceUrlFlag {
-					fmt.Println(getInstanceHttpUrl(config, &db, &instance))
-					return nil
-				} else if instance.Name == showInstanceWsUrlFlag {
-					fmt.Println(getInstanceWsUrl(config, &db, &instance))
+					fmt.Println(getInstanceUrl(config, &db, &instance))
 					return nil
 				}
 			}
@@ -101,7 +93,7 @@ var showCmd = &cobra.Command{
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"Name", "Type", "Region", "Version", "HTTP URL"}, data)
+		printTable([]string{"Name", "Type", "Region", "Version", "URL"}, data)
 
 		return nil
 	},
