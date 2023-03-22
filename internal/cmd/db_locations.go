@@ -9,8 +9,8 @@ import (
 )
 
 var regionsCmd = &cobra.Command{
-	Use:               "regions",
-	Short:             "List available database regions.",
+	Use:               "locations",
+	Short:             "List available database locations.",
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {

@@ -26,7 +26,7 @@ var listCmd = &cobra.Command{
 			regions := getDatabaseRegions(database)
 			data = append(data, []string{database.Name, regions, url})
 		}
-		printTable([]string{"Name", "Regions", "URL"}, data)
+		printTable([]string{"Name", "Locations", "URL"}, data)
 		settings.SetDbNamesCache(extractDatabaseNames(databases))
 		return nil
 	},

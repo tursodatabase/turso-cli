@@ -52,7 +52,7 @@ func GetRegions(client *Client) (Regions, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return Regions{}, fmt.Errorf("unable to fetch regions: %s", r.Status)
+		return Regions{}, fmt.Errorf("unable to fetch locations: %s", r.Status)
 	}
 
 	resp, err := unmarshal[Regions](r)
