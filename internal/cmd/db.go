@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var canary bool
 var showUrlFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlFlag string
@@ -113,9 +112,9 @@ func init() {
 
 	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
 	destroyCmd.RegisterFlagCompletionFunc("instance", completeInstanceName)
-	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
+	addCanaryFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
-	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
+	addCanaryFlag(replicateCmd)
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
