@@ -8,15 +8,6 @@ import (
 )
 
 func init() {
-	dbCmd.AddCommand(dbAuthCmd)
-}
-
-var dbAuthCmd = &cobra.Command{
-	Use:   "auth",
-	Short: "Manage database authentication",
-}
-
-func init() {
 	dbCmd.AddCommand(dbInvalidateTokensCmd)
 
 	dbInvalidateTokensCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
