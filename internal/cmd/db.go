@@ -12,6 +12,7 @@ import (
 
 var canary bool
 var showUrlFlag bool
+var showHttpUrlFlag bool
 var showInstanceUrlFlag string
 var showWsUrlFlag bool
 var showInstanceWsUrlFlag string

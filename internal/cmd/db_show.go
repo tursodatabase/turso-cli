@@ -40,6 +40,11 @@ var showCmd = &cobra.Command{
 		}
 
 		if showUrlFlag {
+			fmt.Println(getDatabaseUrl(config, &db))
+			return nil
+		}
+
+		if showHttpUrlFlag {
 			fmt.Println(getDatabaseHttpUrl(config, &db))
 			return nil
 		}
@@ -72,15 +77,16 @@ var showCmd = &cobra.Command{
 		sort.Strings(regions)
 
 		fmt.Println("Name:          ", db.Name)
-		fmt.Println("HTTP URL:      ", getDatabaseHttpUrl(config, &db))
-		fmt.Println("WebSocket URL: ", getDatabaseWsUrl(config, &db))
+		fmt.Println("URL:           ", getDatabaseUrl(config, &db))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Regions:       ", strings.Join(regions, ", "))
 		fmt.Println()
 
 		versions := [](chan string){}
+		urls := []string{}
 		httpUrls := []string{}
 		for idx, instance := range instances {
+			urls = append(urls, getInstanceUrl(config, &db, &instance))
 			httpUrls = append(httpUrls, getInstanceHttpUrl(config, &db, &instance))
 			versions = append(versions, make(chan string, 1))
 			go func(idx int) {
@@ -91,7 +97,7 @@ var showCmd = &cobra.Command{
 		data := [][]string{}
 		for idx, instance := range instances {
 			version := <-versions[idx]
-			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, httpUrls[idx]})
+			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, urls[idx]})
 		}
 
 		fmt.Print("Database Instances:\n")
