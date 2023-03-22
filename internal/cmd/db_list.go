@@ -5,6 +5,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(listCmd)
+}
+
 var listCmd = &cobra.Command{
 	Use:               "list",
 	Short:             "List databases.",
