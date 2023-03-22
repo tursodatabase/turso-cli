@@ -14,8 +14,6 @@ var canary bool
 var showUrlFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlFlag string
-var showWsUrlFlag bool
-var showInstanceWsUrlFlag string
 var region string
 var passwordFlag string
 var yesFlag bool
@@ -125,8 +123,6 @@ func init() {
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
-	showCmd.Flags().StringVar(&showInstanceWsUrlFlag, "instance-ws-url", "", "Show URL for the WebSocket API (Hrana protocol) of a selected instance of a database. Instance is selected by instance name.")
-	showCmd.Flags().BoolVar(&showWsUrlFlag, "ws-url", false, "Show URL for the database WebSocket API (Hrana protocol).")
 
 	completeInstance := func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 1 {
