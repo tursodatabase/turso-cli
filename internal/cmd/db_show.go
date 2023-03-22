@@ -40,6 +40,11 @@ var showCmd = &cobra.Command{
 		}
 
 		if showUrlFlag {
+			fmt.Println(getDatabaseUrl(config, &db))
+			return nil
+		}
+
+		if showHttpUrlFlag {
 			fmt.Println(getDatabaseHttpUrl(config, &db))
 			return nil
 		}

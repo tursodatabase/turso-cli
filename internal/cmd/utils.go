@@ -60,6 +60,10 @@ func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others
 	return primary, result
 }
 
+func getDatabaseUrl(settings *settings.Settings, db *turso.Database) string {
+	return getUrl(settings, db, nil, "libsql", false)
+}
+
 func getDatabaseHttpUrl(settings *settings.Settings, db *turso.Database) string {
 	return getUrl(settings, db, nil, "https", true)
 }
