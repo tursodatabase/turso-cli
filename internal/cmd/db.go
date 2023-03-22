@@ -11,6 +11,7 @@ import (
 )
 
 var showUrlFlag bool
+var showBasicAuthFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlFlag string
 var passwordFlag string
