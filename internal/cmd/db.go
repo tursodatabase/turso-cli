@@ -17,7 +17,6 @@ var showInstanceUrlFlag string
 var passwordFlag string
 var yesFlag bool
 var instanceFlag string
-var locationFlag string
 
 func getRegionIds(client *turso.Client) []string {
 	settings, err := settings.ReadSettings()
@@ -103,10 +102,8 @@ func init() {
 	rootCmd.AddCommand(dbCmd)
 	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, showCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
 	destroyCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the destruction of all locations of the database.")
-	destroyCmd.Flags().StringVar(&locationFlag, "location", "", "Pick a database location to destroy.")
-	destroyCmd.RegisterFlagCompletionFunc("location", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	})
+	addLocationFlag(destroyCmd, "Pick a database location to destroy.")
+
 	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
 	destroyCmd.RegisterFlagCompletionFunc("instance", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 1 {
@@ -115,10 +112,7 @@ func init() {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
-	createCmd.Flags().StringVar(&locationFlag, "location", "", "Location ID. If no ID is specified, closest location to you is used by default.")
-	createCmd.RegisterFlagCompletionFunc("location", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	})
+	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
