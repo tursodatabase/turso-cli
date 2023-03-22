@@ -26,7 +26,7 @@ var listCmd = &cobra.Command{
 		}
 		data := [][]string{}
 		for _, database := range databases {
-			url := getDatabaseUrl(settings, &database)
+			url := getDatabaseUrl(settings, &database, false)
 			regions := getDatabaseRegions(database)
 			data = append(data, []string{database.Name, regions, url})
 		}
