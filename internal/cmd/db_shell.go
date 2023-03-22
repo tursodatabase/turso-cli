@@ -24,6 +24,10 @@ import (
 	"github.com/xwb1989/sqlparser"
 )
 
+func init() {
+	dbCmd.AddCommand(shellCmd)
+}
+
 func shellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
 		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
