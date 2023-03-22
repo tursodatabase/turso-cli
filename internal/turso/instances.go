@@ -81,10 +81,10 @@ func (d *InstancesClient) Create(dbName, instanceName, password, region, image s
 		return nil, parseResponseError(res)
 	}
 
-	instance, err := unmarshal[*Instance](res)
+	data, err := unmarshal[struct{ Instance Instance }](res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize response: %w", err)
 	}
 
-	return instance, nil
+	return &data.Instance, nil
 }
