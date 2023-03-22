@@ -60,8 +60,8 @@ var dbAuthTokenCmd = &cobra.Command{
 }
 
 var dbAuthRotateCmd = &cobra.Command{
-	Use:               "rotate database_name",
-	Short:             "Rotates the keys used to create and verify database tokens",
+	Use:               "invalidate-tokens database_name",
+	Short:             "Rotates the keys used to create and verify database tokens making existing tokens invalid",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbAuthTokenArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
