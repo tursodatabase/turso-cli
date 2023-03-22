@@ -16,7 +16,7 @@ var accountShowCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 		fmt.Printf("You are currently on %s plan.\n", turso.Emph("starter"))
 		fmt.Println()
-		fmt.Println("Storage: 5 GiB")
+		fmt.Println("Storage: 8 GiB")
 		return nil
 	},
 }
