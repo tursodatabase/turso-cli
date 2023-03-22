@@ -14,7 +14,6 @@ var canary bool
 var showUrlFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlFlag string
-var region string
 var passwordFlag string
 var yesFlag bool
 var instanceFlag string
@@ -116,7 +115,7 @@ func init() {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
-	createCmd.Flags().StringVar(&region, "location", "", "Location ID. If no ID is specified, closest location to you is used by default.")
+	createCmd.Flags().StringVar(&regionFlag, "location", "", "Location ID. If no ID is specified, closest location to you is used by default.")
 	createCmd.RegisterFlagCompletionFunc("location", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	})
