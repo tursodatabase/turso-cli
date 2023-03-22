@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(createCmd)
+	addCanaryFlag(createCmd)
+	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
+}
+
 var createCmd = &cobra.Command{
 	Use:               "create [flags] [database_name]",
 	Short:             "Create a database.",
