@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -136,9 +138,14 @@ func runShell(name, dbUrl string) error {
 		fmt.Printf("Connected to %s\n\n", dbUrl)
 	}
 	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
+	user, err := user.Current()
+	if err != nil {
+		return err
+	}
+	historyFile := filepath.Join(user.HomeDir, "/.turso_history")
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:            promptFmt("→  "),
-		HistoryFile:       ".turso_history",
+		HistoryFile:       historyFile,
 		InterruptPrompt:   "^C",
 		EOFPrompt:         ".quit",
 		HistorySearchFold: true,
