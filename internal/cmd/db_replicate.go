@@ -9,6 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	dbCmd.AddCommand(replicateCmd)
+	addCanaryFlag(replicateCmd)
+}
+
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 1 {
 		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace

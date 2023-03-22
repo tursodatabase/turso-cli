@@ -106,8 +106,7 @@ func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) 
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(shellCmd, replicateCmd, listCmd, regionsCmd, showCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
-	addCanaryFlag(replicateCmd)
+	dbCmd.AddCommand(shellCmd, listCmd, regionsCmd, showCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
