@@ -106,12 +106,7 @@ func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) 
 
 func init() {
 	rootCmd.AddCommand(dbCmd)
-	dbCmd.AddCommand(shellCmd, listCmd, regionsCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
-
-	changePasswordCmd.Flags().StringVarP(&passwordFlag, "password", "p", "", "Value of new password to be set on database")
-	changePasswordCmd.RegisterFlagCompletionFunc("password", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	})
+	dbCmd.AddCommand(shellCmd, listCmd, regionsCmd, dbInspectCmd, dbAuthCmd)
 }
 
 var dbCmd = &cobra.Command{
