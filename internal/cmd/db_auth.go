@@ -29,18 +29,11 @@ func init() {
 	dbAuthRotateCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
 }
 
-func dbAuthTokenArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if len(args) == 0 {
-		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	}
-	return []string{}, cobra.ShellCompDirectiveNoFileComp
-}
-
 var dbAuthTokenCmd = &cobra.Command{
 	Use:               "generate-token database_name",
 	Short:             "Creates a bearer token to authenticate requests to the database",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: dbAuthTokenArgs,
+	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client := createTursoClient()
@@ -63,7 +56,7 @@ var dbAuthRotateCmd = &cobra.Command{
 	Use:               "invalidate-tokens database_name",
 	Short:             "Rotates the keys used to create and verify database tokens making existing tokens invalid",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: dbAuthTokenArgs,
+	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client := createTursoClient()

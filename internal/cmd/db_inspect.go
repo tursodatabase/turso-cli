@@ -15,19 +15,12 @@ func init() {
 	dbCmd.AddCommand(dbInspectCmd)
 }
 
-func dbInspectArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if len(args) == 0 {
-		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	}
-	return []string{}, cobra.ShellCompDirectiveNoFileComp
-}
-
 var dbInspectCmd = &cobra.Command{
 	Use:               "inspect {database_name}",
 	Short:             "Inspect database.",
 	Example:           "turso db inspect name-of-my-amazing-db",
 	Args:              cobra.RangeArgs(1, 2),
-	ValidArgsFunction: dbInspectArgs,
+	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {

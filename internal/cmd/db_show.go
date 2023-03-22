@@ -23,18 +23,11 @@ func init() {
 	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstanceName)
 }
 
-func showShellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if len(args) == 0 {
-		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	}
-	return []string{}, cobra.ShellCompDirectiveNoFileComp
-}
-
 var showCmd = &cobra.Command{
 	Use:               "show database_name",
 	Short:             "Show information from a database.",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: showShellArgs,
+	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client := createTursoClient()

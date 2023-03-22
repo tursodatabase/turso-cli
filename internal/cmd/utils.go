@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"github.com/spf13/cobra"
 	"log"
 	"net/url"
 	"os"
@@ -247,4 +248,11 @@ func promptConfirmation(prompt string) (bool, error) {
 	}
 
 	return false, fmt.Errorf("could not get prompt confirmed by user")
+}
+
+func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
+	}
+	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }

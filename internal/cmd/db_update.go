@@ -12,18 +12,11 @@ func init() {
 	dbUpdateCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the update of the database.")
 }
 
-func updateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if len(args) == 0 {
-		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	}
-	return []string{}, cobra.ShellCompDirectiveNoFileComp
-}
-
 var dbUpdateCmd = &cobra.Command{
 	Use:               "update database_name",
 	Short:             "Updates the database to the latest turso version",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: updateArgs,
+	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client := createTursoClient()
