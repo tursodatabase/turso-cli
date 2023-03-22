@@ -34,7 +34,7 @@ var createCmd = &cobra.Command{
 		client := createTursoClient()
 		region := region
 		if region != "" && !isValidRegion(client, region) {
-			return fmt.Errorf("region '%s' is not a valid one", region)
+			return fmt.Errorf("location '%s' is not a valid one", region)
 		}
 		if region == "" {
 			region = probeClosestRegion()
@@ -77,7 +77,7 @@ var createCmd = &cobra.Command{
 		firstTime := config.RegisterUse("db_create")
 		if firstTime {
 			fmt.Printf("✏️  Now that you created a database, the next step is to create a replica. Why don't we try?\n\t%s\n\t%s\n",
-				turso.Emph("turso db regions"), turso.Emph(fmt.Sprintf("turso db replicate %s [region]", name)))
+				turso.Emph("turso db locations"), turso.Emph(fmt.Sprintf("turso db replicate %s [location]", name)))
 		}
 		return nil
 	},

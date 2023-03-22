@@ -105,7 +105,7 @@ func init() {
 	dbCmd.AddCommand(createCmd, shellCmd, destroyCmd, replicateCmd, listCmd, regionsCmd, showCmd, dbInspectCmd, changePasswordCmd, dbAuthCmd)
 	destroyCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the destruction of all regions of the database.")
 	destroyCmd.Flags().StringVar(&regionFlag, "region", "", "Pick a database region to destroy.")
-	destroyCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	destroyCmd.RegisterFlagCompletionFunc("location", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	})
 	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
@@ -116,8 +116,8 @@ func init() {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
 	createCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
-	createCmd.Flags().StringVar(&region, "region", "", "Region ID. If no ID is specified, closest region to you is used by default.")
-	createCmd.RegisterFlagCompletionFunc("region", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	createCmd.Flags().StringVar(&region, "region", "", "Location ID. If no ID is specified, closest location to you is used by default.")
+	createCmd.RegisterFlagCompletionFunc("location", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
 	})
 	replicateCmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
@@ -176,10 +176,10 @@ func getHost() string {
 	return host
 }
 
-// The fallback region ID to use if we are unable to probe the closest region.
+// The fallback region ID to use if we are unable to probe the closest location.
 const FallbackRegionId = "ams"
 
-const FallbackWarning = "Warning: we could not determine the deployment region closest to your physical location.\nThe region is defaulting to Amsterdam (ams). Consider specifying a region to select a better option using\n\n\tturso db create --region [region].\n\nRun turso db regions for a list of supported regions.\n"
+const FallbackWarning = "Warning: we could not determine the deployment location closest to your physical location.\nThe location is defaulting to Amsterdam (ams). Consider specifying a location to select a better option using\n\n\tturso db create --location [location].\n\nRun turso db locations for a list of supported locations.\n"
 
 type Region struct {
 	Server string
@@ -215,5 +215,5 @@ func toLocation(client *turso.Client, regionId string) string {
 			}
 		}
 	}
-	return fmt.Sprintf("Region ID: %s", regionId)
+	return fmt.Sprintf("Location ID: %s", regionId)
 }

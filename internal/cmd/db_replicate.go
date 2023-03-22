@@ -20,7 +20,7 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 }
 
 var replicateCmd = &cobra.Command{
-	Use:               "replicate database_name region_id",
+	Use:               "replicate database_name location_id",
 	Short:             "Replicate a database.",
 	Args:              cobra.RangeArgs(2, 3),
 	ValidArgsFunction: replicateArgs,
@@ -31,7 +31,7 @@ var replicateCmd = &cobra.Command{
 		}
 		region := args[1]
 		if region == "" {
-			return fmt.Errorf("you must specify a database region ID to replicate it")
+			return fmt.Errorf("you must specify a database location ID to replicate it")
 		}
 		cmd.SilenceUsage = true
 		config, err := settings.ReadSettings()
@@ -40,7 +40,7 @@ var replicateCmd = &cobra.Command{
 		}
 		client := createTursoClient()
 		if !isValidRegion(client, region) {
-			return fmt.Errorf("invalid region ID. Run %s to see a list of valid region IDs", turso.Emph("turso db regions"))
+			return fmt.Errorf("invalid location ID. Run %s to see a list of valid location IDs", turso.Emph("turso db locations"))
 		}
 
 		image := "latest"

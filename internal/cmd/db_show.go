@@ -71,7 +71,7 @@ var showCmd = &cobra.Command{
 		fmt.Println("Name:          ", db.Name)
 		fmt.Println("URL:           ", getDatabaseUrl(config, &db))
 		fmt.Println("ID:            ", db.ID)
-		fmt.Println("Regions:       ", strings.Join(regions, ", "))
+		fmt.Println("Locations:     ", strings.Join(regions, ", "))
 		fmt.Println()
 
 		versions := [](chan string){}
@@ -93,7 +93,7 @@ var showCmd = &cobra.Command{
 		}
 
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"Name", "Type", "Region", "Version", "URL"}, data)
+		printTable([]string{"Name", "Type", "Location", "Version", "URL"}, data)
 
 		return nil
 	},

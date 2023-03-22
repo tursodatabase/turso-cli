@@ -31,7 +31,7 @@ func testDestroy(c *qt.C, dbName string, configPath *string) {
 func testCreate(c *qt.C, dbName string, region *string, configPath *string, tc testCase) {
 	args := []string{"db", "create", dbName}
 	if region != nil {
-		args = append(args, "--region", *region)
+		args = append(args, "--location", *region)
 	}
 	if canary {
 		args = append(args, "--canary")
@@ -44,7 +44,7 @@ func testCreate(c *qt.C, dbName string, region *string, configPath *string, tc t
 	if region != nil {
 		output, err = turso(configPath, "db", "show", dbName)
 		c.Assert(err, qt.IsNil, qt.Commentf(output))
-		c.Assert(output, qt.Contains, "Regions:        "+*region)
+		c.Assert(output, qt.Contains, "Locations:        "+*region)
 	}
 
 	if tc != nil {
