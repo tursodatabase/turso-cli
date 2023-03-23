@@ -179,7 +179,8 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 	}
 
 	firstTime := settings.RegisterUse("auth_login")
-	if firstTime {
+	dbs, err := getDatabases(createTursoClient())
+	if firstTime && err == nil && len(dbs) == 0 {
 		fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", turso.Emph("turso db create"))
 	}
 	return nil
