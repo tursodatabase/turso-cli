@@ -33,7 +33,13 @@ cd cmd/turso && go install
 
 ### Authentication
 
-To authenticate with the service, run:
+If you are a new user, you can sign up with:
+
+```bash
+turso auth signup
+```
+
+If you already have an account, authenticate with:
 
 ```bash
 turso auth login
