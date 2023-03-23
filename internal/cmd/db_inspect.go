@@ -27,7 +27,7 @@ var dbInspectCmd = &cobra.Command{
 			return fmt.Errorf("please specify a database name")
 		}
 		cmd.SilenceUsage = true
-		dbUrl, err := getDatabaseURL(name)
+		_, dbUrl, _, err := getDatabaseURL(name)
 		if err != nil {
 			return err
 		}

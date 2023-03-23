@@ -42,12 +42,12 @@ var shellCmd = &cobra.Command{
 			return fmt.Errorf("please specify a database name")
 		}
 		cmd.SilenceUsage = true
-		dbUrl, err := getDatabaseURL(name)
+		dbName, dbUrl, libsqlUrl, err := getDatabaseURL(name)
 		if err != nil {
 			return err
 		}
 		if len(args) == 1 {
-			return runShell(name, dbUrl)
+			return runShell(dbName, dbUrl, libsqlUrl)
 		} else {
 			if len(args[1]) == 0 {
 				return fmt.Errorf("no SQL command to execute")
@@ -100,58 +100,63 @@ func getSchema() string {
 	order by name`
 }
 
-func getDatabaseURL(name string) (string, error) {
+func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err error) {
 	config, err := settings.ReadSettings()
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 
 	// If name is a valid URL, let's just is it directly to connect instead
 	// of looking up an URL from settings.
-	dbUrl := name
+	dbUrl = name
+	libsqlUrl = ""
+	dbName = name
 	_, err = url.ParseRequestURI(dbUrl)
 	if err != nil {
 		client := createTursoClient()
 		db, err := getDatabase(client, name)
 		if err != nil {
-			return "", err
+			return "", "", "", err
 		}
 		dbUrl = getDatabaseHttpUrl(config, &db)
+		libsqlUrl = getDatabaseUrl(config, &db, false)
 	}
 
 	if strings.HasPrefix(dbUrl, "libsql://") {
+		libsqlUrl = dbUrl
 		dbs, err := getDatabases(createTursoClient())
 		if err != nil {
-			return "", err
+			return "", "", "", err
 		}
 		found := false
 		for _, db := range dbs {
 			if strings.Contains(dbUrl, db.Hostname) {
 				found = true
 				dbUrl = getDatabaseHttpUrl(config, &db)
+				dbName = db.Name
 				break
 			}
 		}
 		if !found {
-			return "", errors.New("invalid db url")
+			return "", "", "", errors.New("invalid db url")
 		}
 	}
 
 	resp, err := doQuery(dbUrl, "SELECT 1")
 	if err != nil {
-		return "", fmt.Errorf("failed to connect: %s", err)
+		return "", "", "", fmt.Errorf("failed to connect: %s", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to connect: %s", resp.Status)
+		return "", "", "", fmt.Errorf("failed to connect: %s", resp.Status)
 	}
-	return dbUrl, nil
+	return
 }
 
-func runShell(name, dbUrl string) error {
-	if name != dbUrl {
-		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(name), dbUrl)
+func runShell(name, dbUrl, libsqlUrl string) error {
+	if len(libsqlUrl) > 0 {
+		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(name), libsqlUrl)
 	} else {
-		fmt.Printf("Connected to %s\n\n", dbUrl)
+		fmt.Printf("Connected to %s\n\n", name)
 	}
 	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
 	user, err := user.Current()
