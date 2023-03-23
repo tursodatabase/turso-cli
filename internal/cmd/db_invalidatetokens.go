@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	dbCmd.AddCommand(dbInvalidateTokensCmd)
+	dbTokensCmd.AddCommand(dbInvalidateTokensCmd)
 
 	dbInvalidateTokensCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the invalidation of all existing db tokens.")
 }

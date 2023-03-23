@@ -8,7 +8,7 @@ import (
 var expFlag expirationFlag
 
 func init() {
-	dbCmd.AddCommand(dbGenerateTokenCmd)
+	dbTokensCmd.AddCommand(dbGenerateTokenCmd)
 
 	usage := "Token expiration. Possible values are 'default' or 'none'."
 	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
