@@ -221,7 +221,7 @@ func deleteDatabaseInstance(client *turso.Client, database, instance string) err
 func getTursoUrl() string {
 	host := os.Getenv("TURSO_API_BASEURL")
 	if host == "" {
-		host = "https://api.chiseledge.com"
+		host = "https://api.turso.io"
 	}
 	return host
 }
