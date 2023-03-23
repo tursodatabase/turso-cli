@@ -18,10 +18,7 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 	if len(args) == 1 {
 		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
-	if len(args) == 0 {
-		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	}
-	return []string{}, cobra.ShellCompDirectiveNoFileComp
+	return dbNameArg(cmd, args, toComplete)
 }
 
 var replicateCmd = &cobra.Command{

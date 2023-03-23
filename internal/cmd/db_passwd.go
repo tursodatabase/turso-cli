@@ -18,18 +18,11 @@ func init() {
 	})
 }
 
-func changePasswordShellArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if len(args) == 0 {
-		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
-	}
-	return []string{}, cobra.ShellCompDirectiveNoFileComp
-}
-
 var changePasswordCmd = &cobra.Command{
 	Use:               "passwd database_name",
 	Short:             "Change password to all instances of the database",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: changePasswordShellArgs,
+	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client := createTursoClient()
