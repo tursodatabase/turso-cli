@@ -44,7 +44,7 @@ func testCreate(c *qt.C, dbName string, region *string, configPath *string, tc t
 	if region != nil {
 		output, err = turso(configPath, "db", "show", dbName)
 		c.Assert(err, qt.IsNil, qt.Commentf(output))
-		c.Assert(output, qt.Contains, "Locations:        "+*region)
+		c.Assert(output, qt.Contains, "Locations:      "+*region)
 	}
 
 	if tc != nil {
@@ -105,7 +105,7 @@ func createReplica(c *qt.C, dbName string, configPath *string, replicaName strin
 func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, tablePrefix string, replicaName string) {
 	output, err := turso(configPath, "db", "show", dbName)
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Contains, "Regions:        ams, waw")
+	c.Assert(output, qt.Contains, "Locations:      ams, waw")
 	c.Assert(output, qt.Contains, "primary     waw")
 	c.Assert(output, qt.Contains, "replica     ams")
 	primaryPattern := "primary     waw"

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -116,6 +117,24 @@ func getDatabaseURL(name string) (string, error) {
 			return "", err
 		}
 		dbUrl = getDatabaseHttpUrl(config, &db)
+	}
+
+	if strings.HasPrefix(dbUrl, "libsql://") {
+		dbs, err := getDatabases(createTursoClient())
+		if err != nil {
+			return "", err
+		}
+		found := false
+		for _, db := range dbs {
+			if strings.Contains(dbUrl, db.Hostname) {
+				found = true
+				dbUrl = getDatabaseHttpUrl(config, &db)
+				break
+			}
+		}
+		if !found {
+			return "", errors.New("invalid db url")
+		}
 	}
 
 	resp, err := doQuery(dbUrl, "SELECT 1")
