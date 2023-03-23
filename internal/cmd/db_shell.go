@@ -33,7 +33,7 @@ var shellCmd = &cobra.Command{
 	Use:               "shell {database_name | replica_url} [sql]",
 	Short:             "Start a SQL shell.",
 	Long:              "Start a SQL shell.\nWhen database_name is provided, the shell will connect to the closest replica of the specified database.\nWhen a url of a particular replica is provided, the shell will connect to that replica directly.",
-	Example:           "turso db shell name-of-my-amazing-db\nturso db shell https://<login>:<password>@<replica-url>\nturso db shell https://alice:94l6z30w1Kq8p7ob@e784400f26d083-my-amazing-db-replica-url.turso.io",
+	Example:           "turso db shell name-of-my-amazing-db\nturso db shell libsql://<replica-url>\nturso db shell libsql://e784400f26d083-my-amazing-db-replica-url.turso.io",
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
