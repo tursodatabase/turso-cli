@@ -20,7 +20,7 @@ Also remember to configure `homebrew` [shell completions](https://docs.brew.sh/S
 ### Install Script
 
 ```bash
-curl -sSfL https://get.tur.so/install.sh
+curl -sSfL https://get.tur.so/install.sh | bash
 ```
 
 ### Building from Sources
