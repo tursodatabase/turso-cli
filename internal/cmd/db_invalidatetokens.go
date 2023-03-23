@@ -10,7 +10,7 @@ import (
 func init() {
 	dbCmd.AddCommand(dbInvalidateTokensCmd)
 
-	dbInvalidateTokensCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the rotation database credentials.")
+	dbInvalidateTokensCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the invalidation of all existing db tokens.")
 }
 
 var dbInvalidateTokensCmd = &cobra.Command{
@@ -31,7 +31,7 @@ var dbInvalidateTokensCmd = &cobra.Command{
 			return rotate(client, name)
 		}
 
-		fmt.Printf("To rotate %s database credentials, all its replicas must be restarted.\n", turso.Emph(name))
+		fmt.Printf("To invalidate %s database tokens, all its replicas must be restarted.\n", turso.Emph(name))
 		fmt.Printf("All your acitve connections to the DB will be dropped and there will be a short downtime.\n\n")
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
@@ -40,7 +40,7 @@ var dbInvalidateTokensCmd = &cobra.Command{
 		}
 
 		if !ok {
-			fmt.Println("Credentials rotation skipped by the user.")
+			fmt.Println("Token invalidation skipped by the user.")
 			return nil
 		}
 
@@ -49,7 +49,7 @@ var dbInvalidateTokensCmd = &cobra.Command{
 }
 
 func rotate(turso *turso.Client, name string) error {
-	s := startLoadingBar("Rotating database keys... ")
+	s := startLoadingBar("Invalidating db auth tokens... ")
 
 	if err := turso.Databases.Rotate(name); err != nil {
 		s.Stop()
@@ -57,6 +57,6 @@ func rotate(turso *turso.Client, name string) error {
 	}
 
 	s.Stop()
-	fmt.Println("✔  Success! Keys rotated successfully")
+	fmt.Println("✔  Success! Tokens invalidated successfully")
 	return nil
 }
