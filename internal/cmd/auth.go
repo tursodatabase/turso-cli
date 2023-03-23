@@ -29,6 +29,14 @@ var authCmd = &cobra.Command{
 	ValidArgsFunction: noSpaceArg,
 }
 
+var signupCmd = &cobra.Command{
+	Use:               "signup",
+	Short:             "Create a new Turso account.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE:              signup,
+}
+
 var loginCmd = &cobra.Command{
 	Use:               "login",
 	Short:             "Login to the platform.",
@@ -67,6 +75,7 @@ var tokenCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(authCmd)
+	authCmd.AddCommand(signupCmd)
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(logoutCmd)
 	authCmd.AddCommand(tokenCmd)
@@ -81,7 +90,15 @@ func isJwtTokenValid(token string) bool {
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 
+func signup(cmd *cobra.Command, args []string) error {
+	return auth(cmd, args, "/signup")
+}
+
 func login(cmd *cobra.Command, args []string) error {
+	return auth(cmd, args, "")
+}
+
+func auth(cmd *cobra.Command, args []string, path string) error {
 	cmd.SilenceUsage = true
 	settings, err := settings.ReadSettings()
 	if err != nil {
@@ -109,7 +126,7 @@ func login(cmd *cobra.Command, args []string) error {
 	}()
 
 	if headlessFlag {
-		url, err := beginAuth(0, headlessFlag)
+		url, err := beginAuth(0, headlessFlag, path)
 		if err != nil {
 			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
 		}
@@ -127,7 +144,7 @@ func login(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("internal error. Cannot run authentication server: %w", err)
 		}
 
-		url, err := beginAuth(port, headlessFlag)
+		url, err := beginAuth(port, headlessFlag, path)
 		if err != nil {
 			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
 		}
@@ -193,8 +210,8 @@ func fetchLatestVersion() (string, error) {
 	return versionResp.Version, nil
 }
 
-func beginAuth(port int, headless bool) (string, error) {
-	authUrl, err := url.Parse(getHost())
+func beginAuth(port int, headless bool, path string) (string, error) {
+	authUrl, err := url.Parse(fmt.Sprintf("%s%s", getHost(), path))
 	if err != nil {
 		return "", fmt.Errorf("error parsing auth URL: %w", err)
 	}
