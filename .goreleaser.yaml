@@ -63,6 +63,10 @@ brews:
       bash_completion.install "completions/turso.bash" => "turso"
       zsh_completion.install "completions/turso.zsh" => "_turso"
       fish_completion.install "completions/turso.fish"
+    post_install: |
+      echo "Turso CLI installed!"
+      echo "If you are a new user, you can sign up with `turso auth signup`."
+      echo "If you already have an account, please login with `turso auth login`."
 
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
