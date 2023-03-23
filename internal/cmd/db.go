@@ -141,7 +141,7 @@ func getAccessToken() (string, error) {
 func getHost() string {
 	host := os.Getenv("TURSO_API_BASEURL")
 	if host == "" {
-		host = "https://api.chiseledge.com"
+		host = "https://api.turso.io"
 	}
 	return host
 }
