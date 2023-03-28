@@ -84,7 +84,7 @@ func inspect(url string, location string, detailed bool) (*InspectInfo, error) {
 	inspectRet := InspectInfo{}
 
 	stmt := `select name, pgsize from dbstat where
-	name not like 'sqlite_%'
+	name not like 'sqlite_schema'
         and name != '_litestream_seq'
         and name != '_litestream_lock'
         and name != 'libsql_wasm_func_table'
@@ -95,7 +95,7 @@ func inspect(url string, location string, detailed bool) (*InspectInfo, error) {
 	}
 
 	typeStmt := `select name, type from sqlite_schema where
-	name not like 'sqlite_%'
+	name not like 'sqlite_schema'
         and name != '_litestream_seq'
         and name != '_litestream_lock'
         and name != 'libsql_wasm_func_table'`
