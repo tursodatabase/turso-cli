@@ -55,16 +55,15 @@ var accountShowCmd = &cobra.Command{
 		fmt.Printf("You are currently on %s plan.\n", turso.Emph("starter"))
 		fmt.Println()
 
-		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-		columnFmt := color.New(color.FgBlue).SprintfFunc()
-
 		columns := make([]interface{}, 0)
-		columns = append(columns, "resource")
-		columns = append(columns, "used")
-		columns = append(columns, "max")
+		columns = append(columns, "RESOURCE")
+		columns = append(columns, "USED")
+		columns = append(columns, "MAX")
 
 		tbl := table.New(columns...)
-		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
+		columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
+		tbl.WithFirstColumnFormatter(columnFmt)
 
 		tbl.AddRow("storage", inspectRet.PrintTotal(), "8GB")
 		tbl.AddRow("databases", numDatabases, "3")
