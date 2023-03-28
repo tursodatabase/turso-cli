@@ -20,7 +20,11 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		databases, err := getDatabases(createTursoClient())
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
+		databases, err := getDatabases(client)
 		if err != nil {
 			return err
 		}

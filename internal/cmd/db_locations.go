@@ -23,7 +23,10 @@ var regionsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		client := createTursoClient()
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
 		regions, err := turso.GetRegions(client)
 		if err != nil {
 			return err

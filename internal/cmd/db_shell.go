@@ -113,7 +113,10 @@ func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err er
 	dbName = name
 	_, err = url.ParseRequestURI(dbUrl)
 	if err != nil {
-		client := createTursoClient()
+		client, err := createTursoClient()
+		if err != nil {
+			return "", "", "", err
+		}
 		db, err := getDatabase(client, name)
 		if err != nil {
 			return "", "", "", err
@@ -124,7 +127,11 @@ func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err er
 
 	if strings.HasPrefix(dbUrl, "libsql://") {
 		libsqlUrl = dbUrl
-		dbs, err := getDatabases(createTursoClient())
+		client, err := createTursoClient()
+		if err != nil {
+			return "", "", "", err
+		}
+		dbs, err := getDatabases(client)
 		if err != nil {
 			return "", "", "", err
 		}

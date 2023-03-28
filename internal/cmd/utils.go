@@ -3,12 +3,13 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/spf13/cobra"
 	"log"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -17,13 +18,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func createTursoClient() *turso.Client {
+func createTursoClient() (*turso.Client, error) {
 	token, err := getAccessToken()
 	if err != nil {
-		log.Fatal(fmt.Errorf("error creating Turso client: %w", err))
+		return nil, err
 	}
-
-	return tursoClient(&token)
+	return tursoClient(&token), nil
 }
 
 func createUnauthenticatedTursoClient() *turso.Client {
@@ -251,8 +251,12 @@ func promptConfirmation(prompt string) (bool, error) {
 }
 
 func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClient()
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
 	if len(args) == 0 {
-		return getDatabaseNames(createTursoClient()), cobra.ShellCompDirectiveNoFileComp
+		return getDatabaseNames(client), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }

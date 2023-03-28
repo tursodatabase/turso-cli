@@ -100,8 +100,12 @@ func getDatabases(client *turso.Client) ([]turso.Database, error) {
 }
 
 func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClient()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
 	if len(args) == 1 {
-		return getInstanceNames(createTursoClient(), args[0]), cobra.ShellCompDirectiveNoFileComp
+		return getInstanceNames(client, args[0]), cobra.ShellCompDirectiveNoFileComp
 	}
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
