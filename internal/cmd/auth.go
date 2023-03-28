@@ -86,7 +86,11 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	resp, err := createTursoClient().Get("/v2/validate/token", nil)
+	client, err := createTursoClient()
+	if err != nil {
+		return false
+	}
+	resp, err := client.Get("/v2/validate/token", nil)
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 
@@ -179,7 +183,11 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 	}
 
 	firstTime := settings.RegisterUse("auth_login")
-	dbs, err := getDatabases(createTursoClient())
+	client, err := createTursoClient()
+	if err != nil {
+		return err
+	}
+	dbs, err := getDatabases(client)
 	if firstTime && err == nil && len(dbs) == 0 {
 		fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", turso.Emph("turso db create"))
 	}

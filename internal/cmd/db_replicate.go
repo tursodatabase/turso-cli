@@ -15,8 +15,12 @@ func init() {
 }
 
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClient()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
 	if len(args) == 1 {
-		return getRegionIds(createTursoClient()), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+		return getRegionIds(client), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	return dbNameArg(cmd, args, toComplete)
 }
@@ -40,7 +44,10 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		client := createTursoClient()
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
 		if !isValidRegion(client, region) {
 			return fmt.Errorf("invalid location ID. Run %s to see a list of valid location IDs", turso.Emph("turso db locations"))
 		}

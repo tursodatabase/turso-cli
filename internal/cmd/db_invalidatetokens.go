@@ -20,7 +20,10 @@ var dbInvalidateTokensCmd = &cobra.Command{
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client := createTursoClient()
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
 		name := args[0]
 
 		if _, err := getDatabase(client, name); err != nil {

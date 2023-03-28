@@ -47,7 +47,10 @@ var dbInspectCmd = &cobra.Command{
 		}
 		cmd.SilenceUsage = true
 
-		client := createTursoClient()
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
 		db, err := getDatabase(client, name)
 		if err != nil {
 			return err

@@ -30,7 +30,10 @@ var showCmd = &cobra.Command{
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client := createTursoClient()
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
 		db, err := getDatabase(client, args[0])
 		if err != nil {
 			return err

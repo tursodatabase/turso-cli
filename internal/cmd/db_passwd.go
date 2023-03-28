@@ -25,7 +25,10 @@ var changePasswordCmd = &cobra.Command{
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client := createTursoClient()
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
 		db, err := getDatabase(client, args[0])
 		if err != nil {
 			return err
@@ -50,7 +53,11 @@ var changePasswordCmd = &cobra.Command{
 
 		bar := startLoadingBar("Changing password...")
 		defer bar.Stop()
-		err = createTursoClient().Databases.ChangePassword(args[0], newPassword)
+		client, err = createTursoClient()
+		if err != nil {
+			return err
+		}
+		err = client.Databases.ChangePassword(args[0], newPassword)
 		bar.Stop()
 		if err != nil {
 			return err
