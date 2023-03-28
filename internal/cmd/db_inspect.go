@@ -28,6 +28,10 @@ func (curr *InspectInfo) Accumulate(n *InspectInfo) {
 	curr.SizeIndexes += n.SizeIndexes
 }
 
+func (curr *InspectInfo) PrintTotal() string {
+	return humanize.Bytes(curr.SizeTables + curr.SizeIndexes)
+}
+
 func (curr *InspectInfo) show() {
 	tables := humanize.Bytes(curr.SizeTables)
 	indexes := humanize.Bytes(curr.SizeIndexes)
