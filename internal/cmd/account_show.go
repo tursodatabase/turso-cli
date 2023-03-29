@@ -5,6 +5,7 @@ import (
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
@@ -65,7 +66,7 @@ var accountShowCmd = &cobra.Command{
 		columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
 		tbl.WithFirstColumnFormatter(columnFmt)
 
-		tbl.AddRow("storage", inspectRet.PrintTotal(), "8GB")
+		tbl.AddRow("storage", inspectRet.PrintTotal(), humanize.IBytes(8*1024*1024*1024))
 		tbl.AddRow("databases", numDatabases, "3")
 		tbl.AddRow("locations", numLocations, "3")
 		tbl.Print()
