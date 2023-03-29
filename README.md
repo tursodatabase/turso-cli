@@ -46,7 +46,7 @@ turso auth login
 ```
 
 You are taken to a web page in your default browser to authenticate via GitHub.
-After succesfully authenticated, `turs auth login` receives an access token that is stored on your settings file.
+After succesfully authenticated, `turso auth login` receives an access token that is stored on your settings file.
 
 ### Create database
 
@@ -64,7 +64,7 @@ turso db create <database name>
 
 ### Start SQL shell
 
-You can start an interactive SQL shell similar to `sqlite3` or `psql` with:
+You can start an interactive SQL shell similar to `sqlite3` with:
 
 ```bash
 turso db shell <database name>
