@@ -29,12 +29,12 @@ func (curr *InspectInfo) Accumulate(n *InspectInfo) {
 }
 
 func (curr *InspectInfo) PrintTotal() string {
-	return humanize.Bytes(curr.SizeTables + curr.SizeIndexes)
+	return humanize.IBytes(curr.SizeTables + curr.SizeIndexes)
 }
 
 func (curr *InspectInfo) show() {
-	tables := humanize.Bytes(curr.SizeTables)
-	indexes := humanize.Bytes(curr.SizeIndexes)
+	tables := humanize.IBytes(curr.SizeTables)
+	indexes := humanize.IBytes(curr.SizeIndexes)
 	fmt.Printf("Total space used for tables: %s\nTotal space used for indexes: %s\n", tables, indexes)
 }
 
