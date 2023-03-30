@@ -67,6 +67,7 @@ var accountShowCmd = &cobra.Command{
 		tbl.WithFirstColumnFormatter(columnFmt)
 
 		tbl.AddRow("storage", inspectRet.PrintTotal(), humanize.IBytes(8*1024*1024*1024))
+		tbl.AddRow("rows read", inspectRet.RowsReadCount, fmt.Sprintf("%d", int(1e9)))
 		tbl.AddRow("databases", numDatabases, "3")
 		tbl.AddRow("locations", numLocations, "3")
 		tbl.Print()

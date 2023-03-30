@@ -19,23 +19,32 @@ func init() {
 }
 
 type InspectInfo struct {
+	StorageInfo   StorageInfo
+	RowsReadCount uint64
+}
+
+type StorageInfo struct {
 	SizeTables  uint64
 	SizeIndexes uint64
 }
 
 func (curr *InspectInfo) Accumulate(n *InspectInfo) {
-	curr.SizeTables += n.SizeTables
-	curr.SizeIndexes += n.SizeIndexes
+	curr.StorageInfo.SizeTables += n.StorageInfo.SizeTables
+	curr.StorageInfo.SizeIndexes += n.StorageInfo.SizeIndexes
+	curr.RowsReadCount += n.RowsReadCount
 }
 
 func (curr *InspectInfo) PrintTotal() string {
-	return humanize.IBytes(curr.SizeTables + curr.SizeIndexes)
+	return humanize.IBytes(curr.StorageInfo.SizeTables + curr.StorageInfo.SizeIndexes)
 }
 
 func (curr *InspectInfo) show() {
-	tables := humanize.IBytes(curr.SizeTables)
-	indexes := humanize.IBytes(curr.SizeIndexes)
-	fmt.Printf("Total space used for tables: %s\nTotal space used for indexes: %s\n", tables, indexes)
+	tables := humanize.IBytes(curr.StorageInfo.SizeTables)
+	indexes := humanize.IBytes(curr.StorageInfo.SizeIndexes)
+	rowsRead := fmt.Sprintf("%d", curr.RowsReadCount)
+	fmt.Printf("Total space used for tables: %s\n", tables)
+	fmt.Printf("Total space used for indexes: %s\n", indexes)
+	fmt.Printf("Number of rows read: %s\n", rowsRead)
 }
 
 var dbInspectCmd = &cobra.Command{
@@ -85,8 +94,41 @@ var dbInspectCmd = &cobra.Command{
 }
 
 func inspect(url string, location string, detailed bool) (*InspectInfo, error) {
-	inspectRet := InspectInfo{}
+	rowsRead, err := inspectCompute(url, detailed, location)
+	if err != nil {
+		rowsRead = 0
+	}
+	storageInfo, err := inspectStorage(url, detailed, location)
+	if err != nil {
+		return nil, err
+	}
+	return &InspectInfo{
+		StorageInfo:   *storageInfo,
+		RowsReadCount: rowsRead,
+	}, nil
+}
 
+func inspectCompute(url string, detailed bool, location string) (uint64, error) {
+	resp, err := http.Get(url + "/v1/stats")
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+	var results struct {
+		RowsReadCount uint64 `json:"rows_read_count"`
+	}
+	if err := json.Unmarshal(body, &results); err != nil {
+		return 0, err
+	}
+	return results.RowsReadCount, nil
+}
+
+func inspectStorage(url string, detailed bool, location string) (*StorageInfo, error) {
+	storageInfo := StorageInfo{}
 	stmt := `select name, pgsize from dbstat where
 	name != 'sqlite_schema'
         and name != '_litestream_seq'
@@ -168,9 +210,9 @@ func inspect(url string, location string, detailed bool) (*InspectInfo, error) {
 				}
 				size := uint64(row[1].(float64))
 				if type_ == "index" {
-					inspectRet.SizeIndexes += size
+					storageInfo.SizeIndexes += size
 				} else {
-					inspectRet.SizeTables += size
+					storageInfo.SizeTables += size
 				}
 				tbl.AddRow(type_, name, size/1024.0)
 			}
@@ -184,6 +226,5 @@ func inspect(url string, location string, detailed bool) (*InspectInfo, error) {
 	if len(errs) > 0 {
 		return nil, &SqlError{(strings.Join(errs, "; "))}
 	}
-
-	return &inspectRet, nil
+	return &storageInfo, nil
 }
