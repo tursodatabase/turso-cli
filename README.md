@@ -17,6 +17,12 @@ brew install chiselstrike/tap/turso
 
 Also remember to configure `homebrew` [shell completions](https://docs.brew.sh/Shell-Completion) if you haven't already done so.
 
+To upgrade an existing installation of the CLI, run:
+
+```bash
+brew upgrade turso
+```
+
 ### Install Script
 
 ```bash
