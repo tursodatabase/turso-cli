@@ -34,7 +34,7 @@ var dbUpdateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("To update %s database, all its replicas must be updated.\n", turso.Emph(name))
-		fmt.Printf("All your acitve connections to the DB will be dropped and there will be a short downtime.\n\n")
+		fmt.Printf("All your active connections to the DB will be dropped and there will be a short downtime.\n\n")
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
 		if err != nil {
