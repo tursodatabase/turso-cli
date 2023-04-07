@@ -76,6 +76,14 @@ You can start an interactive SQL shell similar to `sqlite3` with:
 turso db shell <database name>
 ```
 
+### Run SQL command without interactive shell
+
+You can also run a command without using the interactive SQL shell:
+
+```bash
+turso db shell <database name> <sql query>
+```
+
 ### Replicate database
 
 First, list available locations and pick a location you want to replicate to:
