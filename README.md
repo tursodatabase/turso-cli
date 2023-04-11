@@ -5,9 +5,15 @@
 
 This is the command line interface (CLI) to Turso.
 
+## Documentation
+
+There is [reference documentation](https://docs.turso.tech/reference/turso-cli) available.
+
+For a guided walkthrough, follow the [Turso CLI tutorial](https://docs.turso.tech/tutorials/get-started-turso-cli).
+
 ## Installation
 
-### Package Manager
+### Package manager
 
 #### [Homebrew](https://brew.sh) (macOS, Linux, WSL)
 
@@ -23,13 +29,13 @@ To upgrade an existing installation of the CLI, run:
 brew upgrade turso
 ```
 
-### Install Script
+### Install script
 
 ```bash
 curl -sSfL https://get.tur.so/install.sh | bash
 ```
 
-### Building from Sources
+### Building from source
 
 ```bash
 cd cmd/turso && go install
@@ -52,17 +58,17 @@ turso auth login
 ```
 
 You are taken to a web page in your default browser to authenticate via GitHub.
-After succesfully authenticated, `turso auth login` receives an access token that is stored on your settings file.
+After successfully authenticated, `turso auth login` receives an access token that is stored on your settings file.
 
 ### Create database
 
-To create a database, run:
+To create a database with a generated name, run:
 
 ```bash
 turso db create
 ```
 
-You can configure the database name with:
+Or you can specify the name of the database with:
 
 ```bash
 turso db create <database name>
