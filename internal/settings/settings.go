@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -155,12 +156,17 @@ func (s *Settings) GetDatabaseSettings(id string) *DatabaseSettings {
 }
 
 func (s *Settings) SetDatabasePassword(id string, password string) error {
-	viper.Set(fmt.Sprintf("databases.%s.password", id), password)
-	err := viper.WriteConfig()
-	if err != nil {
-		return fmt.Errorf("error saving settings: %s", err)
+	databases := viper.GetStringMap("databases")
+	rawSettings, ok := databases[id]
+	if !ok {
+		return errors.New("database not found")
 	}
-	return nil
+	settings := DatabaseSettings{}
+	mapstructure.Decode(rawSettings, &settings)
+	settings.Password = password
+	databases[id] = settings
+	viper.Set("databases", databases)
+	return viper.WriteConfig()
 }
 
 func (s *Settings) SetToken(token string) error {
