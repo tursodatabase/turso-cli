@@ -79,10 +79,11 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
+		token := ""
 		inspectRet := InspectInfo{}
 		for _, instance := range instances {
 			url := getInstanceHttpUrl(config, &db, &instance)
-			ret, err := inspect(url, instance.Region, verboseFlag)
+			ret, err := inspect(url, token, instance.Region, verboseFlag)
 			if err != nil {
 				return err
 			}
@@ -93,12 +94,12 @@ var dbInspectCmd = &cobra.Command{
 	},
 }
 
-func inspect(url string, location string, detailed bool) (*InspectInfo, error) {
+func inspect(url, token string, location string, detailed bool) (*InspectInfo, error) {
 	rowsRead, err := inspectCompute(url, detailed, location)
 	if err != nil {
 		rowsRead = 0
 	}
-	storageInfo, err := inspectStorage(url, detailed, location)
+	storageInfo, err := inspectStorage(url, token, detailed, location)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +128,7 @@ func inspectCompute(url string, detailed bool, location string) (uint64, error) 
 	return results.RowsReadCount, nil
 }
 
-func inspectStorage(url string, detailed bool, location string) (*StorageInfo, error) {
+func inspectStorage(url, token string, detailed bool, location string) (*StorageInfo, error) {
 	storageInfo := StorageInfo{}
 	stmt := `select name, pgsize from dbstat where
 	name != 'sqlite_schema'
@@ -135,7 +136,7 @@ func inspectStorage(url string, detailed bool, location string) (*StorageInfo, e
         and name != '_litestream_lock'
         and name != 'libsql_wasm_func_table'
 	order by pgsize desc, name asc`
-	resp, err := doQuery(url, stmt)
+	resp, err := doQuery(url, token, stmt)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +146,7 @@ func inspectStorage(url string, detailed bool, location string) (*StorageInfo, e
         and name != '_litestream_seq'
         and name != '_litestream_lock'
         and name != 'libsql_wasm_func_table'`
-	respType, err := doQuery(url, typeStmt)
+	respType, err := doQuery(url, token, typeStmt)
 	if err != nil {
 		return nil, err
 	}

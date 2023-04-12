@@ -42,17 +42,17 @@ var shellCmd = &cobra.Command{
 			return fmt.Errorf("please specify a database name")
 		}
 		cmd.SilenceUsage = true
-		dbName, dbUrl, libsqlUrl, err := getDatabaseURL(name)
+		dbName, dbUrl, libsqlUrl, token, err := getDatabaseURL(name)
 		if err != nil {
 			return err
 		}
 		if len(args) == 1 {
-			return runShell(dbName, dbUrl, libsqlUrl)
+			return runShell(dbName, dbUrl, libsqlUrl, token)
 		} else {
 			if len(args[1]) == 0 {
 				return fmt.Errorf("no SQL command to execute")
 			}
-			return query(dbUrl, args[1])
+			return query(dbUrl, token, args[1])
 		}
 	},
 }
@@ -100,10 +100,15 @@ func getSchema() string {
 	order by name`
 }
 
-func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err error) {
+func getDatabaseURL(name string) (dbName, dbUrl, libsqlUrl, token string, err error) {
 	config, err := settings.ReadSettings()
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
+	}
+
+	client, err := createTursoClient()
+	if err != nil {
+		return "", "", "", "", err
 	}
 
 	// If name is a valid URL, let's just is it directly to connect instead
@@ -113,13 +118,9 @@ func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err er
 	dbName = name
 	_, err = url.ParseRequestURI(dbUrl)
 	if err != nil {
-		client, err := createTursoClient()
-		if err != nil {
-			return "", "", "", err
-		}
 		db, err := getDatabase(client, name)
 		if err != nil {
-			return "", "", "", err
+			return "", "", "", "", err
 		}
 		dbUrl = getDatabaseHttpUrl(config, &db)
 		libsqlUrl = getDatabaseUrl(config, &db, false)
@@ -127,13 +128,9 @@ func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err er
 
 	if strings.HasPrefix(dbUrl, "libsql://") {
 		libsqlUrl = dbUrl
-		client, err := createTursoClient()
-		if err != nil {
-			return "", "", "", err
-		}
 		dbs, err := getDatabases(client)
 		if err != nil {
-			return "", "", "", err
+			return "", "", "", "", err
 		}
 		found := false
 		for _, db := range dbs {
@@ -145,21 +142,21 @@ func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err er
 			}
 		}
 		if !found {
-			return "", "", "", errors.New("invalid db url")
+			return "", "", "", "", errors.New("invalid db url")
 		}
 	}
 
-	resp, err := doQuery(dbUrl, "SELECT 1")
+	resp, err := doQuery(dbUrl, token, "SELECT 1")
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to connect: %s", err)
+		return "", "", "", "", fmt.Errorf("failed to connect: %s", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", "", "", fmt.Errorf("failed to connect: %s", resp.Status)
+		return "", "", "", "", fmt.Errorf("failed to connect: %s", resp.Status)
 	}
 	return
 }
 
-func runShell(name, dbUrl, libsqlUrl string) error {
+func runShell(name, dbUrl, libsqlUrl, token string) error {
 	if len(libsqlUrl) > 0 {
 		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(name), libsqlUrl)
 	} else {
@@ -209,7 +206,7 @@ replLoop:
 			break replLoop
 		case ".tables":
 			{
-				err = query(dbUrl, getTables())
+				err = query(dbUrl, token, getTables())
 				if err != nil {
 					return err
 				}
@@ -218,7 +215,7 @@ replLoop:
 		case ".schema":
 			{
 				{
-					err = query(dbUrl, getSchema())
+					err = query(dbUrl, token, getSchema())
 					if err != nil {
 						return err
 					}
@@ -236,7 +233,7 @@ replLoop:
 		cmds = cmds[:0]
 		l.SetPrompt(promptFmt("→  "))
 
-		err = query(dbUrl, cmd)
+		err = query(dbUrl, token, cmd)
 
 		if err != nil {
 			if _, ok := err.(*SqlError); !ok {
@@ -257,14 +254,14 @@ func (e *SqlError) Error() string {
 	return e.Message
 }
 
-func query(url, stmt string) error {
+func query(url, token, stmt string) error {
 	switch stmt {
 	case ".tables":
 		stmt = getTables()
 	case ".schema":
 		stmt = getSchema()
 	}
-	resp, err := doQuery(url, stmt)
+	resp, err := doQuery(url, token, stmt)
 	if err != nil {
 		return err
 	}
@@ -334,7 +331,7 @@ func query(url, stmt string) error {
 	return nil
 }
 
-func doQuery(url, stmt string) (*http.Response, error) {
+func doQuery(url, token, stmt string) (*http.Response, error) {
 	stmts, err := sqlparser.SplitStatementToPieces(stmt)
 	if err != nil {
 		return nil, err
@@ -342,9 +339,16 @@ func doQuery(url, stmt string) (*http.Response, error) {
 	rawReq := QueryRequest{
 		Statements: stmts,
 	}
-	req, err := json.Marshal(rawReq)
+	body, err := json.Marshal(rawReq)
 	if err != nil {
 		return nil, err
 	}
-	return http.Post(url, "application/json", bytes.NewReader(req))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
+	return http.DefaultClient.Do(req)
 }
