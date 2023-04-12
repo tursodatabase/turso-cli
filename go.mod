@@ -11,6 +11,7 @@ require (
 
 require (
 	github.com/athoscouto/codename v0.0.3
+	github.com/dustin/go-humanize v1.0.1
 	github.com/frankban/quicktest v1.14.4
 	github.com/google/uuid v1.3.0
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
@@ -46,7 +47,6 @@ require (
 )
 
 require (
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
