@@ -79,7 +79,11 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		token := ""
+		token, err := client.Databases.Token(db.Name, "")
+		if err != nil {
+			return err
+		}
+
 		inspectRet := InspectInfo{}
 		for _, instance := range instances {
 			url := getInstanceHttpUrl(config, &db, &instance)

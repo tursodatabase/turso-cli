@@ -43,9 +43,14 @@ var accountShowCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+
+			token, err := client.Databases.Token(database.Name, "")
+			if err != nil {
+				return err
+			}
+
 			for _, instance := range instances {
 				url := getInstanceHttpUrl(settings, &database, &instance)
-				token := ""
 				ret, err := inspect(url, token, instance.Region, false)
 				if err != nil {
 					return err
