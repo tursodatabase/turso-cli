@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,23 +36,46 @@ var shellCmd = &cobra.Command{
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-		if name == "" {
+		nameOrUrl := args[0]
+		if nameOrUrl == "" {
 			return fmt.Errorf("please specify a database name")
 		}
 		cmd.SilenceUsage = true
-		dbName, dbUrl, libsqlUrl, token, err := getDatabaseURL(name)
+
+		client, err := createTursoClient()
+		if err != nil {
+			return fmt.Errorf("could not create turso client: %w", err)
+		}
+
+		config, err := settings.ReadSettings()
+		if err != nil {
+			return fmt.Errorf("could not read settings: %w", err)
+		}
+
+		db, err := databaseFromNameOrURL(nameOrUrl, client)
 		if err != nil {
 			return err
 		}
-		if len(args) == 1 {
-			return runShell(dbName, dbUrl, libsqlUrl, token)
-		} else {
-			if len(args[1]) == 0 {
-				return fmt.Errorf("no SQL command to execute")
-			}
-			return query(dbUrl, token, args[1])
+
+		token, err := tokenFromDb(db, client)
+		if err != nil {
+			return err
 		}
+
+		dbUrl := nameOrUrl
+		if db != nil {
+			dbUrl = getDatabaseHttpUrl(config, db)
+		}
+
+		if len(args) == 1 {
+			printConnectionInfo(nameOrUrl, db, config)
+			return runShell(dbUrl, token)
+		}
+
+		if len(args[1]) == 0 {
+			return fmt.Errorf("no SQL command to execute")
+		}
+		return query(dbUrl, token, args[1])
 	},
 }
 
@@ -100,68 +122,64 @@ func getSchema() string {
 	order by name`
 }
 
-func getDatabaseURL(name string) (dbName, dbUrl, libsqlUrl, token string, err error) {
-	config, err := settings.ReadSettings()
-	if err != nil {
-		return "", "", "", "", err
+func databaseFromNameOrURL(str string, client *turso.Client) (*turso.Database, error) {
+	if isURL(str) {
+		return databaseFromURL(str, client)
 	}
 
-	client, err := createTursoClient()
+	name := str
+	db, err := getDatabase(client, name)
 	if err != nil {
-		return "", "", "", "", err
+		return nil, err
 	}
 
-	// If name is a valid URL, let's just is it directly to connect instead
-	// of looking up an URL from settings.
-	dbUrl = name
-	libsqlUrl = ""
-	dbName = name
-	_, err = url.ParseRequestURI(dbUrl)
-	if err != nil {
-		db, err := getDatabase(client, name)
-		if err != nil {
-			return "", "", "", "", err
-		}
-		dbUrl = getDatabaseHttpUrl(config, &db)
-		libsqlUrl = getDatabaseUrl(config, &db, false)
-	}
-
-	if strings.HasPrefix(dbUrl, "libsql://") {
-		libsqlUrl = dbUrl
-		dbs, err := getDatabases(client)
-		if err != nil {
-			return "", "", "", "", err
-		}
-		found := false
-		for _, db := range dbs {
-			if strings.Contains(dbUrl, db.Hostname) {
-				found = true
-				dbUrl = getDatabaseHttpUrl(config, &db)
-				dbName = db.Name
-				break
-			}
-		}
-		if !found {
-			return "", "", "", "", errors.New("invalid db url")
-		}
-	}
-
-	resp, err := doQuery(dbUrl, token, "SELECT 1")
-	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to connect: %s", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", "", "", "", fmt.Errorf("failed to connect: %s", resp.Status)
-	}
-	return
+	return &db, nil
 }
 
-func runShell(name, dbUrl, libsqlUrl, token string) error {
-	if len(libsqlUrl) > 0 {
-		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(name), libsqlUrl)
-	} else {
-		fmt.Printf("Connected to %s\n\n", name)
+func isURL(s string) bool {
+	_, err := url.ParseRequestURI(s)
+	return err == nil
+}
+
+func databaseFromURL(dbURL string, client *turso.Client) (*turso.Database, error) {
+	parsed, err := url.ParseRequestURI(dbURL)
+	if err != nil {
+		return nil, err
 	}
+
+	dbs, err := client.Databases.List()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, db := range dbs {
+		if strings.HasSuffix(parsed.Hostname(), db.Hostname) {
+			return &db, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
+	if db == nil {
+		return "", nil
+	}
+
+	return client.Databases.Token(db.Name, "")
+}
+
+func printConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Settings) {
+	if db != nil {
+		url := getDatabaseUrl(config, db, false)
+		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(db.Name), url)
+		return
+	}
+
+	fmt.Printf("Connected to %s\n\n", nameOrUrl)
+}
+
+func runShell(dbUrl, token string) error {
 	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
 	user, err := user.Current()
 	if err != nil {
