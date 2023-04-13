@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,23 +36,46 @@ var shellCmd = &cobra.Command{
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-		if name == "" {
+		nameOrUrl := args[0]
+		if nameOrUrl == "" {
 			return fmt.Errorf("please specify a database name")
 		}
 		cmd.SilenceUsage = true
-		dbName, dbUrl, libsqlUrl, err := getDatabaseURL(name)
+
+		client, err := createTursoClient()
+		if err != nil {
+			return fmt.Errorf("could not create turso client: %w", err)
+		}
+
+		config, err := settings.ReadSettings()
+		if err != nil {
+			return fmt.Errorf("could not read settings: %w", err)
+		}
+
+		db, err := databaseFromNameOrURL(nameOrUrl, client)
 		if err != nil {
 			return err
 		}
-		if len(args) == 1 {
-			return runShell(dbName, dbUrl, libsqlUrl)
-		} else {
-			if len(args[1]) == 0 {
-				return fmt.Errorf("no SQL command to execute")
-			}
-			return query(dbUrl, args[1])
+
+		token, err := tokenFromDb(db, client)
+		if err != nil {
+			return err
 		}
+
+		dbUrl := nameOrUrl
+		if db != nil {
+			dbUrl = getDatabaseHttpUrl(config, db)
+		}
+
+		if len(args) == 1 {
+			printConnectionInfo(nameOrUrl, db, config)
+			return runShell(dbUrl, token)
+		}
+
+		if len(args[1]) == 0 {
+			return fmt.Errorf("no SQL command to execute")
+		}
+		return query(dbUrl, token, args[1])
 	},
 }
 
@@ -100,71 +122,64 @@ func getSchema() string {
 	order by name`
 }
 
-func getDatabaseURL(name string) (dbName, dbUrl string, libsqlUrl string, err error) {
-	config, err := settings.ReadSettings()
-	if err != nil {
-		return "", "", "", err
+func databaseFromNameOrURL(str string, client *turso.Client) (*turso.Database, error) {
+	if isURL(str) {
+		return databaseFromURL(str, client)
 	}
 
-	// If name is a valid URL, let's just is it directly to connect instead
-	// of looking up an URL from settings.
-	dbUrl = name
-	libsqlUrl = ""
-	dbName = name
-	_, err = url.ParseRequestURI(dbUrl)
+	name := str
+	db, err := getDatabase(client, name)
 	if err != nil {
-		client, err := createTursoClient()
-		if err != nil {
-			return "", "", "", err
-		}
-		db, err := getDatabase(client, name)
-		if err != nil {
-			return "", "", "", err
-		}
-		dbUrl = getDatabaseHttpUrl(config, &db)
-		libsqlUrl = getDatabaseUrl(config, &db, false)
+		return nil, err
 	}
 
-	if strings.HasPrefix(dbUrl, "libsql://") {
-		libsqlUrl = dbUrl
-		client, err := createTursoClient()
-		if err != nil {
-			return "", "", "", err
-		}
-		dbs, err := getDatabases(client)
-		if err != nil {
-			return "", "", "", err
-		}
-		found := false
-		for _, db := range dbs {
-			if strings.Contains(dbUrl, db.Hostname) {
-				found = true
-				dbUrl = getDatabaseHttpUrl(config, &db)
-				dbName = db.Name
-				break
-			}
-		}
-		if !found {
-			return "", "", "", errors.New("invalid db url")
-		}
-	}
-
-	resp, err := doQuery(dbUrl, "SELECT 1")
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to connect: %s", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", "", "", fmt.Errorf("failed to connect: %s", resp.Status)
-	}
-	return
+	return &db, nil
 }
 
-func runShell(name, dbUrl, libsqlUrl string) error {
-	if len(libsqlUrl) > 0 {
-		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(name), libsqlUrl)
-	} else {
-		fmt.Printf("Connected to %s\n\n", name)
+func isURL(s string) bool {
+	_, err := url.ParseRequestURI(s)
+	return err == nil
+}
+
+func databaseFromURL(dbURL string, client *turso.Client) (*turso.Database, error) {
+	parsed, err := url.ParseRequestURI(dbURL)
+	if err != nil {
+		return nil, err
 	}
+
+	dbs, err := client.Databases.List()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, db := range dbs {
+		if strings.HasSuffix(parsed.Hostname(), db.Hostname) {
+			return &db, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
+	if db == nil {
+		return "", nil
+	}
+
+	return client.Databases.Token(db.Name, "default")
+}
+
+func printConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Settings) {
+	if db != nil {
+		url := getDatabaseUrl(config, db, false)
+		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(db.Name), url)
+		return
+	}
+
+	fmt.Printf("Connected to %s\n\n", nameOrUrl)
+}
+
+func runShell(dbUrl, token string) error {
 	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
 	user, err := user.Current()
 	if err != nil {
@@ -209,7 +224,7 @@ replLoop:
 			break replLoop
 		case ".tables":
 			{
-				err = query(dbUrl, getTables())
+				err = query(dbUrl, token, getTables())
 				if err != nil {
 					return err
 				}
@@ -218,7 +233,7 @@ replLoop:
 		case ".schema":
 			{
 				{
-					err = query(dbUrl, getSchema())
+					err = query(dbUrl, token, getSchema())
 					if err != nil {
 						return err
 					}
@@ -236,7 +251,7 @@ replLoop:
 		cmds = cmds[:0]
 		l.SetPrompt(promptFmt("→  "))
 
-		err = query(dbUrl, cmd)
+		err = query(dbUrl, token, cmd)
 
 		if err != nil {
 			if _, ok := err.(*SqlError); !ok {
@@ -257,14 +272,14 @@ func (e *SqlError) Error() string {
 	return e.Message
 }
 
-func query(url, stmt string) error {
+func query(url, token, stmt string) error {
 	switch stmt {
 	case ".tables":
 		stmt = getTables()
 	case ".schema":
 		stmt = getSchema()
 	}
-	resp, err := doQuery(url, stmt)
+	resp, err := doQuery(url, token, stmt)
 	if err != nil {
 		return err
 	}
@@ -334,7 +349,7 @@ func query(url, stmt string) error {
 	return nil
 }
 
-func doQuery(url, stmt string) (*http.Response, error) {
+func doQuery(url, token, stmt string) (*http.Response, error) {
 	stmts, err := sqlparser.SplitStatementToPieces(stmt)
 	if err != nil {
 		return nil, err
@@ -342,9 +357,16 @@ func doQuery(url, stmt string) (*http.Response, error) {
 	rawReq := QueryRequest{
 		Statements: stmts,
 	}
-	req, err := json.Marshal(rawReq)
+	body, err := json.Marshal(rawReq)
 	if err != nil {
 		return nil, err
 	}
-	return http.Post(url, "application/json", bytes.NewReader(req))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
+	return http.DefaultClient.Do(req)
 }
