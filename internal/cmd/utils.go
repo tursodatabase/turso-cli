@@ -136,6 +136,12 @@ func startLoadingBar(text string) *spinner.Spinner {
 	return s
 }
 
+func createSpinner(text string) *spinner.Spinner {
+	s := spinner.New(spinner.CharSets[21], 200*time.Millisecond)
+	s.Suffix = " " + text
+	return s
+}
+
 func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
 	s := startLoadingBar(fmt.Sprintf("Destroying database %s... ", turso.Emph(name)))

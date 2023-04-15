@@ -28,6 +28,8 @@ func init() {
 	dbCmd.AddCommand(shellCmd)
 }
 
+var promptFmt = color.New(color.FgBlue, color.Bold).SprintFunc()
+
 var shellCmd = &cobra.Command{
 	Use:               "shell {database_name | replica_url} [sql]",
 	Short:             "Start a SQL shell.",
@@ -41,6 +43,12 @@ var shellCmd = &cobra.Command{
 			return fmt.Errorf("please specify a database name")
 		}
 		cmd.SilenceUsage = true
+
+		spinner := createSpinner("Connecting to database")
+		if len(args) == 1 {
+			spinner.Start()
+			defer spinner.Stop()
+		}
 
 		client, err := createTursoClient()
 		if err != nil {
@@ -67,15 +75,24 @@ var shellCmd = &cobra.Command{
 			dbUrl = getDatabaseHttpUrl(config, db)
 		}
 
-		if len(args) == 1 {
-			printConnectionInfo(nameOrUrl, db, config)
-			return runShell(dbUrl, token)
+		if len(args) == 2 {
+			if len(args[1]) == 0 {
+				return fmt.Errorf("no SQL command to execute")
+			}
+			return query(dbUrl, token, args[1])
 		}
 
-		if len(args[1]) == 0 {
-			return fmt.Errorf("no SQL command to execute")
+		reader, err := connectShell(dbUrl, token)
+		if err != nil {
+			return fmt.Errorf("failed to run shell: %w", err)
 		}
-		return query(dbUrl, token, args[1])
+
+		defer reader.Close()
+
+		spinner.Stop()
+		printConnectionInfo(nameOrUrl, db, config)
+
+		return shellLoop(dbUrl, token, reader)
 	},
 }
 
@@ -170,20 +187,21 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 }
 
 func printConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Settings) {
+	msg := fmt.Sprintf("Connected to %s", nameOrUrl)
 	if db != nil {
 		url := getDatabaseUrl(config, db, false)
-		fmt.Printf("Connected to %s at %s\n\n", turso.Emph(db.Name), url)
-		return
+		msg = fmt.Sprintf("Connected to %s at %s", turso.Emph(db.Name), url)
 	}
 
-	fmt.Printf("Connected to %s\n\n", nameOrUrl)
+	fmt.Printf("%s\n\n", msg)
+	fmt.Printf("Welcome to Turso SQL shell!\n\n")
+	fmt.Printf("Type \".quit\" to exit the shell, \".tables\" to list all tables, and \".schema\" to show table schemas.\n\n")
 }
 
-func runShell(dbUrl, token string) error {
-	promptFmt := color.New(color.FgBlue, color.Bold).SprintFunc()
+func connectShell(dbUrl, token string) (*readline.Instance, error) {
 	user, err := user.Current()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	historyFile := filepath.Join(user.HomeDir, "/.turso_history")
 	l, err := readline.NewEx(&readline.Config{
@@ -194,15 +212,20 @@ func runShell(dbUrl, token string) error {
 		HistorySearchFold: true,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer l.Close()
+
 	l.CaptureExitSignal()
 
-	fmt.Printf("Welcome to Turso SQL shell!\n\n")
-	fmt.Printf("Type \".quit\" to exit the shell, \".tables\" to list all tables, and \".schema\" to show table schemas.\n\n")
-	var cmds []string
+	if err = testDbConnection(dbUrl, token); err != nil {
+		return nil, err
+	}
 
+	return l, nil
+}
+
+func shellLoop(dbUrl, token string, l *readline.Instance) error {
+	var cmds []string
 replLoop:
 	for {
 		line, err := l.Readline()
@@ -261,6 +284,20 @@ replLoop:
 			}
 		}
 	}
+	return nil
+}
+
+func testDbConnection(dbUrl, token string) error {
+	resp, err := doQuery(dbUrl, token, "SELECT 1")
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to connect to database: %s", resp.Status)
+	}
+
 	return nil
 }
 
