@@ -73,12 +73,6 @@ var showCmd = &cobra.Command{
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		fmt.Println("Name:          ", db.Name)
-		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
-		fmt.Println("ID:            ", db.ID)
-		fmt.Println("Locations:     ", strings.Join(regions, ", "))
-		fmt.Println()
-
 		versions := [](chan string){}
 		urls := []string{}
 		httpUrls := []string{}
@@ -97,6 +91,11 @@ var showCmd = &cobra.Command{
 			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, urls[idx]})
 		}
 
+		fmt.Println("Name:          ", db.Name)
+		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
+		fmt.Println("ID:            ", db.ID)
+		fmt.Println("Locations:     ", strings.Join(regions, ", "))
+		fmt.Println()
 		fmt.Print("Database Instances:\n")
 		printTable([]string{"Name", "Type", "Location", "Version", "URL"}, data)
 
