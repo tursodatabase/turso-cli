@@ -35,8 +35,9 @@ var dbGenerateTokenCmd = &cobra.Command{
 
 		token, err := client.Databases.Token(name, expFlag.String())
 		if err != nil {
-			return fmt.Errorf("your database does not support token generation")
+			return err
 		}
+
 		fmt.Println(token)
 		return nil
 	},
