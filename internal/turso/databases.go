@@ -72,7 +72,7 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusUnprocessableEntity {
-		return nil, fmt.Errorf("Database name '%s' is not available", name)
+		return nil, fmt.Errorf("database name '%s' is not available", name)
 	}
 
 	if res.StatusCode != http.StatusOK {
