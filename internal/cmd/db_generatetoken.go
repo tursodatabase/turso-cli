@@ -7,6 +7,7 @@ import (
 )
 
 var expFlag expirationFlag
+var readOnly bool
 
 func init() {
 	dbTokensCmd.AddCommand(dbGenerateTokenCmd)
@@ -14,6 +15,8 @@ func init() {
 	usage := "Token expiration. Possible values are 'default' or 'none'."
 	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
 	dbGenerateTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
+
+	dbGenerateTokenCmd.Flags().BoolVar(&readOnly, "read-only", false, "Token with read-only access")
 }
 
 var dbGenerateTokenCmd = &cobra.Command{
@@ -33,7 +36,7 @@ var dbGenerateTokenCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := client.Databases.Token(name, expFlag.String())
+		token, err := client.Databases.Token(name, expFlag.String(), readOnly)
 		if err != nil {
 			return fmt.Errorf("your database does not support token generation")
 		}
