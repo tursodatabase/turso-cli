@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/briandowns/spinner"
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/olekukonko/tablewriter"
@@ -101,7 +102,7 @@ func getDatabaseRegions(db turso.Database) string {
 	regions := make([]string, 0, len(db.Regions))
 	for _, region := range db.Regions {
 		if region == db.PrimaryRegion {
-			region = fmt.Sprintf("%s (primary)", turso.Emph(region))
+			region = fmt.Sprintf("%s (primary)", internal.Emph(region))
 		}
 		regions = append(regions, region)
 	}
@@ -144,7 +145,7 @@ func createSpinner(text string) *spinner.Spinner {
 
 func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
-	s := startLoadingBar(fmt.Sprintf("Destroying database %s... ", turso.Emph(name)))
+	s := startLoadingBar(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
 	defer s.Stop()
 	if err := client.Databases.Delete(name); err != nil {
 		return err
@@ -152,7 +153,7 @@ func destroyDatabase(client *turso.Client, name string) error {
 	s.Stop()
 	elapsed := time.Since(start)
 
-	fmt.Printf("Destroyed database %s in %d seconds.\n", turso.Emph(name), int(elapsed.Seconds()))
+	fmt.Printf("Destroyed database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
 	settings, err := settings.ReadSettings()
 	if err == nil {
 		settings.InvalidateDbNamesCache()
@@ -193,7 +194,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 		return err
 	}
 
-	fmt.Printf("Destroyed %d instances in location %s of database %s.\n", len(replicas), turso.Emph(region), turso.Emph(db.Name))
+	fmt.Printf("Destroyed %d instances in location %s of database %s.\n", len(replicas), internal.Emph(region), internal.Emph(db.Name))
 	if primary != nil {
 		destroyAllCmd := fmt.Sprintf("turso db destroy %s", database)
 		fmt.Printf("Primary was not destroyed. To destroy it, with the whole database, run '%s'\n", destroyAllCmd)
@@ -207,7 +208,7 @@ func destroyDatabaseInstance(client *turso.Client, database, instance string) er
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Destroyed instance %s of database %s.\n", turso.Emph(instance), turso.Emph(database))
+	fmt.Printf("Destroyed instance %s of database %s.\n", internal.Emph(instance), internal.Emph(database))
 	return nil
 }
 
@@ -215,10 +216,10 @@ func deleteDatabaseInstance(client *turso.Client, database, instance string) err
 	err := client.Instances.Delete(database, instance)
 	if err != nil {
 		if err.Error() == "could not find database "+database+" to delete instance from" {
-			return fmt.Errorf("database %s not found. List known databases using %s", turso.Emph(database), turso.Emph("turso db list"))
+			return fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(database), internal.Emph("turso db list"))
 		}
 		if err.Error() == "could not find instance "+instance+" of database "+database {
-			return fmt.Errorf("instance %s not found for database %s. List known instances using %s", turso.Emph(instance), turso.Emph(database), turso.Emph("turso db show "+database))
+			return fmt.Errorf("instance %s not found for database %s. List known instances using %s", internal.Emph(instance), internal.Emph(database), internal.Emph("turso db show "+database))
 		}
 		return err
 	}

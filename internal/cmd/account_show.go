@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
@@ -59,7 +59,7 @@ var accountShowCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Printf("You are currently on %s plan.\n", turso.Emph("starter"))
+		fmt.Printf("You are currently on %s plan.\n", internal.Emph("starter"))
 		fmt.Println()
 
 		columns := make([]interface{}, 0)

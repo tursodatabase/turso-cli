@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +49,7 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 		if !isValidRegion(client, region) {
-			return fmt.Errorf("invalid location ID. Run %s to see a list of valid location IDs", turso.Emph("turso db locations"))
+			return fmt.Errorf("invalid location ID. Run %s to see a list of valid location IDs", internal.Emph("turso db locations"))
 		}
 
 		image := "latest"
@@ -70,7 +70,7 @@ var replicateCmd = &cobra.Command{
 		}
 
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
-		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", turso.Emph(dbName), turso.Emph(regionText)))
+		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
 		start := time.Now()
 		instance, err := client.Instances.Create(dbName, instanceName, password, region, image)
 		s.Stop()
@@ -79,7 +79,7 @@ var replicateCmd = &cobra.Command{
 		}
 		end := time.Now()
 		elapsed := end.Sub(start)
-		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", turso.Emph(dbName), turso.Emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(regionText), int(elapsed.Seconds()))
 
 		fmt.Printf("URL:\n\n")
 		dbUrl := getInstanceUrl(config, &database, instance)

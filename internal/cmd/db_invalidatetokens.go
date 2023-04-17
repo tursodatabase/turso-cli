@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +35,7 @@ var dbInvalidateTokensCmd = &cobra.Command{
 			return rotate(client, name)
 		}
 
-		fmt.Printf("To invalidate %s database tokens, all its replicas must be restarted.\n", turso.Emph(name))
+		fmt.Printf("To invalidate %s database tokens, all its replicas must be restarted.\n", internal.Emph(name))
 		fmt.Printf("All your active connections to the DB will be dropped and there will be a short downtime.\n\n")
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")

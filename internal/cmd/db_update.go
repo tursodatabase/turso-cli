@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +34,7 @@ var dbUpdateCmd = &cobra.Command{
 			return update(client, name)
 		}
 
-		fmt.Printf("To update %s database, all its replicas must be updated.\n", turso.Emph(name))
+		fmt.Printf("To update %s database, all its replicas must be updated.\n", internal.Emph(name))
 		fmt.Printf("All your active connections to the DB will be dropped and there will be a short downtime.\n\n")
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
@@ -51,7 +52,7 @@ var dbUpdateCmd = &cobra.Command{
 }
 
 func update(client *turso.Client, name string) error {
-	msg := fmt.Sprintf("Updating database %s", turso.Emph(name))
+	msg := fmt.Sprintf("Updating database %s", internal.Emph(name))
 	s := startLoadingBar(msg)
 
 	if err := client.Databases.Update(name); err != nil {
@@ -60,6 +61,6 @@ func update(client *turso.Client, name string) error {
 	}
 
 	s.Stop()
-	fmt.Printf("✔  Success! Database %s updated successfully\n", turso.Emph(name))
+	fmt.Printf("✔  Success! Database %s updated successfully\n", internal.Emph(name))
 	return nil
 }

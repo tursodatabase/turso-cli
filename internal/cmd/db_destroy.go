@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ var destroyCmd = &cobra.Command{
 			return destroyDatabase(client, name)
 		}
 
-		fmt.Printf("Database %s, all its replicas, and data will be destroyed.\n", turso.Emph(name))
+		fmt.Printf("Database %s, all its replicas, and data will be destroyed.\n", internal.Emph(name))
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
 		if err != nil {
