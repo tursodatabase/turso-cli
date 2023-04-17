@@ -137,8 +137,8 @@ func getAccessToken() (string, error) {
 	}
 
 	token := settings.GetToken()
-	if token == "" {
-		return "", fmt.Errorf("user not logged in, please use %s", internal.Emph("turso auth login"))
+	if !isJwtTokenValid(token) {
+		return "", fmt.Errorf("user not logged in, please login with %s", internal.Emph("turso auth login"))
 	}
 
 	return token, nil
