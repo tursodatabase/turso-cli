@@ -44,7 +44,7 @@ var accountShowCmd = &cobra.Command{
 				return err
 			}
 
-			token, err := client.Databases.Token(database.Name, "default")
+			token, err := client.Databases.Token(database.Name, "default", true)
 			if err != nil {
 				return err
 			}

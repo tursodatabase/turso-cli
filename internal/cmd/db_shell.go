@@ -184,7 +184,7 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 		return "", nil
 	}
 
-	return client.Databases.Token(db.Name, "default")
+	return client.Databases.Token(db.Name, "default", false)
 }
 
 func printConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Settings) {

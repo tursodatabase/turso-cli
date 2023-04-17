@@ -79,7 +79,7 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := client.Databases.Token(db.Name, "default")
+		token, err := client.Databases.Token(db.Name, "default", true)
 		if err != nil {
 			return err
 		}
