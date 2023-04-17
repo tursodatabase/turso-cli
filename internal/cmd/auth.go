@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"text/template"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -66,7 +66,7 @@ var tokenCmd = &cobra.Command{
 		}
 		token := settings.GetToken()
 		if !isJwtTokenValid(token) {
-			return fmt.Errorf("no user logged in. Run %s to log in and get a token", turso.Emph("turso auth login"))
+			return fmt.Errorf("no user logged in. Run %s to log in and get a token", internal.Emph("turso auth login"))
 		}
 		fmt.Println(token)
 		return nil
@@ -111,7 +111,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 	if isJwtTokenValid(settings.GetToken()) {
 		username := settings.GetUsername()
 		if len(username) > 0 {
-			fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, turso.Emph("turso auth logout"))
+			fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, internal.Emph("turso auth logout"))
 		} else {
 			fmt.Println("✔  Success! Existing JWT still valid")
 		}
@@ -177,8 +177,8 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 
 	if version != latestVersion {
 
-		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", turso.Emph("Turso CLI"))
-		fmt.Printf("You're currently using version %s while latest available version is %s.\n", turso.Emph(version), turso.Emph(latestVersion))
+		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", internal.Emph("Turso CLI"))
+		fmt.Printf("You're currently using version %s while latest available version is %s.\n", internal.Emph(version), internal.Emph(latestVersion))
 		fmt.Printf("Please consider updating to get new features and more stable experience.\n\n")
 	}
 
@@ -189,7 +189,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 	}
 	dbs, err := getDatabases(client)
 	if firstTime && err == nil && len(dbs) == 0 {
-		fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", turso.Emph("turso db create"))
+		fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
 	}
 	return nil
 }

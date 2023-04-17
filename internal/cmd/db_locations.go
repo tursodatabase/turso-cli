@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
@@ -40,7 +41,7 @@ var regionsCmd = &cobra.Command{
 			}
 			line := fmt.Sprintf("%s  %s%s", regions.Ids[idx], regions.Descriptions[idx], suffix)
 			if regions.Ids[idx] == defaultRegionId {
-				line = turso.Emph(line)
+				line = internal.Emph(line)
 			}
 			fmt.Printf("%s\n", line)
 		}

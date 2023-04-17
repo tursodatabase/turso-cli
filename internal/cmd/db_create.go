@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/athoscouto/codename"
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +56,7 @@ var createCmd = &cobra.Command{
 		}
 		start := time.Now()
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
-		description := fmt.Sprintf("Creating database %s in %s ", turso.Emph(name), turso.Emph(regionText))
+		description := fmt.Sprintf("Creating database %s in %s ", internal.Emph(name), internal.Emph(regionText))
 		bar := startLoadingBar(description)
 		defer bar.Stop()
 		res, err := client.Databases.Create(name, region, image)
@@ -75,7 +75,7 @@ var createCmd = &cobra.Command{
 
 		bar.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s in %s in %d seconds.\n\n", turso.Emph(name), turso.Emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(regionText), int(elapsed.Seconds()))
 
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
@@ -86,7 +86,7 @@ var createCmd = &cobra.Command{
 		firstTime := config.RegisterUse("db_create")
 		if firstTime {
 			fmt.Printf("✏️  Now that you created a database, the next step is to create a replica. Why don't we try?\n\t%s\n\t%s\n",
-				turso.Emph("turso db locations"), turso.Emph(fmt.Sprintf("turso db replicate %s [location]", name)))
+				internal.Emph("turso db locations"), internal.Emph(fmt.Sprintf("turso db replicate %s [location]", name)))
 		}
 		return nil
 	},

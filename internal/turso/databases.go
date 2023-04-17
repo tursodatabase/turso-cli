@@ -3,6 +3,8 @@ package turso
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/chiselstrike/iku-turso-cli/internal"
 )
 
 type Database struct {
@@ -42,7 +44,7 @@ func (d *DatabasesClient) Delete(database string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("database %s not found. List known databases using %s", Emph(database), Emph("turso db list"))
+		return fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(database), internal.Emph("turso db list"))
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -101,7 +103,7 @@ func (d *DatabasesClient) ChangePassword(database string, newPassword string) er
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("database %s not found. List known databases using %s", Emph(database), Emph("turso db list"))
+		return fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(database), internal.Emph("turso db list"))
 	}
 
 	if r.StatusCode != http.StatusOK {

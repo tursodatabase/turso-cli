@@ -6,14 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/fatih/color"
 )
-
-// Color function for emphasising text.
-var Emph = color.New(color.FgBlue, color.Bold).SprintFunc()
-
-var Warn = color.New(color.FgYellow, color.Bold).SprintFunc()
 
 func unmarshal[T any](r *http.Response) (T, error) {
 	d, err := io.ReadAll(r.Body)

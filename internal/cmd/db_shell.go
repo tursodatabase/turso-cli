@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/chzyer/readline"
@@ -190,7 +191,7 @@ func printConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.
 	msg := fmt.Sprintf("Connected to %s", nameOrUrl)
 	if db != nil {
 		url := getDatabaseUrl(config, db, false)
-		msg = fmt.Sprintf("Connected to %s at %s", turso.Emph(db.Name), url)
+		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), url)
 	}
 
 	fmt.Printf("%s\n\n", msg)
