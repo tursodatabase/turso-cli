@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"text/template"
 
@@ -68,6 +69,10 @@ var tokenCmd = &cobra.Command{
 		if !isJwtTokenValid(token) {
 			return fmt.Errorf("no user logged in. Run %s to log in and get a token", internal.Emph("turso auth login"))
 		}
+
+		fmt.Fprintln(os.Stderr, internal.Warn("Warning: this token is used to authenticate with the Turso platform, not your databases."))
+		fmt.Fprintf(os.Stderr, "%s %s %s.\n", internal.Warn("Use"), internal.Emph("turso db token create"), internal.Warn("to create a database token"))
+
 		fmt.Println(token)
 		return nil
 	},
