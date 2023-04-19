@@ -86,6 +86,13 @@ var replicateCmd = &cobra.Command{
 		fmt.Printf("   %s\n\n", dbUrl)
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", dbUrl)
+
+		firstTime := config.RegisterUse("db_replicate")
+		if firstTime {
+			fmt.Printf("How is your experience going? We'd love to know!\n🗓   Book a call with us! You can do it with:\n\n\t%s\n", internal.Emph("turso account bookmeeting"))
+			fmt.Printf("🎤 Or just send us your feedback:\n\n\t%s\n", internal.Emph("turso account feedback"))
+		}
+
 		return nil
 	},
 }
