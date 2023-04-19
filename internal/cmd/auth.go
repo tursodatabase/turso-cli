@@ -182,14 +182,21 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		fmt.Printf("Please consider updating to get new features and more stable experience.\n\n")
 	}
 
-	firstTime := settings.RegisterUse("auth_login")
-	client, err := createTursoClient()
-	if err != nil {
-		return err
-	}
-	dbs, err := getDatabases(client)
-	if firstTime && err == nil && len(dbs) == 0 {
-		fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
+	if path == "" {
+		firstTime := settings.RegisterUse("auth_login")
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
+		dbs, err := getDatabases(client)
+		if firstTime && err == nil && len(dbs) == 0 {
+			fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
+		}
+	} else if path == "/signup" {
+		firstTime := settings.RegisterUse("auth_signup")
+		if firstTime {
+			fmt.Printf("%s. I see it's your first time here.\n🗓  Book a call with us! You can do it with: %s\n", internal.Emph("Welcome to Turso!"), internal.Emph("turso account bookmeeting"))
+		}
 	}
 	return nil
 }
