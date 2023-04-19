@@ -175,7 +175,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 
 	latestVersion := <-versionChannel
 
-	if version != latestVersion {
+	if version != "dev" && version != latestVersion {
 
 		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", internal.Emph("Turso CLI"))
 		fmt.Printf("You're currently using version %s while latest available version is %s.\n", internal.Emph(version), internal.Emph(latestVersion))
