@@ -55,8 +55,11 @@ var logoutCmd = &cobra.Command{
 }
 
 var tokenCmd = &cobra.Command{
-	Use:               "token",
-	Short:             "Show token used for authorization.",
+	Use:   "token",
+	Short: "Shows token used to authenticate you to Turso platform API.",
+	Long: "" +
+		"Shows token used to authenticate you to Turso platform API.\n" +
+		"To authenticate to your databases, use " + internal.Emph("turso db token create"),
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
