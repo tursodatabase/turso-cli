@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
@@ -70,7 +71,7 @@ var replicateCmd = &cobra.Command{
 		}
 
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
-		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
+		s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
 		start := time.Now()
 		_, err = client.Instances.Create(dbName, instanceName, password, region, image)
 		s.Stop()

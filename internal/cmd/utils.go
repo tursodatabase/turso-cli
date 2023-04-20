@@ -11,8 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/briandowns/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/olekukonko/tablewriter"
@@ -130,22 +130,9 @@ func printTable(header []string, data [][]string) {
 	table.Render()
 }
 
-func startLoadingBar(text string) *spinner.Spinner {
-	s := spinner.New(spinner.CharSets[36], 800*time.Millisecond)
-	s.Suffix = "\n" + text
-	s.Start()
-	return s
-}
-
-func createSpinner(text string) *spinner.Spinner {
-	s := spinner.New(spinner.CharSets[21], 200*time.Millisecond)
-	s.Suffix = " " + text
-	return s
-}
-
 func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
-	s := startLoadingBar(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
+	s := prompt.Spinner(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
 	defer s.Stop()
 	if err := client.Databases.Delete(name); err != nil {
 		return err
