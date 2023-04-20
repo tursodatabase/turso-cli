@@ -89,8 +89,9 @@ var replicateCmd = &cobra.Command{
 
 		firstTime := config.RegisterUse("db_replicate")
 		if firstTime {
-			fmt.Printf("How is your experience going? We'd love to know!\n🗓   Book a call with us! You can do it with:\n\n\t%s\n", internal.Emph("turso account bookmeeting"))
-			fmt.Printf("🎤 Or just send us your feedback:\n\n\t%s\n", internal.Emph("turso account feedback"))
+			fmt.Println("How is your experience going? We'd love to know!")
+			fmt.Printf("🗓   Book a call with us! You can do it with:\n\n\t%s\n", internal.Emph("turso account bookmeeting"))
+			fmt.Printf("🎤   Or just send us your feedback:\n\n\t%s\n", internal.Emph("turso account feedback"))
 		}
 
 		return nil
