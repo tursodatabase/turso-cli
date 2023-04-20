@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -51,7 +52,7 @@ var changePasswordCmd = &cobra.Command{
 			newPassword = string(bytePassword)
 		}
 
-		bar := startLoadingBar("Changing password...")
+		bar := prompt.Spinner("Changing password...")
 		defer bar.Stop()
 		client, err = createTursoClient()
 		if err != nil {

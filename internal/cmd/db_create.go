@@ -6,6 +6,7 @@ import (
 
 	"github.com/athoscouto/codename"
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +58,7 @@ var createCmd = &cobra.Command{
 		start := time.Now()
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
 		description := fmt.Sprintf("Creating database %s in %s ", internal.Emph(name), internal.Emph(regionText))
-		bar := startLoadingBar(description)
+		bar := prompt.Spinner(description)
 		defer bar.Stop()
 		res, err := client.Databases.Create(name, region, image)
 		if err != nil {

@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/chzyer/readline"
@@ -45,7 +46,7 @@ var shellCmd = &cobra.Command{
 		}
 		cmd.SilenceUsage = true
 
-		spinner := createSpinner("Connecting to database")
+		spinner := prompt.StoppedSpinner("Connecting to database")
 		if len(args) == 1 {
 			spinner.Start()
 			defer spinner.Stop()

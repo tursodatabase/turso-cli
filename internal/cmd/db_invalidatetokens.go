@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +54,7 @@ var dbInvalidateTokensCmd = &cobra.Command{
 }
 
 func rotate(turso *turso.Client, name string) error {
-	s := startLoadingBar("Invalidating db auth tokens... ")
+	s := prompt.Spinner("Invalidating db auth tokens... ")
 
 	if err := turso.Databases.Rotate(name); err != nil {
 		s.Stop()
