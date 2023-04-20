@@ -8,12 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(feedbackCmd)
-
-}
-
-var feedbackCmd = &cobra.Command{
+var accountFeedbackCmd = &cobra.Command{
 	Use:               "feedback",
 	Short:             "Tell us how can we help you, how we can improve, or what you'd like to see next.",
 	Args:              cobra.NoArgs,
