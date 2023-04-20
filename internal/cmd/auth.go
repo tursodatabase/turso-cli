@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"text/template"
 
@@ -54,8 +55,11 @@ var logoutCmd = &cobra.Command{
 }
 
 var tokenCmd = &cobra.Command{
-	Use:               "token",
-	Short:             "Show token used for authorization.",
+	Use:   "token",
+	Short: "Shows the token used to authenticate you to Turso platform API.",
+	Long: "" +
+		"Shows the token used to authenticate you to Turso platform API.\n" +
+		"To authenticate to your databases, use " + internal.Emph("turso db tokens create"),
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -68,6 +72,10 @@ var tokenCmd = &cobra.Command{
 		if !isJwtTokenValid(token) {
 			return fmt.Errorf("no user logged in. Run %s to log in and get a token", internal.Emph("turso auth login"))
 		}
+
+		fmt.Fprintln(os.Stderr, internal.Warn("Warning: this token is used to authenticate you to Turso platform API, not your databases."))
+		fmt.Fprintf(os.Stderr, "%s %s %s\n", internal.Warn("Use"), internal.Emph("turso db tokens create"), internal.Warn("to create a database token."))
+
 		fmt.Println(token)
 		return nil
 	},
