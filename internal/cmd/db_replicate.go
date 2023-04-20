@@ -72,7 +72,7 @@ var replicateCmd = &cobra.Command{
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
 		s := startLoadingBar(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
 		start := time.Now()
-		instance, err := client.Instances.Create(dbName, instanceName, password, region, image)
+		_, err = client.Instances.Create(dbName, instanceName, password, region, image)
 		s.Stop()
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)
@@ -81,11 +81,10 @@ var replicateCmd = &cobra.Command{
 		elapsed := end.Sub(start)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(regionText), int(elapsed.Seconds()))
 
-		fmt.Printf("URL:\n\n")
-		dbUrl := getInstanceUrl(config, &database, instance)
-		fmt.Printf("   %s\n\n", dbUrl)
-		fmt.Printf("You can start an interactive SQL shell with:\n\n")
-		fmt.Printf("   turso db shell %s\n\n", dbUrl)
+		dbUrl := getDatabaseUrl(config, &database, false)
+		showCmd := fmt.Sprintf("turso db show %s", dbName)
+		fmt.Printf("Client connections using %s that are physically close to %s will now be routed to this replica for lower latency.\n\n", internal.Emph(dbUrl), internal.Emph(region))
+		fmt.Printf("To see information about the database, including a connection URL specific to this location, run:\n\n\t%s\n", internal.Emph(showCmd))
 
 		firstTime := config.RegisterUse("db_replicate")
 		if firstTime {
