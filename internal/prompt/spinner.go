@@ -2,23 +2,25 @@ package prompt
 
 import (
 	"fmt"
+	"os"
 
 	spn "github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type spinner struct {
-	spinner spn.Model
-	prefix  string
-	suffix  string
-	done    bool
+	spinner   spn.Model
+	prefix    string
+	suffix    string
+	quitting  bool
+	cancelled bool
+	done      chan bool
 }
 
 func newSpinner(prefix, suffix string) *spinner {
 	s := spn.New()
 	s.Spinner = spn.Dot
-
-	return &spinner{spinner: s, prefix: prefix, suffix: suffix}
+	return &spinner{spinner: s, prefix: prefix, suffix: suffix, done: make(chan bool)}
 }
 
 func (m *spinner) Init() tea.Cmd {
@@ -26,20 +28,19 @@ func (m *spinner) Init() tea.Cmd {
 }
 
 func (m *spinner) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.done {
+	if m.quitting {
 		return m, tea.Quit
 	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		default:
-			return m, nil
+		if msg.Type == tea.KeyCtrlC {
+			m.quitting, m.cancelled = true, true
+			return m, tea.Quit
 		}
-
+		return m, nil
 	case error:
 		return m, nil
-
 	default:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -48,20 +49,25 @@ func (m *spinner) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *spinner) View() string {
-	str := fmt.Sprintf("%s%s %s", m.prefix, m.spinner.View(), m.suffix)
-	if m.done {
-		str = ""
+	if m.quitting {
+		return ""
 	}
-	return str
+	return fmt.Sprintf("%s%s %s", m.prefix, m.spinner.View(), m.suffix)
 }
 
 func (m *spinner) Stop() {
-	m.done = true
+	m.quitting = true
+	<-m.done
 }
 
 func (m *spinner) Start() {
-	p := tea.NewProgram(m)
-	go p.Run()
+	go func() {
+		tea.NewProgram(m).Run()
+		close(m.done)
+		if m.cancelled {
+			os.Exit(130)
+		}
+	}()
 }
 
 func StoppedSpinner(text string) *spinner {
