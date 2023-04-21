@@ -224,13 +224,15 @@ func turso(configPath *string, args ...string) (string, error) {
 }
 
 func TestMain(m *testing.M) {
-	output, err := turso(nil, "auth", "token")
-	if err != nil {
-		log.Fatal(err)
+	if len(os.Getenv("TURSO_API_TOKEN")) == 0 {
+		output, err := turso(nil, "auth", "token")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if strings.Contains(output, "no user logged in") {
+			log.Fatal("Tests need a user to be logged in")
+		}
+		os.Setenv("TURSO_API_TOKEN", output[:len(output)-1])
 	}
-	if strings.Contains(output, "no user logged in") {
-		log.Fatal("Tests need a user to be logged in")
-	}
-	os.Setenv("TURSO_API_TOKEN", output[:len(output)-1])
 	os.Exit(m.Run())
 }
