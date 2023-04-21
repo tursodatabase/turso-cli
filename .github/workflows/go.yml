@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  TURSO_API_TOKEN: ${{ secrets.TURSOCI_TOKEN }}
+
 jobs:
 
   build:
@@ -37,3 +40,9 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Build Turso command
+      run:  go build -o turso cmd/turso/main.go && cp turso cmd/turso
+
+    - name: Integration Test
+      run:  go test -v -count=1 -tags=integration ./testing
