@@ -2,17 +2,19 @@ package prompt
 
 import (
 	"fmt"
+	"os"
 
 	spn "github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type spinner struct {
-	spinner  spn.Model
-	prefix   string
-	suffix   string
-	quitting bool
-	done     chan bool
+	spinner   spn.Model
+	prefix    string
+	suffix    string
+	quitting  bool
+	cancelled bool
+	done      chan bool
 }
 
 func newSpinner(prefix, suffix string) *spinner {
@@ -31,7 +33,13 @@ func (m *spinner) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg, error:
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyCtrlC {
+			m.quitting, m.cancelled = true, true
+			return m, tea.Quit
+		}
+		return m, nil
+	case error:
 		return m, nil
 	default:
 		var cmd tea.Cmd
@@ -56,6 +64,9 @@ func (m *spinner) Start() {
 	go func() {
 		tea.NewProgram(m).Run()
 		close(m.done)
+		if m.cancelled {
+			os.Exit(130)
+		}
 	}()
 }
 
