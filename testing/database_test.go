@@ -63,12 +63,9 @@ func runSql(c *qt.C, dbName string, configPath *string) {
 }
 
 func TestDbCreation(t *testing.T) {
-	var doneWG sync.WaitGroup
-	doneWG.Add(4)
 	c := qt.New(t)
 	dbNamePrefix := uuid.NewString()
-	go func() {
-		defer doneWG.Done()
+	{
 		dir, err := os.MkdirTemp("", "turso-test-settings-*")
 		if err != nil {
 			log.Fatal(err)
@@ -77,7 +74,9 @@ func TestDbCreation(t *testing.T) {
 		testCreate(c, dbNamePrefix, nil, &dir, func(c *qt.C, dbName string, configPath *string) {
 			runSql(c, dbName, configPath)
 		})
-	}()
+	}
+	var doneWG sync.WaitGroup
+	doneWG.Add(3)
 	for _, region := range []string{"waw", "gru", "sea"} {
 		go func(region string) {
 			defer doneWG.Done()
