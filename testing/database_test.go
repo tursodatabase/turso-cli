@@ -171,11 +171,8 @@ func changePassword(c *qt.C, dbName string, configPath *string, newPassword stri
 
 func TestChangeDbPassword(t *testing.T) {
 	c := qt.New(t)
-	var doneWG sync.WaitGroup
-	doneWG.Add(2)
 	dbNamePrefix := uuid.NewString()
-	go func() {
-		defer doneWG.Done()
+	{
 		dir, err := os.MkdirTemp("", "turso-test-settings-*")
 		if err != nil {
 			log.Fatal(err)
@@ -189,9 +186,8 @@ func TestChangeDbPassword(t *testing.T) {
 			changePassword(c, dbName, configPath, "new_awesome_password")
 			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_after", replicaName)
 		})
-	}()
-	go func() {
-		defer doneWG.Done()
+	}
+	{
 		dir, err := os.MkdirTemp("", "turso-test-settings-*")
 		if err != nil {
 			log.Fatal(err)
@@ -204,8 +200,7 @@ func TestChangeDbPassword(t *testing.T) {
 			createReplica(c, dbName, configPath, replicaName)
 			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before", replicaName)
 		})
-	}()
-	doneWG.Wait()
+	}
 }
 
 func turso(configPath *string, args ...string) (string, error) {
