@@ -62,6 +62,7 @@ func rotate(turso *turso.Client, name string) error {
 	}
 
 	s.Stop()
-	fmt.Println("✔  Success! Tokens invalidated successfully")
+	fmt.Println("✔  Success! Tokens invalidated successfully. ")
+	fmt.Printf("Run %s to get a new one!\n", internal.Emph("turso db tokens create database_name [flags]"))
 	return nil
 }
