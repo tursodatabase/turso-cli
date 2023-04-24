@@ -16,7 +16,7 @@ func init() {
 	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
 	dbGenerateTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
 
-	dbGenerateTokenCmd.Flags().BoolVar(&readOnly, "read-only", false, "Token with read-only access")
+	dbGenerateTokenCmd.Flags().BoolVarP(&readOnly, "read-only", "r", false, "Token with read-only access")
 }
 
 var dbGenerateTokenCmd = &cobra.Command{
