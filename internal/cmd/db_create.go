@@ -71,32 +71,12 @@ var createCmd = &cobra.Command{
 		bar := prompt.Spinner(description)
 		defer bar.Stop()
 
-		// Do this before database creation, so we are able to throw those errors
-		// early, before we call fly
-		var dbFile *os.File
-		if dbFromFile != "" {
-			f, err := os.Open(dbFromFile)
-			if err != nil {
-				return fmt.Errorf("can't open %s: %w", dbFromFile, err)
-			}
-
-			stat, err := f.Stat()
-			if err != nil {
-				return fmt.Errorf("can't stat %s: %w", dbFromFile, err)
-			}
-
-			if stat.Size() > (128 << 20) {
-				return fmt.Errorf("only files up to 128MiB are supported")
-			}
-
-			valid, err := isSQLiteFile(f)
-			if err != nil {
-				return fmt.Errorf("error while reading %s: %w", dbFromFile, err)
-			}
-			if !valid {
-				return fmt.Errorf("%s doesn't seem to be a SQLite file", dbFromFile)
-			}
-			dbFile = f
+		dbFile, err := getDbFile(dbFromFile)
+		if err != nil {
+			return err
+		}
+		if dbFile != nil {
+			defer dbFile.Close()
 		}
 
 		res, err := client.Databases.Create(name, region, image)
@@ -110,7 +90,6 @@ var createCmd = &cobra.Command{
 		}
 
 		if dbFile != nil {
-			defer dbFile.Close()
 			err := client.Databases.Seed(name, dbFile)
 			if err != nil {
 				client.Databases.Delete(name)
@@ -139,4 +118,34 @@ var createCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func getDbFile(path string) (*os.File, error) {
+	if dbFromFile == "" {
+		return nil, nil
+	}
+
+	f, err := os.Open(dbFromFile)
+	if err != nil {
+		return nil, fmt.Errorf("can't open %s: %w", dbFromFile, err)
+	}
+
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("can't stat %s: %w", dbFromFile, err)
+	}
+
+	if stat.Size() > (128 << 20) {
+		return nil, fmt.Errorf("only files up to 128MiB are supported")
+	}
+
+	valid, err := isSQLiteFile(f)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading %s: %w", dbFromFile, err)
+	}
+	if !valid {
+		return nil, fmt.Errorf("%s doesn't seem to be a SQLite file", dbFromFile)
+	}
+
+	return f, nil
 }
