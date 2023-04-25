@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,7 @@ var readOnly bool
 func init() {
 	dbTokensCmd.AddCommand(dbGenerateTokenCmd)
 
-	usage := "Token expiration. Possible values are 'default' or 'none'."
+	usage := fmt.Sprintf("Token expiration. Possible values are %s (default) or expiration time in days (e.g. %s).", internal.Emph("never"), internal.Emph("7d"))
 	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
 	dbGenerateTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
 
