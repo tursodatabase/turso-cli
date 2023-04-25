@@ -257,6 +257,7 @@ func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 }
 
 func isSQLiteFile(file *os.File) (bool, error) {
+	defer file.Seek(0, io.SeekStart)
 	header := make([]byte, 16)
 	_, err := file.Read(header)
 	if err != nil && err != io.EOF {
