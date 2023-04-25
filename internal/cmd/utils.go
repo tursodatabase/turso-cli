@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -253,4 +254,18 @@ func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 		return getDatabaseNames(client), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
+func isSQLiteFile(file *os.File) (bool, error) {
+	header := make([]byte, 16)
+	_, err := file.Read(header)
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+
+	if string(header) == "SQLite format 3\000" {
+		return true, nil
+	}
+
+	return false, nil
 }
