@@ -85,7 +85,7 @@ var createCmd = &cobra.Command{
 				return fmt.Errorf("can't stat %s: %w", dbFromFile, err)
 			}
 
-			if stat.Size() > (128 << 10) {
+			if stat.Size() > (128 << 20) {
 				return fmt.Errorf("only files up to 128MiB are supported")
 			}
 
