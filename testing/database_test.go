@@ -224,9 +224,10 @@ func TestMain(m *testing.M) {
 			log.Fatal(err)
 		}
 		if strings.Contains(output, "no user logged in") {
-			log.Fatal("Tests need a user to be logged in")
+			log.Fatal("Tests need a user to be logged in or TURSO_API_TOKEN env variable needs to be set")
 		}
-		os.Setenv("TURSO_API_TOKEN", output[:len(output)-1])
+
+		os.Setenv("TURSO_API_TOKEN", output[strings.LastIndex(output[:len(output)-1], "\n")+1:len(output)-1])
 	}
 	os.Exit(m.Run())
 }
