@@ -2,30 +2,33 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slices"
 )
 
 type expirationFlag string
-
-var expFlagValues = []string{"default", "none"}
 
 func (e *expirationFlag) String() string {
 	return string(*e)
 }
 
 func (e *expirationFlag) Set(v string) error {
-	if v == "" {
-		*e = "none"
+	if v == "" || v == "never" {
+		*e = "never"
 		return nil
 	}
-	if slices.Contains(expFlagValues, v) {
-		*e = expirationFlag(v)
-		return nil
+
+	if strings.HasSuffix(v, "d") {
+		checkIfNumber := strings.TrimSuffix(v, "d")
+		if _, err := strconv.Atoi(checkIfNumber); err == nil {
+			*e = expirationFlag(v)
+			return nil
+		}
 	}
-	return fmt.Errorf("must be one of: %s", strings.Join(expFlagValues, ", "))
+	return fmt.Errorf("must be %s or expiration time in days (e.g. %s)", internal.Emph("never"), internal.Emph("7d"))
 }
 
 func (e *expirationFlag) Type() string {
@@ -34,7 +37,6 @@ func (e *expirationFlag) Type() string {
 
 func expirationFlagCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return []string{
-		"default\tuses the default expiration chosen by the auth server. Ideal for local develpment.",
-		"none\tdisables token expiration. Ideal for generating tokens for services.",
+		"never\tdisables token expiration. Ideal for generating tokens for services.",
 	}, cobra.ShellCompDirectiveDefault
 }
