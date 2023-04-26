@@ -81,12 +81,21 @@ var tokenCmd = &cobra.Command{
 	},
 }
 
+var apiTokensCmd = &cobra.Command{
+	Use:   "api-tokens",
+	Short: "Manage your API tokens",
+	Long: "" +
+		"API tokens are revocable non-expiring tokens that authenticate holders as the user who created them.\n" +
+		"They can be used to implement automations with the " + internal.Emph("turso") + " CLI or the platform API.",
+}
+
 func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.AddCommand(signupCmd)
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(logoutCmd)
 	authCmd.AddCommand(tokenCmd)
+	authCmd.AddCommand(apiTokensCmd)
 	loginCmd.Flags().BoolVar(&headlessFlag, "headless", false, "Show access token on the website instead of updating the CLI.")
 }
 
