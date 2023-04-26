@@ -60,24 +60,19 @@ var createCmd = &cobra.Command{
 		start := time.Now()
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
 
-		var dbText string
-		if dbFromFile != "" {
-			dbText = fmt.Sprintf(" from file %s", internal.Emph(dbFromFile))
-		} else {
-			dbText = ""
+		dbFile, err := getDbFile(fromFileFlag)
+		if err != nil {
+			return err
+		}
+
+		dbText := ""
+		if fromFileFlag != "" {
+			dbText = fmt.Sprintf(" from file %s", internal.Emph(fromFileFlag))
 		}
 
 		description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
 		bar := prompt.Spinner(description)
 		defer bar.Stop()
-
-		dbFile, err := getDbFile(dbFromFile)
-		if err != nil {
-			return err
-		}
-		if dbFile != nil {
-			defer dbFile.Close()
-		}
 
 		res, err := client.Databases.Create(name, region, image)
 		if err != nil {
@@ -90,6 +85,7 @@ var createCmd = &cobra.Command{
 		}
 
 		if dbFile != nil {
+			defer dbFile.Close()
 			err := client.Databases.Seed(name, dbFile)
 			if err != nil {
 				client.Databases.Delete(name)
@@ -121,18 +117,18 @@ var createCmd = &cobra.Command{
 }
 
 func getDbFile(path string) (*os.File, error) {
-	if dbFromFile == "" {
+	if fromFileFlag == "" {
 		return nil, nil
 	}
 
-	f, err := os.Open(dbFromFile)
+	f, err := os.Open(fromFileFlag)
 	if err != nil {
-		return nil, fmt.Errorf("can't open %s: %w", dbFromFile, err)
+		return nil, fmt.Errorf("can't open %s: %w", fromFileFlag, err)
 	}
 
 	stat, err := f.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("can't stat %s: %w", dbFromFile, err)
+		return nil, fmt.Errorf("can't stat %s: %w", fromFileFlag, err)
 	}
 
 	if stat.Size() > (128 << 20) {
@@ -141,10 +137,10 @@ func getDbFile(path string) (*os.File, error) {
 
 	valid, err := isSQLiteFile(f)
 	if err != nil {
-		return nil, fmt.Errorf("error while reading %s: %w", dbFromFile, err)
+		return nil, fmt.Errorf("error while reading %s: %w", fromFileFlag, err)
 	}
 	if !valid {
-		return nil, fmt.Errorf("%s doesn't seem to be a SQLite file", dbFromFile)
+		return nil, fmt.Errorf("%s doesn't seem to be a SQLite file", fromFileFlag)
 	}
 
 	return f, nil
