@@ -18,7 +18,6 @@ var showInstanceUrlFlag string
 var passwordFlag string
 var yesFlag bool
 var instanceFlag string
-var verboseFlag bool
 
 func getRegionIds(client *turso.Client) []string {
 	settings, err := settings.ReadSettings()
