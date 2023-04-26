@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/athoscouto/codename"
@@ -14,6 +15,7 @@ import (
 func init() {
 	dbCmd.AddCommand(createCmd)
 	addCanaryFlag(createCmd)
+	addDbFromFileFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 }
 
@@ -57,9 +59,21 @@ var createCmd = &cobra.Command{
 		}
 		start := time.Now()
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
-		description := fmt.Sprintf("Creating database %s in %s ", internal.Emph(name), internal.Emph(regionText))
+
+		dbFile, err := getDbFile(fromFileFlag)
+		if err != nil {
+			return err
+		}
+
+		dbText := ""
+		if fromFileFlag != "" {
+			dbText = fmt.Sprintf(" from file %s", internal.Emph(fromFileFlag))
+		}
+
+		description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
 		bar := prompt.Spinner(description)
 		defer bar.Stop()
+
 		res, err := client.Databases.Create(name, region, image)
 		if err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
@@ -68,6 +82,15 @@ var createCmd = &cobra.Command{
 			Name:     res.Database.Name,
 			Username: res.Username,
 			Password: res.Password,
+		}
+
+		if dbFile != nil {
+			defer dbFile.Close()
+			err := client.Databases.Seed(name, dbFile)
+			if err != nil {
+				client.Databases.Delete(name)
+				return fmt.Errorf("could not create database %s: %w", name, err)
+			}
 		}
 
 		if _, err = client.Instances.Create(name, "", res.Password, region, image); err != nil {
@@ -91,4 +114,34 @@ var createCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func getDbFile(path string) (*os.File, error) {
+	if fromFileFlag == "" {
+		return nil, nil
+	}
+
+	f, err := os.Open(fromFileFlag)
+	if err != nil {
+		return nil, fmt.Errorf("can't open %s: %w", fromFileFlag, err)
+	}
+
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("can't stat %s: %w", fromFileFlag, err)
+	}
+
+	if stat.Size() > (128 << 20) {
+		return nil, fmt.Errorf("only files up to 128MiB are supported")
+	}
+
+	valid, err := isSQLiteFile(f)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading %s: %w", fromFileFlag, err)
+	}
+	if !valid {
+		return nil, fmt.Errorf("%s doesn't seem to be a SQLite file", fromFileFlag)
+	}
+
+	return f, nil
 }

@@ -1,10 +1,13 @@
 package turso
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 // Collection of all turso clients
@@ -75,6 +78,33 @@ func (t *Client) Get(path string, body io.Reader) (*http.Response, error) {
 
 func (t *Client) Post(path string, body io.Reader) (*http.Response, error) {
 	return t.do("POST", path, body)
+}
+
+func (t *Client) Upload(path string, fileData *os.File) (*http.Response, error) {
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	formFile, err := w.CreateFormFile("file", fileData.Name())
+	if err != nil {
+		w.Close()
+		return nil, err
+	}
+
+	if _, err := io.Copy(formFile, fileData); err != nil {
+		w.Close()
+		return nil, err
+	}
+	w.Close()
+
+	req, err := t.newRequest("POST", path, &b)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (t *Client) Delete(path string, body io.Reader) (*http.Response, error) {

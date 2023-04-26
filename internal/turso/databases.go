@@ -3,6 +3,7 @@ package turso
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 )
@@ -87,6 +88,24 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 	}
 
 	return data, nil
+}
+
+func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
+	url := fmt.Sprintf("/v2/databases/%s/seed", name)
+	res, err := d.client.Upload(url, dbFile)
+	if err != nil {
+		return fmt.Errorf("failed to create database: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusUnprocessableEntity {
+		return fmt.Errorf("database name '%s' is not available", name)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+	return nil
 }
 
 func (d *DatabasesClient) ChangePassword(database string, newPassword string) error {
