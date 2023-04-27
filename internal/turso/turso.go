@@ -19,9 +19,10 @@ type Client struct {
 	// Single instance to be reused by all clients
 	base *client
 
-	Instances *InstancesClient
-	Databases *DatabasesClient
-	Feedback  *FeedbackClient
+	Instances     *InstancesClient
+	Databases     *DatabasesClient
+	Feedback      *FeedbackClient
+	Organizations *OrganizationsClient
 }
 
 // Client struct that will be aliases by all other clients
@@ -36,6 +37,7 @@ func New(base *url.URL, token *string, cliVersion *string) *Client {
 	c.Instances = (*InstancesClient)(c.base)
 	c.Databases = (*DatabasesClient)(c.base)
 	c.Feedback = (*FeedbackClient)(c.base)
+	c.Organizations = (*OrganizationsClient)(c.base)
 	return c
 }
 
