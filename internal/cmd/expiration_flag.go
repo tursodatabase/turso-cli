@@ -16,7 +16,10 @@ func (e *expirationFlag) String() string {
 }
 
 func (e *expirationFlag) Set(v string) error {
-	if v == "" || v == "never" {
+	if v == "none" {
+		fmt.Printf("Expiration value %s is deprecated, using %s instead.\n\n", internal.Emph("none"), internal.Emph("never"))
+	}
+	if v == "" || v == "never" || v == "none" {
 		*e = "never"
 		return nil
 	}
