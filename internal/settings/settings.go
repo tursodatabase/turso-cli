@@ -129,6 +129,15 @@ func (s *Settings) RegisterUse(cmd string) bool {
 	return firstTime
 }
 
+func (s *Settings) SetOrganization(org string) error {
+	viper.Set("organization", org)
+	err := viper.WriteConfig()
+	if err != nil {
+		return fmt.Errorf("error saving select org to local settings: %w", err)
+	}
+	return nil
+}
+
 func (s *Settings) DeleteDatabase(name string) {
 	databases := viper.GetStringMap("databases")
 	for id, rawSettings := range databases {

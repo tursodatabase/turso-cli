@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
 
@@ -94,6 +95,27 @@ var orgDestroyCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Destroyed organization %s.\n", internal.Emph(name))
+		return nil
+	},
+}
+
+var orgSelectCmd = &cobra.Command{
+	Use:               "select",
+	Short:             "Select an organization as the context for your commands.",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		name := args[0]
+
+		config, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		config.SetOrganization(name)
+		fmt.Printf("Default organization set to %s.\n", internal.Emph(name))
+		fmt.Printf("All you %s commands will be executed in that organization context", internal.Emph("turso"))
 		return nil
 	},
 }
