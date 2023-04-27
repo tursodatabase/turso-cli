@@ -17,7 +17,7 @@ type Instance struct {
 type InstancesClient client
 
 func (i *InstancesClient) List(db string) ([]Instance, error) {
-	r, err := i.client.Get(fmt.Sprintf("v2/databases/%s/instances", db), nil)
+	r, err := i.client.Get(i.URL(db, ""), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list instances of %s: %s", db, err)
 	}
