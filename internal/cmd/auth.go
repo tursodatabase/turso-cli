@@ -204,7 +204,11 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 }
 
 func fetchLatestVersion() (string, error) {
-	resp, err := createUnauthenticatedTursoClient().Get("/releases/latest", nil)
+	client, err := createUnauthenticatedTursoClient()
+	if err != nil {
+		return "", err
+	}
+	resp, err := client.Get("/releases/latest", nil)
 	if err != nil {
 		return "", err
 	}

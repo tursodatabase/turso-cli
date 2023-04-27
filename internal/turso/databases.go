@@ -19,7 +19,7 @@ type Database struct {
 type DatabasesClient client
 
 func (d *DatabasesClient) List() ([]Database, error) {
-	r, err := d.client.Get("/v2/databases", nil)
+	r, err := d.client.Get(d.URL(""), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database listing: %s", err)
 	}
@@ -37,7 +37,7 @@ func (d *DatabasesClient) List() ([]Database, error) {
 }
 
 func (d *DatabasesClient) Delete(database string) error {
-	url := fmt.Sprintf("/v2/databases/%s", database)
+	url := d.URL("/" + database)
 	r, err := d.client.Delete(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to delete database: %s", err)
@@ -68,7 +68,7 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 		return nil, fmt.Errorf("could not serialize request body: %w", err)
 	}
 
-	res, err := d.client.Post("/v2/databases", body)
+	res, err := d.client.Post(d.URL(""), body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database: %s", err)
 	}
@@ -91,7 +91,7 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 }
 
 func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
-	url := fmt.Sprintf("/v2/databases/%s/seed", name)
+	url := d.URL(fmt.Sprintf("/%s/seed", name))
 	res, err := d.client.Upload(url, dbFile)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %w", err)
@@ -114,7 +114,7 @@ func (d *DatabasesClient) ChangePassword(database string, newPassword string) er
 	if err != nil {
 		return fmt.Errorf("could not serialize request body: %w", err)
 	}
-	url := fmt.Sprintf("/v2/databases/%s/password", database)
+	url := d.URL(fmt.Sprintf("/%s/password", database))
 	r, err := d.client.Post(url, body)
 	if err != nil {
 		return fmt.Errorf("failed to change database password: %s", err)
@@ -137,7 +137,7 @@ func (d *DatabasesClient) Token(database string, expiration string, readOnly boo
 	if readOnly {
 		authorization = "&authorization=read-only"
 	}
-	url := fmt.Sprintf("/v2/databases/%s/auth/tokens?expiration=%s%s", database, expiration, authorization)
+	url := d.URL(fmt.Sprintf("/%s/auth/tokens?expiration=%s%s", database, expiration, authorization))
 	r, err := d.client.Post(url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to get database token: %w", err)
@@ -158,7 +158,7 @@ func (d *DatabasesClient) Token(database string, expiration string, readOnly boo
 }
 
 func (d *DatabasesClient) Rotate(database string) error {
-	url := fmt.Sprintf("/v2/databases/%s/auth/rotate", database)
+	url := d.URL(fmt.Sprintf("/%s/auth/rotate", database))
 	r, err := d.client.Post(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to rotate database keys: %w", err)
@@ -174,7 +174,7 @@ func (d *DatabasesClient) Rotate(database string) error {
 }
 
 func (d *DatabasesClient) Update(database string) error {
-	url := fmt.Sprintf("/v2/databases/%s/update", database)
+	url := d.URL(fmt.Sprintf("/%s/update", database))
 	r, err := d.client.Post(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to update database: %w", err)
@@ -187,4 +187,12 @@ func (d *DatabasesClient) Update(database string) error {
 	}
 
 	return nil
+}
+
+func (d *DatabasesClient) URL(suffix string) string {
+	prefix := "/v1"
+	if d.client.org != "" {
+		prefix = "/v1/organizations/" + d.client.org
+	}
+	return prefix + "/databases" + suffix
 }
