@@ -37,7 +37,7 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 }
 
 func (i *InstancesClient) Delete(db, instance string) error {
-	url := i.URL(db, "/instances/"+instance)
+	url := i.URL(db, instance)
 	r, err := i.client.Delete(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to destroy instances %s of %s: %s", instance, db, err)
@@ -95,5 +95,5 @@ func (d *InstancesClient) URL(database, suffix string) string {
 	if d.client.org != "" {
 		prefix = "/v1/organizations/" + d.client.org
 	}
-	return fmt.Sprintf("%s/databases/%s/instances", prefix, database)
+	return fmt.Sprintf("%s/databases/%s/instances/%s", prefix, database, suffix)
 }
