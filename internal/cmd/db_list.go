@@ -20,7 +20,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}

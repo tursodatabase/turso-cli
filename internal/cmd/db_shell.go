@@ -52,7 +52,7 @@ var shellCmd = &cobra.Command{
 			defer spinner.Stop()
 		}
 
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return fmt.Errorf("could not create turso client: %w", err)
 		}

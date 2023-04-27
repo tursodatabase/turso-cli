@@ -181,7 +181,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 		firstTime := settings.RegisterUse("auth_login")
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(false)
 		if err != nil {
 			return err
 		}

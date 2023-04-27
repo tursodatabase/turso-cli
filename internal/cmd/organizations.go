@@ -35,7 +35,7 @@ var orgsListCmd = &cobra.Command{
 			return err
 		}
 
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
@@ -74,7 +74,7 @@ var orgCreateCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 		name := args[0]
 
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ var orgDestroyCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 		slug := args[0]
 
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
@@ -126,7 +126,7 @@ var orgSelectCmd = &cobra.Command{
 			return err
 		}
 
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}

@@ -40,7 +40,7 @@ var createCmd = &cobra.Command{
 		} else {
 			name = args[0]
 		}
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}

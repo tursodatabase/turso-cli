@@ -23,7 +23,7 @@ var accountShowCmd = &cobra.Command{
 			return err
 		}
 
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
