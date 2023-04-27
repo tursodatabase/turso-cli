@@ -66,7 +66,7 @@ var orgsListCmd = &cobra.Command{
 }
 
 var orgCreateCmd = &cobra.Command{
-	Use:               "create",
+	Use:               "create <name>",
 	Short:             "Create a new organization",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
@@ -90,30 +90,30 @@ var orgCreateCmd = &cobra.Command{
 }
 
 var orgDestroyCmd = &cobra.Command{
-	Use:               "destroy",
+	Use:               "destroy <slug>",
 	Short:             "Destroy an organization",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		name := args[0]
+		slug := args[0]
 
 		client, err := createTursoClient()
 		if err != nil {
 			return err
 		}
 
-		if err = client.Organizations.Delete(name); err != nil {
+		if err = client.Organizations.Delete(slug); err != nil {
 			return err
 		}
 
-		fmt.Printf("Destroyed organization %s.\n", internal.Emph(name))
+		fmt.Printf("Destroyed organization %s.\n", internal.Emph(slug))
 		return nil
 	},
 }
 
 var orgSelectCmd = &cobra.Command{
-	Use:               "select",
+	Use:               "select <slug>",
 	Short:             "Select an organization as the context for your commands.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
