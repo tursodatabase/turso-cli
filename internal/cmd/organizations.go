@@ -11,6 +11,7 @@ func init() {
 	rootCmd.AddCommand(orgsCmd)
 	orgsCmd.AddCommand(orgsListCmd)
 	orgsCmd.AddCommand(orgCreateCmd)
+	orgsCmd.AddCommand(orgDestroyCmd)
 }
 
 var orgsCmd = &cobra.Command{
@@ -70,6 +71,29 @@ var orgCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Created organization %s.\n", internal.Emph(org.Name))
+		return nil
+	},
+}
+
+var orgDestroyCmd = &cobra.Command{
+	Use:               "destroy",
+	Short:             "Destroy an organization",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		name := args[0]
+
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
+
+		if err = client.Organizations.Delete(name); err != nil {
+			return err
+		}
+
+		fmt.Printf("Destroyed organization %s.\n", internal.Emph(name))
 		return nil
 	},
 }

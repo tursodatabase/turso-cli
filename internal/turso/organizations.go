@@ -56,3 +56,25 @@ func (c *OrganizationsClient) Create(name string) (Organization, error) {
 
 	return data.Org, nil
 }
+
+func (c *OrganizationsClient) Delete(name string) error {
+	r, err := c.client.Delete("/v1/organizations/"+name, nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete organization: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not find organization %s", name)
+	}
+
+	if r.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("you do not have permission to delete organization %s", name)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to delete organization: %s", r.Status)
+	}
+
+	return nil
+}
