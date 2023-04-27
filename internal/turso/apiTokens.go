@@ -31,3 +31,30 @@ func (a *ApiTokensClient) List() ([]ApiToken, error) {
 	resp, err := unmarshal[ListResponse](res)
 	return resp.ApiTokens, err
 }
+
+type CreateApiTokenResponse struct {
+	Name  string `json:"name"`
+	ID    string `json:"id"`
+	Token string `json:"token"`
+}
+
+func (a *ApiTokensClient) Create(name string) (CreateApiTokenResponse, error) {
+	url := fmt.Sprintf("/v1/auth/api-tokens/%s", name)
+
+	res, err := a.client.Post(url, nil)
+	if err != nil {
+		return CreateApiTokenResponse{}, fmt.Errorf("failed to create token: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return CreateApiTokenResponse{}, parseResponseError(res)
+	}
+
+	data, err := unmarshal[CreateApiTokenResponse](res)
+	if err != nil {
+		return CreateApiTokenResponse{}, fmt.Errorf("failed to deserialize response: %w", err)
+	}
+
+	return data, nil
+}
