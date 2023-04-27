@@ -58,3 +58,19 @@ func (a *ApiTokensClient) Create(name string) (CreateApiTokenResponse, error) {
 
 	return data, nil
 }
+
+func (a *ApiTokensClient) Revoke(name string) error {
+	url := fmt.Sprintf("/v1/auth/api-tokens/%s", name)
+
+	res, err := a.client.Delete(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to revoke API token: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+
+	return nil
+}
