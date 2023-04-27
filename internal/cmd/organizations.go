@@ -103,6 +103,15 @@ var orgDestroyCmd = &cobra.Command{
 			return err
 		}
 
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		if settings.Organization() == slug {
+			return fmt.Errorf("cannot destroy current organization, please select another one first")
+		}
+
 		if err = client.Organizations.Delete(slug); err != nil {
 			return err
 		}
