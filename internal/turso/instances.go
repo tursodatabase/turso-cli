@@ -37,7 +37,8 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 }
 
 func (i *InstancesClient) Delete(db, instance string) error {
-	r, err := i.client.Delete(fmt.Sprintf("v2/databases/%s/instances/%s", db, instance), nil)
+	url := i.URL(db, "/instances/"+instance)
+	r, err := i.client.Delete(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to destroy instances %s of %s: %s", instance, db, err)
 	}
@@ -70,7 +71,7 @@ func (d *InstancesClient) Create(dbName, instanceName, password, region, image s
 		return nil, fmt.Errorf("could not serialize request body: %w", err)
 	}
 
-	url := fmt.Sprintf("/v2/databases/%s/instances", dbName)
+	url := d.URL(dbName, "")
 	res, err := d.client.Post(url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new instances for %s: %s", dbName, err)
@@ -87,4 +88,12 @@ func (d *InstancesClient) Create(dbName, instanceName, password, region, image s
 	}
 
 	return &data.Instance, nil
+}
+
+func (d *InstancesClient) URL(database, suffix string) string {
+	prefix := "/v1"
+	if d.client.org != "" {
+		prefix = "/v1/organizations/" + d.client.org
+	}
+	return fmt.Sprintf("%s/databases/%s/instances", prefix, database)
 }
