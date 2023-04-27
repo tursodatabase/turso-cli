@@ -82,3 +82,39 @@ func (c *OrganizationsClient) Delete(slug string) error {
 
 	return nil
 }
+
+type Member struct {
+	Name string `json:"username,omitempty"`
+	Role string `json:"role,omitempty"`
+}
+
+func (c *OrganizationsClient) ListMembers() ([]Member, error) {
+	url, err := c.MembersURL()
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := c.client.Get(url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to request organization members: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list organization members: %s", r.Status)
+	}
+
+	data, err := unmarshal[struct{ Members []Member }](r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize list organizations response: %w", err)
+	}
+
+	return data.Members, nil
+}
+
+func (c *OrganizationsClient) MembersURL() (string, error) {
+	if c.client.org == "" {
+		return "", fmt.Errorf("cannot manage members of personal organization")
+	}
+	return "/v1/organizations/" + c.client.org + "/members", nil
+}

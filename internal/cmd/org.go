@@ -15,6 +15,8 @@ func init() {
 	orgCmd.AddCommand(orgCreateCmd)
 	orgCmd.AddCommand(orgDestroyCmd)
 	orgCmd.AddCommand(orgSelectCmd)
+	orgCmd.AddCommand(membersCmd)
+	membersCmd.AddCommand(membersListCmd)
 }
 
 var orgCmd = &cobra.Command{
@@ -184,4 +186,37 @@ func formatCurrent(org turso.Organization) turso.Organization {
 	org.Name = internal.Emph(org.Name)
 	org.Slug = fmt.Sprintf("%s (current)", internal.Emph(org.Slug))
 	return org
+}
+
+var membersCmd = &cobra.Command{
+	Use:   "members",
+	Short: "Manage your organization members",
+}
+
+var membersListCmd = &cobra.Command{
+	Use:               "list",
+	Short:             "List members of current organization",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		members, err := client.Organizations.ListMembers()
+		if err != nil {
+			return err
+		}
+
+		data := make([][]string, 0, len(members))
+		for _, member := range members {
+			data = append(data, []string{member.Name, member.Role})
+		}
+
+		printTable([]string{"name", "role"}, data)
+		return nil
+	},
 }
