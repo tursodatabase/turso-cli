@@ -13,8 +13,9 @@ import (
 // Collection of all turso clients
 type Client struct {
 	baseUrl    *url.URL
-	token      *string
-	cliVersion *string
+	token      string
+	cliVersion string
+	org        string
 
 	// Single instance to be reused by all clients
 	base *client
@@ -30,7 +31,7 @@ type client struct {
 	client *Client
 }
 
-func New(base *url.URL, token *string, cliVersion *string) *Client {
+func New(base *url.URL, token string, cliVersion string, org string) *Client {
 	c := &Client{baseUrl: base, token: token, cliVersion: cliVersion}
 
 	c.base = &client{c}
@@ -54,10 +55,10 @@ func (t *Client) newRequest(method, urlPath string, body io.Reader) (*http.Reque
 	if err != nil {
 		return nil, err
 	}
-	if t.token != nil {
-		req.Header.Add("Authorization", fmt.Sprint("Bearer ", *t.token))
+	if t.token != "" {
+		req.Header.Add("Authorization", fmt.Sprint("Bearer ", t.token))
 	}
-	req.Header.Add("TursoCliVersion", *t.cliVersion)
+	req.Header.Add("TursoCliVersion", t.cliVersion)
 	req.Header.Add("Content-Type", "application/json")
 	return req, nil
 }

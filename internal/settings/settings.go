@@ -138,6 +138,10 @@ func (s *Settings) SetOrganization(org string) error {
 	return nil
 }
 
+func (s *Settings) Organization() string {
+	return viper.GetString("organization")
+}
+
 func (s *Settings) DeleteDatabase(name string) {
 	databases := viper.GetStringMap("databases")
 	for id, rawSettings := range databases {

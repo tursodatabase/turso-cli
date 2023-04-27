@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"os"
 	"strings"
@@ -25,20 +24,27 @@ func createTursoClient() (*turso.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tursoClient(&token), nil
+	return tursoClient(token)
 }
 
-func createUnauthenticatedTursoClient() *turso.Client {
-	return tursoClient(nil)
+func createUnauthenticatedTursoClient() (*turso.Client, error) {
+	return tursoClient("")
 }
 
-func tursoClient(token *string) *turso.Client {
-	tursoUrl, err := url.Parse(getTursoUrl())
+func tursoClient(token string) (*turso.Client, error) {
+	urlStr := getTursoUrl()
+	tursoUrl, err := url.Parse(urlStr)
 	if err != nil {
-		log.Fatal(fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", getTursoUrl(), err))
+		return nil, fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", urlStr, err)
 	}
 
-	return turso.New(tursoUrl, token, &version)
+	config, err := settings.ReadSettings()
+	if err != nil {
+		return nil, fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", urlStr, err)
+	}
+
+	org := config.Organization()
+	return turso.New(tursoUrl, token, version, org), nil
 }
 
 func filterInstancesByRegion(instances []turso.Instance, region string) []turso.Instance {
