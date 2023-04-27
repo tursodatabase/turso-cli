@@ -5,6 +5,7 @@ import (
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +14,7 @@ func init() {
 	orgsCmd.AddCommand(orgsListCmd)
 	orgsCmd.AddCommand(orgCreateCmd)
 	orgsCmd.AddCommand(orgDestroyCmd)
+	orgsCmd.AddCommand(orgSelectCmd)
 }
 
 var orgsCmd = &cobra.Command{
@@ -27,6 +29,12 @@ var orgsListCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
 		client, err := createTursoClient()
 		if err != nil {
 			return err
@@ -37,8 +45,13 @@ var orgsListCmd = &cobra.Command{
 			return err
 		}
 
+		current := settings.Organization()
+
 		data := make([][]string, 0, len(orgs))
 		for _, org := range orgs {
+			if isCurrentOrg(org, current) {
+				org = formatCurrent(org)
+			}
 			data = append(data, []string{org.Name, org.Slug})
 		}
 
@@ -106,16 +119,60 @@ var orgSelectCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		name := args[0]
+		slug := args[0]
 
-		config, err := settings.ReadSettings()
+		settings, err := settings.ReadSettings()
 		if err != nil {
 			return err
 		}
 
-		config.SetOrganization(name)
-		fmt.Printf("Default organization set to %s.\n", internal.Emph(name))
-		fmt.Printf("All you %s commands will be executed in that organization context", internal.Emph("turso"))
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
+
+		orgs, err := client.Organizations.List()
+		if err != nil {
+			return err
+		}
+
+		org, err := findOrgWithSlug(orgs, slug)
+		if err != nil {
+			return err
+		}
+
+		if org.Type == "personal" {
+			slug = ""
+		}
+
+		if err := settings.SetOrganization(slug); err != nil {
+			return err
+		}
+
+		fmt.Printf("Default organization set to %s.\n", internal.Emph(org.Slug))
+		fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))
 		return nil
 	},
+}
+
+func findOrgWithSlug(orgs []turso.Organization, slug string) (turso.Organization, error) {
+	for _, org := range orgs {
+		if org.Slug == slug {
+			return org, nil
+		}
+	}
+	return turso.Organization{}, fmt.Errorf("organization with slug %s was not found", internal.Emph(slug))
+}
+
+func isCurrentOrg(org turso.Organization, currentSlug string) bool {
+	if org.Type == "personal" {
+		return currentSlug == ""
+	}
+	return org.Slug == currentSlug
+}
+
+func formatCurrent(org turso.Organization) turso.Organization {
+	org.Name = internal.Emph(org.Name)
+	org.Slug = fmt.Sprintf("%s (current)", internal.Emph(org.Slug))
+	return org
 }

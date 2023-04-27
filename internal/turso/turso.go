@@ -32,7 +32,7 @@ type client struct {
 }
 
 func New(base *url.URL, token string, cliVersion string, org string) *Client {
-	c := &Client{baseUrl: base, token: token, cliVersion: cliVersion}
+	c := &Client{baseUrl: base, token: token, cliVersion: cliVersion, org: org}
 
 	c.base = &client{c}
 	c.Instances = (*InstancesClient)(c.base)
