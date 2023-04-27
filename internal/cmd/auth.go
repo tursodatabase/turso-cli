@@ -194,7 +194,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		if err != nil {
 			return err
 		}
-		dbs, err := getDatabases(client)
+		dbs, err := client.Databases.List()
 		if firstTime && err == nil && len(dbs) == 0 {
 			fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
 		}
