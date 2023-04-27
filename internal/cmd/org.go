@@ -10,19 +10,19 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(orgsCmd)
-	orgsCmd.AddCommand(orgsListCmd)
-	orgsCmd.AddCommand(orgCreateCmd)
-	orgsCmd.AddCommand(orgDestroyCmd)
-	orgsCmd.AddCommand(orgSelectCmd)
+	rootCmd.AddCommand(orgCmd)
+	orgCmd.AddCommand(orgListCmd)
+	orgCmd.AddCommand(orgCreateCmd)
+	orgCmd.AddCommand(orgDestroyCmd)
+	orgCmd.AddCommand(orgSelectCmd)
 }
 
-var orgsCmd = &cobra.Command{
+var orgCmd = &cobra.Command{
 	Use:   "org",
 	Short: "Manage your organizations",
 }
 
-var orgsListCmd = &cobra.Command{
+var orgListCmd = &cobra.Command{
 	Use:               "list",
 	Short:             "List your organizations",
 	Args:              cobra.NoArgs,
