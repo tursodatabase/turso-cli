@@ -8,9 +8,9 @@ import (
 type OrganizationsClient client
 
 type Organization struct {
-	Name string `json:"name"`
-	Slug string `json:"slug"`
-	Type string `json:"type"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 func (c *OrganizationsClient) List() ([]Organization, error) {
@@ -31,4 +31,28 @@ func (c *OrganizationsClient) List() ([]Organization, error) {
 	}
 
 	return data, nil
+}
+
+func (c *OrganizationsClient) Create(name string) (Organization, error) {
+	body, err := marshal(Organization{Name: name})
+	if err != nil {
+		return Organization{}, fmt.Errorf("failed to marshall create org request body: %s", err)
+	}
+
+	r, err := c.client.Post("/v1/organizations", body)
+	if err != nil {
+		return Organization{}, fmt.Errorf("failed to post organization: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return Organization{}, fmt.Errorf("failed to create organization: %s", r.Status)
+	}
+
+	data, err := unmarshal[struct{ Org Organization }](r)
+	if err != nil {
+		return Organization{}, fmt.Errorf("failed to deserialize create organizations response: %w", err)
+	}
+
+	return data.Org, nil
 }

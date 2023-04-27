@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	rootCmd.AddCommand(orgsCmd)
 	orgsCmd.AddCommand(orgsListCmd)
+	orgsCmd.AddCommand(orgCreateCmd)
 }
 
 var orgsCmd = &cobra.Command{
@@ -42,6 +46,30 @@ var orgsListCmd = &cobra.Command{
 		}
 
 		printTable([]string{"name", "slug"}, data)
+		return nil
+	},
+}
+
+var orgCreateCmd = &cobra.Command{
+	Use:               "create",
+	Short:             "Create a new organization",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		name := args[0]
+
+		client, err := createTursoClient()
+		if err != nil {
+			return err
+		}
+
+		org, err := client.Organizations.Create(name)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Created organization %s.\n", internal.Emph(org.Name))
 		return nil
 	},
 }
