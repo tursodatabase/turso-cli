@@ -18,7 +18,7 @@ func init() {
 }
 
 var orgsCmd = &cobra.Command{
-	Use:   "organizations",
+	Use:   "org",
 	Short: "Manage your organizations",
 }
 
