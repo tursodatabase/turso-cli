@@ -17,6 +17,7 @@ func init() {
 	orgCmd.AddCommand(orgSelectCmd)
 	orgCmd.AddCommand(membersCmd)
 	membersCmd.AddCommand(membersListCmd)
+	membersCmd.AddCommand(membersAddCmd)
 }
 
 var orgCmd = &cobra.Command{
@@ -217,6 +218,43 @@ var membersListCmd = &cobra.Command{
 		}
 
 		printTable([]string{"name", "role"}, data)
+		return nil
+	},
+}
+
+var membersAddCmd = &cobra.Command{
+	Use:               "add <username>",
+	Short:             "Add a member to current organization",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		org := settings.Organization()
+		if org == "" {
+			return fmt.Errorf("cannot add user to personal organization")
+		}
+
+		username := args[0]
+		if username == "" {
+			return fmt.Errorf("username cannot be empty")
+		}
+
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		if err := client.Organizations.AddMember(username); err != nil {
+			return err
+		}
+
+		fmt.Printf("User %s added to organization %s.\n", internal.Emph(username), internal.Emph(org))
 		return nil
 	},
 }
