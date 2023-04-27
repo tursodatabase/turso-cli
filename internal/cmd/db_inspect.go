@@ -15,7 +15,7 @@ import (
 
 func init() {
 	dbCmd.AddCommand(dbInspectCmd)
-	dbInspectCmd.Flags().BoolVar(&verboseFlag, "verbose", false, "Show detailed information")
+	addVerboseFlag(dbInspectCmd)
 }
 
 type InspectInfo struct {
