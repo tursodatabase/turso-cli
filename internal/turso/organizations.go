@@ -89,7 +89,7 @@ type Member struct {
 }
 
 func (c *OrganizationsClient) ListMembers() ([]Member, error) {
-	url, err := c.MembersURL()
+	url, err := c.MembersURL("")
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 }
 
 func (c *OrganizationsClient) AddMember(username string) error {
-	url, err := c.MembersURL()
+	url, err := c.MembersURL("")
 	if err != nil {
 		return err
 	}
@@ -136,9 +136,28 @@ func (c *OrganizationsClient) AddMember(username string) error {
 	return nil
 }
 
-func (c *OrganizationsClient) MembersURL() (string, error) {
+func (c *OrganizationsClient) RemoveMember(username string) error {
+	url, err := c.MembersURL("/" + username)
+	if err != nil {
+		return err
+	}
+
+	r, err := c.client.Delete(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete organization member: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to remove organization member: %s", r.Status)
+	}
+
+	return nil
+}
+
+func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
 	if c.client.org == "" {
 		return "", fmt.Errorf("cannot manage members of personal organization")
 	}
-	return "/v1/organizations/" + c.client.org + "/members", nil
+	return "/v1/organizations/" + c.client.org + "/members" + suffix, nil
 }

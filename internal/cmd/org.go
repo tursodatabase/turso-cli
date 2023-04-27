@@ -18,6 +18,7 @@ func init() {
 	orgCmd.AddCommand(membersCmd)
 	membersCmd.AddCommand(membersListCmd)
 	membersCmd.AddCommand(membersAddCmd)
+	membersCmd.AddCommand(membersRemoveCmd)
 }
 
 var orgCmd = &cobra.Command{
@@ -255,6 +256,43 @@ var membersAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("User %s added to organization %s.\n", internal.Emph(username), internal.Emph(org))
+		return nil
+	},
+}
+
+var membersRemoveCmd = &cobra.Command{
+	Use:               "rm <username>",
+	Short:             "Remove a member from the current organization",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		org := settings.Organization()
+		if org == "" {
+			return fmt.Errorf("cannot remove user from personal organization")
+		}
+
+		username := args[0]
+		if username == "" {
+			return fmt.Errorf("username cannot be empty")
+		}
+
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		if err := client.Organizations.RemoveMember(username); err != nil {
+			return err
+		}
+
+		fmt.Printf("User %s removed from organization %s.\n", internal.Emph(username), internal.Emph(org))
 		return nil
 	},
 }
