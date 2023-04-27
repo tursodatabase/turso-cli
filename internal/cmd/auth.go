@@ -94,7 +94,7 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	client, err := createTursoClient()
+	client, err := tursoClient(token)
 	if err != nil {
 		return false
 	}
