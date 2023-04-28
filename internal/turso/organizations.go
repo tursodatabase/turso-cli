@@ -100,6 +100,10 @@ func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode == http.StatusForbidden {
+		return nil, fmt.Errorf("only organization owners can list members")
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to list organization members: %s", r.Status)
 	}
@@ -129,6 +133,10 @@ func (c *OrganizationsClient) AddMember(username string) error {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("only organization owners can add members")
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to add organization member: %s", r.Status)
 	}
@@ -147,6 +155,10 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 		return fmt.Errorf("failed to delete organization member: %s", err)
 	}
 	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("only organization owners can remove members")
+	}
 
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to remove organization member: %s", r.Status)
