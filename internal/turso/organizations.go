@@ -82,3 +82,82 @@ func (c *OrganizationsClient) Delete(slug string) error {
 
 	return nil
 }
+
+type Member struct {
+	Name string `json:"username,omitempty"`
+	Role string `json:"role,omitempty"`
+}
+
+func (c *OrganizationsClient) ListMembers() ([]Member, error) {
+	url, err := c.MembersURL("")
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := c.client.Get(url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to request organization members: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list organization members: %s", r.Status)
+	}
+
+	data, err := unmarshal[struct{ Members []Member }](r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize list organizations response: %w", err)
+	}
+
+	return data.Members, nil
+}
+
+func (c *OrganizationsClient) AddMember(username string) error {
+	url, err := c.MembersURL("")
+	if err != nil {
+		return err
+	}
+
+	body, err := marshal(Member{Name: username})
+	if err != nil {
+		return fmt.Errorf("failed to marshall add member request body: %s", err)
+	}
+
+	r, err := c.client.Post(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to post organization member: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to add organization member: %s", r.Status)
+	}
+
+	return nil
+}
+
+func (c *OrganizationsClient) RemoveMember(username string) error {
+	url, err := c.MembersURL("/" + username)
+	if err != nil {
+		return err
+	}
+
+	r, err := c.client.Delete(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete organization member: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to remove organization member: %s", r.Status)
+	}
+
+	return nil
+}
+
+func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
+	if c.client.org == "" {
+		return "", fmt.Errorf("cannot manage members of personal organization")
+	}
+	return "/v1/organizations/" + c.client.org + "/members" + suffix, nil
+}
