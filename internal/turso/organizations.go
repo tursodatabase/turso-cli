@@ -3,6 +3,9 @@ package turso
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 )
 
 type OrganizationsClient client
@@ -169,4 +172,25 @@ func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
 		return "", fmt.Errorf("cannot manage members of personal organization")
 	}
 	return "/v1/organizations/" + c.client.org + "/members" + suffix, nil
+}
+
+func unsetOrganization() error {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return err
+	}
+	return settings.SetOrganization("")
+}
+
+func isNotMemberErr(status int, org string) bool {
+	if status == http.StatusForbidden && org != "" && unsetOrganization() == nil {
+		return true
+	}
+	return false
+}
+
+func notMemberErr(org string) error {
+	msg := fmt.Sprintf("you are not a member of organization %s. ", internal.Emph(org))
+	msg += fmt.Sprintf("%s is now configured to use your personal organization.", internal.Emph("turso"))
+	return fmt.Errorf(msg)
 }
