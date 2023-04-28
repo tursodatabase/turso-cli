@@ -16,7 +16,7 @@ func (e *expirationFlag) String() string {
 }
 
 func (e *expirationFlag) Set(v string) error {
-	if v == "" || v == "never" {
+	if v == "" || v == "never" || v == "none" {
 		*e = "never"
 		return nil
 	}
