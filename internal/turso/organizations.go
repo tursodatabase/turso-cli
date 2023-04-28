@@ -68,19 +68,16 @@ func (c *OrganizationsClient) Delete(slug string) error {
 		return fmt.Errorf("could not find organization %s", slug)
 	}
 
-	if r.StatusCode == http.StatusBadRequest {
+	switch r.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusBadRequest:
 		return fmt.Errorf("cannot delete personal organization %s", slug)
-	}
-
-	if r.StatusCode == http.StatusUnauthorized {
+	case http.StatusForbidden:
 		return fmt.Errorf("you do not have permission to delete organization %s", slug)
-	}
-
-	if r.StatusCode != http.StatusOK {
+	default:
 		return fmt.Errorf("failed to delete organization: %s", r.Status)
 	}
-
-	return nil
 }
 
 type Member struct {
