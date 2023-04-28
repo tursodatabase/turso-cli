@@ -25,6 +25,11 @@ func (d *DatabasesClient) List() ([]Database, error) {
 	}
 	defer r.Body.Close()
 
+	org := d.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return nil, notMemberErr(org)
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get database listing: %s", r.Status)
 	}
@@ -43,6 +48,11 @@ func (d *DatabasesClient) Delete(database string) error {
 		return fmt.Errorf("failed to delete database: %s", err)
 	}
 	defer r.Body.Close()
+
+	org := d.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
 
 	if r.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(database), internal.Emph("turso db list"))
@@ -74,6 +84,11 @@ func (d *DatabasesClient) Create(name, region, image string) (*CreateDatabaseRes
 	}
 	defer res.Body.Close()
 
+	org := d.client.org
+	if isNotMemberErr(res.StatusCode, org) {
+		return nil, notMemberErr(org)
+	}
+
 	if res.StatusCode == http.StatusUnprocessableEntity {
 		return nil, fmt.Errorf("database name '%s' is not available", name)
 	}
@@ -98,6 +113,11 @@ func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
 	}
 	defer res.Body.Close()
 
+	org := d.client.org
+	if isNotMemberErr(res.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
 	if res.StatusCode == http.StatusUnprocessableEntity {
 		return fmt.Errorf("database name '%s' is not available", name)
 	}
@@ -120,6 +140,11 @@ func (d *DatabasesClient) ChangePassword(database string, newPassword string) er
 		return fmt.Errorf("failed to change database password: %s", err)
 	}
 	defer r.Body.Close()
+
+	org := d.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
 
 	if r.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(database), internal.Emph("turso db list"))
@@ -144,6 +169,11 @@ func (d *DatabasesClient) Token(database string, expiration string, readOnly boo
 	}
 	defer r.Body.Close()
 
+	org := d.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return "", notMemberErr(org)
+	}
+
 	if r.StatusCode != http.StatusOK {
 		err, _ := unmarshal[string](r)
 		return "", fmt.Errorf("failed to get database token: %d %s", r.StatusCode, err)
@@ -165,6 +195,11 @@ func (d *DatabasesClient) Rotate(database string) error {
 	}
 	defer r.Body.Close()
 
+	org := d.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
 	if r.StatusCode != http.StatusOK {
 		err, _ := unmarshal[string](r)
 		return fmt.Errorf("failed to rotate database keys: %d %s", r.StatusCode, err)
@@ -180,6 +215,11 @@ func (d *DatabasesClient) Update(database string) error {
 		return fmt.Errorf("failed to update database: %w", err)
 	}
 	defer r.Body.Close()
+
+	org := d.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
 
 	if r.StatusCode != http.StatusOK {
 		err, _ := unmarshal[string](r)

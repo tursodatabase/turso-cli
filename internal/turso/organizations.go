@@ -3,6 +3,9 @@ package turso
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 )
 
 type OrganizationsClient client
@@ -68,19 +71,16 @@ func (c *OrganizationsClient) Delete(slug string) error {
 		return fmt.Errorf("could not find organization %s", slug)
 	}
 
-	if r.StatusCode == http.StatusBadRequest {
+	switch r.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusBadRequest:
 		return fmt.Errorf("cannot delete personal organization %s", slug)
-	}
-
-	if r.StatusCode == http.StatusUnauthorized {
+	case http.StatusForbidden:
 		return fmt.Errorf("you do not have permission to delete organization %s", slug)
-	}
-
-	if r.StatusCode != http.StatusOK {
+	default:
 		return fmt.Errorf("failed to delete organization: %s", r.Status)
 	}
-
-	return nil
 }
 
 type Member struct {
@@ -99,6 +99,10 @@ func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 		return nil, fmt.Errorf("failed to request organization members: %s", err)
 	}
 	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusForbidden {
+		return nil, fmt.Errorf("only organization owners can list members")
+	}
 
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to list organization members: %s", r.Status)
@@ -129,6 +133,10 @@ func (c *OrganizationsClient) AddMember(username string) error {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("only organization owners can add members")
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to add organization member: %s", r.Status)
 	}
@@ -148,6 +156,10 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("only organization owners can remove members")
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to remove organization member: %s", r.Status)
 	}
@@ -160,4 +172,25 @@ func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
 		return "", fmt.Errorf("cannot manage members of personal organization")
 	}
 	return "/v1/organizations/" + c.client.org + "/members" + suffix, nil
+}
+
+func unsetOrganization() error {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return err
+	}
+	return settings.SetOrganization("")
+}
+
+func isNotMemberErr(status int, org string) bool {
+	if status == http.StatusForbidden && org != "" && unsetOrganization() == nil {
+		return true
+	}
+	return false
+}
+
+func notMemberErr(org string) error {
+	msg := fmt.Sprintf("you are not a member of organization %s. ", internal.Emph(org))
+	msg += fmt.Sprintf("%s is now configured to use your personal organization.", internal.Emph("turso"))
+	return fmt.Errorf(msg)
 }

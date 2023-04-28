@@ -23,6 +23,11 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 	}
 	defer r.Body.Close()
 
+	org := i.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return nil, notMemberErr(org)
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("response with status code %d", r.StatusCode)
 	}
@@ -43,6 +48,11 @@ func (i *InstancesClient) Delete(db, instance string) error {
 		return fmt.Errorf("failed to destroy instances %s of %s: %s", instance, db, err)
 	}
 	defer r.Body.Close()
+
+	org := i.client.org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
 
 	if r.StatusCode == http.StatusBadRequest {
 		body, _ := unmarshal[struct{ Error string }](r)
@@ -77,6 +87,11 @@ func (d *InstancesClient) Create(dbName, instanceName, password, region, image s
 		return nil, fmt.Errorf("failed to create new instances for %s: %s", dbName, err)
 	}
 	defer res.Body.Close()
+
+	org := d.client.org
+	if isNotMemberErr(res.StatusCode, org) {
+		return nil, notMemberErr(org)
+	}
 
 	if res.StatusCode != http.StatusOK {
 		return nil, parseResponseError(res)
