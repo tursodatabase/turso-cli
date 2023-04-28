@@ -16,7 +16,7 @@ func init() {
 }
 
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClient()
+	client, err := createTursoClientFromAccessToken(false)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
@@ -45,7 +45,7 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		client, err := createTursoClient()
+		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}

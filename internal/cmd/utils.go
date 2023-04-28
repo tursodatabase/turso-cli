@@ -19,8 +19,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func createTursoClient() (*turso.Client, error) {
-	token, err := getAccessToken()
+func createTursoClientFromAccessToken(warnMultipleAccessTokenSources bool) (*turso.Client, error) {
+	token, err := getAccessToken(warnMultipleAccessTokenSources)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func promptConfirmation(prompt string) (bool, error) {
 }
 
 func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClient()
+	client, err := createTursoClientFromAccessToken(false)
 	if err != nil {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	}
