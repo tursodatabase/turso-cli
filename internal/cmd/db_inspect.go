@@ -153,19 +153,7 @@ func inspectCompute(url, token string, detailed bool, location string) (uint64, 
 	return results.RowsReadCount, nil
 }
 
-func inspectStorage(url, token string, detailed bool, location string) (*StorageInfo, error) {
-	storageInfo := StorageInfo{}
-	stmt := `select name, pgsize from dbstat where
-	name != 'sqlite_schema'
-        and name != '_litestream_seq'
-        and name != '_litestream_lock'
-        and name != 'libsql_wasm_func_table'
-	order by pgsize desc, name asc`
-	resp, err := doQuery(url, token, stmt)
-	if err != nil {
-		return nil, err
-	}
-
+func getTypeMap(url, token string) (map[string]string, error) {
 	typeStmt := `select name, type from sqlite_schema where
 	name != 'sqlite_schema'
         and name != '_litestream_seq'
@@ -175,19 +163,7 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
 	if err != nil {
 		return nil, err
 	}
-
-	defer resp.Body.Close()
 	defer respType.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error: %s", string(body))
-	}
-
 	bodyType, err := io.ReadAll(respType.Body)
 	if err != nil {
 		return nil, err
@@ -195,11 +171,6 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
 
 	if respType.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error: %s", string(bodyType))
-	}
-
-	var results []QueryResult
-	if err := json.Unmarshal(body, &results); err != nil {
-		return nil, err
 	}
 
 	var typeResults []QueryResult
@@ -214,6 +185,43 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
 				typeMap[row[0].(string)] = row[1].(string)
 			}
 		}
+	}
+
+	return typeMap, nil
+}
+
+func inspectStorage(url, token string, detailed bool, location string) (*StorageInfo, error) {
+	storageInfo := StorageInfo{}
+	stmt := `select name, pgsize from dbstat where
+	name != 'sqlite_schema'
+        and name != '_litestream_seq'
+        and name != '_litestream_lock'
+        and name != 'libsql_wasm_func_table'
+	order by pgsize desc, name asc`
+	resp, err := doQuery(url, token, stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error: %s", string(body))
+	}
+
+	var results []QueryResult
+	if err := json.Unmarshal(body, &results); err != nil {
+		return nil, err
+	}
+
+	typeMap, err := getTypeMap(url, token)
+	if err != nil {
+		return nil, err
 	}
 
 	errs := []string{}
