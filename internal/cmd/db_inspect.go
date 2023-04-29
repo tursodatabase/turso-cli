@@ -113,14 +113,19 @@ var dbInspectCmd = &cobra.Command{
 }
 
 func inspect(url, token string, location string, detailed bool) (*InspectInfo, error) {
-	rowsRead, err := inspectCompute(url, token, detailed, location)
-	if err != nil {
-		rowsRead = 0
-	}
+	inspectComputeResult := make(chan uint64)
+	go func() {
+		rowsRead, err := inspectCompute(url, token, detailed, location)
+		if err != nil {
+			rowsRead = 0
+		}
+		inspectComputeResult <- rowsRead
+	}()
 	storageInfo, err := inspectStorage(url, token, detailed, location)
 	if err != nil {
 		return nil, err
 	}
+	rowsRead := <-inspectComputeResult
 	return &InspectInfo{
 		StorageInfo:   *storageInfo,
 		RowsReadCount: rowsRead,
