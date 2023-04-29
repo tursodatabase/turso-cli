@@ -85,6 +85,10 @@ func getInstanceHttpUrl(settings *settings.Settings, db *turso.Database, inst *t
 	return getUrl(settings, db, inst, "https", true)
 }
 
+func getInstanceHttpUrlWithoutAuth(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
+	return getUrl(settings, db, inst, "https", false)
+}
+
 func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string, password bool) string {
 	dbSettings := settings.GetDatabaseSettings(db.ID)
 	if dbSettings == nil {

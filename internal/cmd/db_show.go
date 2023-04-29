@@ -79,9 +79,9 @@ var showCmd = &cobra.Command{
 		for idx, instance := range instances {
 			urls = append(urls, getInstanceUrl(config, &db, &instance))
 			versions = append(versions, make(chan string, 1))
-			go func(idx int, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
-				versions[idx] <- fetchInstanceVersion(config, db, instance)
-			}(idx, config, &db, &instance)
+			go func(idx int, client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
+				versions[idx] <- fetchInstanceVersion(client, config, db, instance)
+			}(idx, client, config, &db, &instance)
 		}
 
 		data := [][]string{}
@@ -102,8 +102,17 @@ var showCmd = &cobra.Command{
 	},
 }
 
-func fetchInstanceVersion(config *settings.Settings, db *turso.Database, instance *turso.Instance) string {
-	baseUrl := getInstanceHttpUrl(config, db, instance)
+func fetchInstanceVersion(client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) string {
+	baseUrl := getInstanceHttpUrlWithoutAuth(config, db, instance)
+
+	token, err := tokenFromDb(db, client)
+	if err != nil {
+		return fmt.Sprintf("fetch failed: %s", err)
+	}
+
+	if token == "" {
+		baseUrl = getInstanceHttpUrl(config, db, instance)
+	}
 	url, err := url.Parse(baseUrl)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
@@ -112,6 +121,9 @@ func fetchInstanceVersion(config *settings.Settings, db *turso.Database, instanc
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
+	}
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
