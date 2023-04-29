@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"io"
 	"net/http"
 	"net/url"
@@ -75,14 +76,12 @@ var showCmd = &cobra.Command{
 
 		versions := [](chan string){}
 		urls := []string{}
-		httpUrls := []string{}
 		for idx, instance := range instances {
 			urls = append(urls, getInstanceUrl(config, &db, &instance))
-			httpUrls = append(httpUrls, getInstanceHttpUrl(config, &db, &instance))
 			versions = append(versions, make(chan string, 1))
-			go func(idx int) {
-				versions[idx] <- fetchInstanceVersion(httpUrls[idx])
-			}(idx)
+			go func(idx int, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
+				versions[idx] <- fetchInstanceVersion(getInstanceHttpUrl(config, db, instance))
+			}(idx, config, &db, &instance)
 		}
 
 		data := [][]string{}
