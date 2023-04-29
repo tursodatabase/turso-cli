@@ -1,3 +1,5 @@
+//go:build !windows
+
 package internal
 
 import "github.com/fatih/color"
