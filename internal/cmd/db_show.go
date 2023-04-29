@@ -80,7 +80,7 @@ var showCmd = &cobra.Command{
 			urls = append(urls, getInstanceUrl(config, &db, &instance))
 			versions = append(versions, make(chan string, 1))
 			go func(idx int, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
-				versions[idx] <- fetchInstanceVersion(getInstanceHttpUrl(config, db, instance))
+				versions[idx] <- fetchInstanceVersion(config, db, instance)
 			}(idx, config, &db, &instance)
 		}
 
@@ -102,7 +102,8 @@ var showCmd = &cobra.Command{
 	},
 }
 
-func fetchInstanceVersion(baseUrl string) string {
+func fetchInstanceVersion(config *settings.Settings, db *turso.Database, instance *turso.Instance) string {
+	baseUrl := getInstanceHttpUrl(config, db, instance)
 	url, err := url.Parse(baseUrl)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
