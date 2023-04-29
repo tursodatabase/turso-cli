@@ -194,7 +194,7 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
 	}
 
 	if respType.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error: %s", string(body))
+		return nil, fmt.Errorf("error: %s", string(bodyType))
 	}
 
 	var results []QueryResult
