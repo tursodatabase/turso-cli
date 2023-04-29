@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"net/http"
 	"strings"
@@ -85,12 +86,25 @@ var dbInspectCmd = &cobra.Command{
 		}
 
 		inspectRet := InspectInfo{}
+		g := errgroup.Group{}
+		results := make(chan *InspectInfo, len(instances))
 		for _, instance := range instances {
-			url := getInstanceHttpUrl(config, &db, &instance)
-			ret, err := inspect(url, token, instance.Region, verboseFlag)
-			if err != nil {
-				return err
-			}
+			loopInstance := instance
+			g.Go(func() error {
+				url := getInstanceHttpUrl(config, &db, &loopInstance)
+				ret, err := inspect(url, token, loopInstance.Region, verboseFlag)
+				if err != nil {
+					return err
+				}
+				results <- ret
+				return nil
+			})
+		}
+		if err := g.Wait(); err != nil {
+			return err
+		}
+		for range instances {
+			ret := <-results
 			inspectRet.Accumulate(ret)
 		}
 		inspectRet.show()
