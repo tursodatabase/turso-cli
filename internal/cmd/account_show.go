@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
@@ -51,7 +52,7 @@ var accountShowCmd = &cobra.Command{
 
 			for _, instance := range instances {
 				url := getInstanceHttpUrl(settings, &database, &instance)
-				ret, err := inspect(url, token, instance.Region, false)
+				ret, err := inspect(context.Background(), url, token, instance.Region, false)
 				if err != nil {
 					return err
 				}

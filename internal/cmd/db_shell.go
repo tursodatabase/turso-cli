@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -389,6 +390,10 @@ func query(url, token, stmt string) error {
 }
 
 func doQuery(url, token, stmt string) (*http.Response, error) {
+	return doQueryContext(context.Background(), url, token, stmt)
+}
+
+func doQueryContext(ctx context.Context, url, token, stmt string) (*http.Response, error) {
 	stmts, err := sqlparser.SplitStatementToPieces(stmt)
 	if err != nil {
 		return nil, err
@@ -400,7 +405,7 @@ func doQuery(url, token, stmt string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

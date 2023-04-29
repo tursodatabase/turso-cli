@@ -1,17 +1,19 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"golang.org/x/sync/errgroup"
-	"io"
-	"net/http"
-	"strings"
-
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/dustin/go-humanize"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 )
 
 func init() {
@@ -86,13 +88,15 @@ var dbInspectCmd = &cobra.Command{
 		}
 
 		inspectRet := InspectInfo{}
-		g := errgroup.Group{}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		g, ctx := errgroup.WithContext(ctx)
 		results := make(chan *InspectInfo, len(instances))
 		for _, instance := range instances {
 			loopInstance := instance
 			g.Go(func() error {
 				url := getInstanceHttpUrl(config, &db, &loopInstance)
-				ret, err := inspect(url, token, loopInstance.Region, verboseFlag)
+				ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
 				if err != nil {
 					return err
 				}
@@ -101,6 +105,9 @@ var dbInspectCmd = &cobra.Command{
 			})
 		}
 		if err := g.Wait(); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return fmt.Errorf("timeout while inspecting database. It's possible that this database is too old and does not support inspecting or one of the instances is not reachable")
+			}
 			return err
 		}
 		for range instances {
@@ -112,16 +119,16 @@ var dbInspectCmd = &cobra.Command{
 	},
 }
 
-func inspect(url, token string, location string, detailed bool) (*InspectInfo, error) {
+func inspect(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {
 	inspectComputeResult := make(chan uint64)
 	go func() {
-		rowsRead, err := inspectCompute(url, token, detailed, location)
+		rowsRead, err := inspectCompute(ctx, url, token, detailed, location)
 		if err != nil {
 			rowsRead = 0
 		}
 		inspectComputeResult <- rowsRead
 	}()
-	storageInfo, err := inspectStorage(url, token, detailed, location)
+	storageInfo, err := inspectStorage(ctx, url, token, detailed, location)
 	if err != nil {
 		return nil, err
 	}
@@ -132,8 +139,8 @@ func inspect(url, token string, location string, detailed bool) (*InspectInfo, e
 	}, nil
 }
 
-func inspectCompute(url, token string, detailed bool, location string) (uint64, error) {
-	req, err := http.NewRequest("GET", url+"/v1/stats", nil)
+func inspectCompute(ctx context.Context, url, token string, detailed bool, location string) (uint64, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/stats", nil)
 	if err != nil {
 		return 0, err
 	}
@@ -158,13 +165,13 @@ func inspectCompute(url, token string, detailed bool, location string) (uint64, 
 	return results.RowsReadCount, nil
 }
 
-func getTypeMap(url, token string) (map[string]string, error) {
+func getTypeMap(ctx context.Context, url, token string) (map[string]string, error) {
 	typeStmt := `select name, type from sqlite_schema where
 	name != 'sqlite_schema'
         and name != '_litestream_seq'
         and name != '_litestream_lock'
         and name != 'libsql_wasm_func_table'`
-	respType, err := doQuery(url, token, typeStmt)
+	respType, err := doQueryContext(ctx, url, token, typeStmt)
 	if err != nil {
 		return nil, err
 	}
@@ -195,11 +202,11 @@ func getTypeMap(url, token string) (map[string]string, error) {
 	return typeMap, nil
 }
 
-func inspectStorage(url, token string, detailed bool, location string) (*StorageInfo, error) {
+func inspectStorage(ctx context.Context, url, token string, detailed bool, location string) (*StorageInfo, error) {
 	typeMapResult := make(chan map[string]string)
 	typeMapError := make(chan error)
 	go func() {
-		typeMap, err := getTypeMap(url, token)
+		typeMap, err := getTypeMap(ctx, url, token)
 		if err != nil {
 			typeMapError <- err
 		} else {
@@ -214,7 +221,7 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
         and name != '_litestream_lock'
         and name != 'libsql_wasm_func_table'
 	order by pgsize desc, name asc`
-	resp, err := doQuery(url, token, stmt)
+	resp, err := doQueryContext(ctx, url, token, stmt)
 	if err != nil {
 		return nil, err
 	}
