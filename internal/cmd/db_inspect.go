@@ -191,6 +191,17 @@ func getTypeMap(url, token string) (map[string]string, error) {
 }
 
 func inspectStorage(url, token string, detailed bool, location string) (*StorageInfo, error) {
+	typeMapResult := make(chan map[string]string)
+	typeMapError := make(chan error)
+	go func() {
+		typeMap, err := getTypeMap(url, token)
+		if err != nil {
+			typeMapError <- err
+		} else {
+			typeMapResult <- typeMap
+		}
+	}()
+
 	storageInfo := StorageInfo{}
 	stmt := `select name, pgsize from dbstat where
 	name != 'sqlite_schema'
@@ -219,9 +230,11 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
 		return nil, err
 	}
 
-	typeMap, err := getTypeMap(url, token)
-	if err != nil {
+	var typeMap map[string]string
+	select {
+	case err := <-typeMapError:
 		return nil, err
+	case typeMap = <-typeMapResult:
 	}
 
 	errs := []string{}
