@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"io"
 	"net/http"
 	"net/url"
@@ -75,14 +76,12 @@ var showCmd = &cobra.Command{
 
 		versions := [](chan string){}
 		urls := []string{}
-		httpUrls := []string{}
 		for idx, instance := range instances {
 			urls = append(urls, getInstanceUrl(config, &db, &instance))
-			httpUrls = append(httpUrls, getInstanceHttpUrl(config, &db, &instance))
 			versions = append(versions, make(chan string, 1))
-			go func(idx int) {
-				versions[idx] <- fetchInstanceVersion(httpUrls[idx])
-			}(idx)
+			go func(idx int, client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
+				versions[idx] <- fetchInstanceVersion(client, config, db, instance)
+			}(idx, client, config, &db, &instance)
 		}
 
 		data := [][]string{}
@@ -103,7 +102,17 @@ var showCmd = &cobra.Command{
 	},
 }
 
-func fetchInstanceVersion(baseUrl string) string {
+func fetchInstanceVersion(client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) string {
+	baseUrl := getInstanceHttpUrlWithoutAuth(config, db, instance)
+
+	token, err := tokenFromDb(db, client)
+	if err != nil {
+		return fmt.Sprintf("fetch failed: %s", err)
+	}
+
+	if token == "" {
+		baseUrl = getInstanceHttpUrl(config, db, instance)
+	}
 	url, err := url.Parse(baseUrl)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
@@ -112,6 +121,9 @@ func fetchInstanceVersion(baseUrl string) string {
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
+	}
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

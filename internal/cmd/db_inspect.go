@@ -99,7 +99,7 @@ var dbInspectCmd = &cobra.Command{
 }
 
 func inspect(url, token string, location string, detailed bool) (*InspectInfo, error) {
-	rowsRead, err := inspectCompute(url, detailed, location)
+	rowsRead, err := inspectCompute(url, token, detailed, location)
 	if err != nil {
 		rowsRead = 0
 	}
@@ -113,8 +113,15 @@ func inspect(url, token string, location string, detailed bool) (*InspectInfo, e
 	}, nil
 }
 
-func inspectCompute(url string, detailed bool, location string) (uint64, error) {
-	resp, err := http.Get(url + "/v1/stats")
+func inspectCompute(url, token string, detailed bool, location string) (uint64, error) {
+	req, err := http.NewRequest("GET", url+"/v1/stats", nil)
+	if err != nil {
+		return 0, err
+	}
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return 0, err
 	}
