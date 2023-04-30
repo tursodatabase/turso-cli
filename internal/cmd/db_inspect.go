@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"net/http"
 	"strings"
@@ -85,12 +86,25 @@ var dbInspectCmd = &cobra.Command{
 		}
 
 		inspectRet := InspectInfo{}
+		g := errgroup.Group{}
+		results := make(chan *InspectInfo, len(instances))
 		for _, instance := range instances {
-			url := getInstanceHttpUrl(config, &db, &instance)
-			ret, err := inspect(url, token, instance.Region, verboseFlag)
-			if err != nil {
-				return err
-			}
+			loopInstance := instance
+			g.Go(func() error {
+				url := getInstanceHttpUrl(config, &db, &loopInstance)
+				ret, err := inspect(url, token, loopInstance.Region, verboseFlag)
+				if err != nil {
+					return err
+				}
+				results <- ret
+				return nil
+			})
+		}
+		if err := g.Wait(); err != nil {
+			return err
+		}
+		for range instances {
+			ret := <-results
 			inspectRet.Accumulate(ret)
 		}
 		inspectRet.show()
@@ -99,14 +113,19 @@ var dbInspectCmd = &cobra.Command{
 }
 
 func inspect(url, token string, location string, detailed bool) (*InspectInfo, error) {
-	rowsRead, err := inspectCompute(url, token, detailed, location)
-	if err != nil {
-		rowsRead = 0
-	}
+	inspectComputeResult := make(chan uint64)
+	go func() {
+		rowsRead, err := inspectCompute(url, token, detailed, location)
+		if err != nil {
+			rowsRead = 0
+		}
+		inspectComputeResult <- rowsRead
+	}()
 	storageInfo, err := inspectStorage(url, token, detailed, location)
 	if err != nil {
 		return nil, err
 	}
+	rowsRead := <-inspectComputeResult
 	return &InspectInfo{
 		StorageInfo:   *storageInfo,
 		RowsReadCount: rowsRead,
@@ -139,19 +158,7 @@ func inspectCompute(url, token string, detailed bool, location string) (uint64, 
 	return results.RowsReadCount, nil
 }
 
-func inspectStorage(url, token string, detailed bool, location string) (*StorageInfo, error) {
-	storageInfo := StorageInfo{}
-	stmt := `select name, pgsize from dbstat where
-	name != 'sqlite_schema'
-        and name != '_litestream_seq'
-        and name != '_litestream_lock'
-        and name != 'libsql_wasm_func_table'
-	order by pgsize desc, name asc`
-	resp, err := doQuery(url, token, stmt)
-	if err != nil {
-		return nil, err
-	}
-
+func getTypeMap(url, token string) (map[string]string, error) {
 	typeStmt := `select name, type from sqlite_schema where
 	name != 'sqlite_schema'
         and name != '_litestream_seq'
@@ -161,31 +168,14 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
 	if err != nil {
 		return nil, err
 	}
-
-	defer resp.Body.Close()
 	defer respType.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error: %s", string(body))
-	}
-
 	bodyType, err := io.ReadAll(respType.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	if respType.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error: %s", string(body))
-	}
-
-	var results []QueryResult
-	if err := json.Unmarshal(body, &results); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %s", string(bodyType))
 	}
 
 	var typeResults []QueryResult
@@ -200,6 +190,56 @@ func inspectStorage(url, token string, detailed bool, location string) (*Storage
 				typeMap[row[0].(string)] = row[1].(string)
 			}
 		}
+	}
+
+	return typeMap, nil
+}
+
+func inspectStorage(url, token string, detailed bool, location string) (*StorageInfo, error) {
+	typeMapResult := make(chan map[string]string)
+	typeMapError := make(chan error)
+	go func() {
+		typeMap, err := getTypeMap(url, token)
+		if err != nil {
+			typeMapError <- err
+		} else {
+			typeMapResult <- typeMap
+		}
+	}()
+
+	storageInfo := StorageInfo{}
+	stmt := `select name, pgsize from dbstat where
+	name != 'sqlite_schema'
+        and name != '_litestream_seq'
+        and name != '_litestream_lock'
+        and name != 'libsql_wasm_func_table'
+	order by pgsize desc, name asc`
+	resp, err := doQuery(url, token, stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error: %s", string(body))
+	}
+
+	var results []QueryResult
+	if err := json.Unmarshal(body, &results); err != nil {
+		return nil, err
+	}
+
+	var typeMap map[string]string
+	select {
+	case err := <-typeMapError:
+		return nil, err
+	case typeMap = <-typeMapResult:
 	}
 
 	errs := []string{}
