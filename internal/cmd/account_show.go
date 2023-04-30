@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -37,6 +38,8 @@ var accountShowCmd = &cobra.Command{
 		numDatabases := len(databases)
 		numLocations := 0
 		inspectRet := InspectInfo{}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// FIXME: this should be done at the server so we can enforce it
 		for _, database := range databases {
 			numLocations += len(database.Regions)
@@ -52,7 +55,7 @@ var accountShowCmd = &cobra.Command{
 
 			for _, instance := range instances {
 				url := getInstanceHttpUrl(settings, &database, &instance)
-				ret, err := inspect(context.Background(), url, token, instance.Region, false)
+				ret, err := inspect(ctx, url, token, instance.Region, false)
 				if err != nil {
 					return err
 				}
