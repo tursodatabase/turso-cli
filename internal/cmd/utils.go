@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -288,4 +290,33 @@ func isSQLiteFile(file *os.File) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func fetchLatestVersion() (string, error) {
+	client, err := createUnauthenticatedTursoClient()
+	if err != nil {
+		return "", err
+	}
+	resp, err := client.Get("/releases/latest", nil)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error getting latest release: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var versionResp struct {
+		Version string `json:"latest"`
+	}
+	if err := json.Unmarshal(body, &versionResp); err != nil {
+		return "", err
+	}
+	if len(versionResp.Version) == 0 {
+		return "", fmt.Errorf("got empty version for latest release")
+	}
+	return versionResp.Version, nil
 }
