@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -118,7 +120,9 @@ func fetchInstanceVersion(client *turso.Client, config *settings.Settings, db *t
 		return fmt.Sprintf("fetch failed: %s", err)
 	}
 	url.Path = path.Join(url.Path, "/version")
-	req, err := http.NewRequest("GET", url.String(), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
 	}

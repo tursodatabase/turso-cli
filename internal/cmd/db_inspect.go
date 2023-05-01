@@ -120,7 +120,7 @@ var dbInspectCmd = &cobra.Command{
 }
 
 func inspect(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {
-	inspectComputeResult := make(chan uint64)
+	inspectComputeResult := make(chan uint64, 1)
 	go func() {
 		rowsRead, err := inspectCompute(ctx, url, token, detailed, location)
 		if err != nil {
