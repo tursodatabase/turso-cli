@@ -63,6 +63,10 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 		dbSettings := config.GetDatabaseSettings(database.ID)
+		if dbSettings == nil {
+			// Backwards compatibility with old settings files.
+			dbSettings = config.GetDatabaseSettings(database.Name)
+		}
 		password := dbSettings.Password
 
 		instanceName := ""
