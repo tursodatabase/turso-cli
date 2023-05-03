@@ -109,9 +109,7 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 	c.Assert(output, qt.Contains, "replica     ams")
 	primaryPattern := "primary     waw"
 	start := strings.Index(output, primaryPattern) + len(primaryPattern)
-	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
-	start = start + strings.Index(output[start:], " ")
-	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
+	start = start + strings.Index(output[start:], "libsql://")
 	end := start + strings.Index(output[start:], " ")
 	primaryUrl := output[start:end]
 	output, err = turso(configPath, "db", "show", dbName, "--instance-url", replicaName)
