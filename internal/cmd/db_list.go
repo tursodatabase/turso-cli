@@ -1,14 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 )
 
 func init() {
@@ -49,36 +45,14 @@ var listCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-
-			inspectRet := InspectInfo{}
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			g, ctx := errgroup.WithContext(ctx)
-			results := make(chan *InspectInfo, len(instances))
-			for _, instance := range instances {
-				loopInstance := instance
-				g.Go(func() error {
-					url := getInstanceHttpUrl(settings, &database, &loopInstance)
-					ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
-					if err != nil {
-						return err
-					}
-					results <- ret
-					return nil
-				})
+			var size string
+			sizeInfo, err := calculateInstancesUsedSize(instances, settings, database, token)
+			if err != nil {
+				size = fmt.Sprintf("fetching size failed: %s", err)
+			} else {
+				size = sizeInfo.PrintTotal()
 			}
-			if err := g.Wait(); err != nil {
-				if errors.Is(err, context.DeadlineExceeded) {
-					return fmt.Errorf("timeout while inspecting database. It's possible that this database is too old and does not support inspecting or one of the instances is not reachable")
-				}
-				return err
-			}
-			for range instances {
-				ret := <-results
-				inspectRet.Accumulate(ret)
-			}
-
-			data = append(data, []string{database.Name, regions, url, inspectRet.PrintTotal()})
+			data = append(data, []string{database.Name, regions, url, size})
 		}
 		printTable([]string{"Name", "Locations", "URL", "Size"}, data)
 		settings.SetDbNamesCache(extractDatabaseNames(databases))

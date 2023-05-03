@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -85,45 +83,13 @@ var showCmd = &cobra.Command{
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		versions := [](chan string){}
-		urls := []string{}
-		inspectRet := InspectInfo{}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		g, ctx := errgroup.WithContext(ctx)
-		results := make(chan *InspectInfo, len(instances))
-		for idx, instance := range instances {
-			urls = append(urls, getInstanceUrl(config, &db, &instance))
-			versions = append(versions, make(chan string, 1))
-			go func(idx int, client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
-				versions[idx] <- fetchInstanceVersion(client, config, db, instance)
-			}(idx, client, config, &db, &instance)
-			loopInstance := instance
-			g.Go(func() error {
-				url := getInstanceHttpUrl(config, &db, &loopInstance)
-				ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
-				if err != nil {
-					return err
-				}
-				results <- ret
-				return nil
-			})
-		}
-		if err := g.Wait(); err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				return fmt.Errorf("timeout while inspecting database. It's possible that this database is too old and does not support inspecting or one of the instances is not reachable")
-			}
-			return err
-		}
-		for range instances {
-			ret := <-results
-			inspectRet.Accumulate(ret)
-		}
+		instancesInfo := getInstancesInfo(client, instances, config, db, token)
+
 		data := [][]string{}
 		for idx, instance := range instances {
-			version := <-versions[idx]
+			version := <-instancesInfo.versions[idx]
 			if showInstanceUrlsFlag {
-				data = append(data, []string{instance.Name, instance.Type, instance.Region, version, urls[idx]})
+				data = append(data, []string{instance.Name, instance.Type, instance.Region, version, instancesInfo.urls[idx]})
 			} else {
 				data = append(data, []string{instance.Name, instance.Type, instance.Region, version})
 			}
@@ -133,7 +99,7 @@ var showCmd = &cobra.Command{
 		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
-		fmt.Println("Size:          ", inspectRet.PrintTotal())
+		fmt.Println("Size:          ", instancesInfo.size)
 		fmt.Println()
 		fmt.Print("Database Instances:\n")
 		if showInstanceUrlsFlag {
