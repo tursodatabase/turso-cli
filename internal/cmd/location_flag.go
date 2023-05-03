@@ -1,6 +1,9 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
+)
 
 var locationFlag string
 
@@ -11,6 +14,7 @@ func addLocationFlag(cmd *cobra.Command, desc string) {
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return getRegionIds(client), cobra.ShellCompDirectiveNoFileComp
+		locations, _ := locations(client)
+		return maps.Keys(locations), cobra.ShellCompDirectiveNoFileComp
 	})
 }

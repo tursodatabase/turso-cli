@@ -45,11 +45,11 @@ var createCmd = &cobra.Command{
 			return err
 		}
 		region := locationFlag
-		if region != "" && !isValidRegion(client, region) {
+		if region != "" && !isValidLocation(client, region) {
 			return fmt.Errorf("location '%s' is not a valid one", region)
 		}
 		if region == "" {
-			region = probeClosestRegion()
+			region, _ = closestLocation(client)
 		}
 		var image string
 		if canary {
@@ -58,7 +58,7 @@ var createCmd = &cobra.Command{
 			image = "latest"
 		}
 		start := time.Now()
-		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
+		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
 
 		dbFile, err := getDbFile(fromFileFlag)
 		if err != nil {
