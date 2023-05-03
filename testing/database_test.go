@@ -210,6 +210,7 @@ func turso(configPath *string, args ...string) (string, error) {
 		}
 		args = newArgs
 	}
+	args = append(args, "--no-multiple-token-sources-warning")
 	cmd = exec.Command("../cmd/turso/turso", args...)
 	output, err := cmd.CombinedOutput()
 	return string(output), err

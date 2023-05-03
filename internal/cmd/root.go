@@ -26,5 +26,9 @@ func init() {
 	if err := viper.BindPFlag("config-path", rootCmd.PersistentFlags().Lookup("config-path")); err != nil {
 		fmt.Fprintf(os.Stderr, "error binding token flag: %s", err)
 	}
+	rootCmd.PersistentFlags().Bool("no-multiple-token-sources-warning", false, "Don't warn about multiple access token sources")
+	if err := viper.BindPFlag("no-multiple-token-sources-warning", rootCmd.PersistentFlags().Lookup("no-multiple-token-sources-warning")); err != nil {
+		fmt.Fprintf(os.Stderr, "error binding token flag: %s", err)
+	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }

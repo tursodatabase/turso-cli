@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"os"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
@@ -128,7 +129,7 @@ func getAccessToken(warnMultipleAccessTokenSources bool) (string, error) {
 	}
 	settingsToken := settings.GetToken()
 
-	if envToken != "" && settingsToken != "" && warnMultipleAccessTokenSources {
+	if !viper.GetBool("no-multiple-token-sources-warning") && envToken != "" && settingsToken != "" && warnMultipleAccessTokenSources {
 		fmt.Printf("Warning: User logged in as %s but TURSO_API_TOKEN environment variable is set so proceeding to use it instead", settings.GetUsername())
 	}
 	if envToken != "" {
