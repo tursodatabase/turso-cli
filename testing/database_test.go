@@ -221,7 +221,7 @@ func TestMain(m *testing.M) {
 	if len(os.Getenv("TURSO_API_TOKEN")) == 0 {
 		output, err := turso(nil, "auth", "token")
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Unable to run turso auth token", err)
 		}
 		if strings.Contains(output, "no user logged in") {
 			log.Fatal("Tests need a user to be logged in or TURSO_API_TOKEN env variable needs to be set")
