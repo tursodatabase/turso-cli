@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 )
@@ -68,10 +69,14 @@ func (t *Client) do(method, path string, body io.Reader) (*http.Response, error)
 	if err != nil {
 		return nil, err
 	}
+	b, _ := httputil.DumpRequest(req, true)
+	fmt.Println(string(b))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
+	b, _ = httputil.DumpResponse(resp, true)
+	fmt.Println(string(b))
 	return resp, nil
 }
 
