@@ -62,12 +62,6 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		dbSettings := config.GetDatabaseSettings(database.ID)
-		if dbSettings == nil {
-			// Backwards compatibility with old settings files.
-			dbSettings = config.GetDatabaseSettings(database.Name)
-		}
-		password := dbSettings.Password
 
 		instanceName := ""
 		if len(args) > 2 {
@@ -77,7 +71,7 @@ var replicateCmd = &cobra.Command{
 		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
 		s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
 		start := time.Now()
-		_, err = client.Instances.Create(dbName, instanceName, password, region, image)
+		_, err = client.Instances.Create(dbName, instanceName, region, image)
 		s.Stop()
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)
