@@ -80,22 +80,30 @@ func (s *Settings) InvalidateDbNamesCache() {
 }
 
 const REGIONS_CACHE_KEY = "locations"
-const DEFAULT_REGION_CACHE_KEY = "defaultLocation"
 const REGIONS_CACHE_TTL_SECONDS = 8 * 60 * 60
 
-func (s *Settings) SetLocationsCache(locations map[string]string, closest string) {
+func (s *Settings) SetLocationsCache(locations map[string]string) {
 	setCache(REGIONS_CACHE_KEY, REGIONS_CACHE_TTL_SECONDS, locations)
-	setCache(DEFAULT_REGION_CACHE_KEY, REGIONS_CACHE_TTL_SECONDS, closest)
 }
 
-func (s *Settings) LocationsCache() (map[string]string, string) {
+func (s *Settings) LocationsCache() map[string]string {
 	locations, err := getCache[map[string]string](REGIONS_CACHE_KEY)
 	if err != nil {
-		return nil, ""
+		return nil
 	}
-	defaultLocation, err := getCache[string](DEFAULT_REGION_CACHE_KEY)
+	return locations
+}
+
+const CLOSEST_LOCATION_CACHE_KEY = "closestLocation"
+
+func (s *Settings) SetClosestLocationCache(closest string) {
+	setCache(CLOSEST_LOCATION_CACHE_KEY, REGIONS_CACHE_TTL_SECONDS, closest)
+}
+
+func (s *Settings) ClosestLocationCache() string {
+	defaultLocation, err := getCache[string](CLOSEST_LOCATION_CACHE_KEY)
 	if err != nil {
-		return nil, ""
+		return ""
 	}
-	return locations, defaultLocation
+	return defaultLocation
 }
