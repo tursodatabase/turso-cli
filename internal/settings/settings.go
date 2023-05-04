@@ -2,8 +2,6 @@ package settings
 
 import (
 	"errors"
-	"fmt"
-	"os"
 
 	"github.com/kirsle/configdir"
 	"github.com/mitchellh/mapstructure"
@@ -16,14 +14,23 @@ type DatabaseSettings struct {
 	Password string `json:"Password"`
 }
 
-type Settings struct{}
+type Settings struct {
+	changed bool
+}
+
+var settings *Settings
 
 func ReadSettings() (*Settings, error) {
+	if settings != nil {
+		return settings, nil
+	}
+
 	configPath := configdir.LocalConfig("turso")
 	configPathFlag := viper.GetString("config-path")
 	if len(configPathFlag) > 0 {
 		configPath = configPathFlag
 	}
+
 	err := configdir.MakePath(configPath)
 	if err != nil {
 		return nil, err
@@ -42,17 +49,22 @@ func ReadSettings() (*Settings, error) {
 			return nil, err
 		}
 	}
-	return &Settings{}, nil
+
+	settings = &Settings{}
+	return settings, nil
+}
+
+func PersistChanges() {
+	if settings.changed {
+		viper.WriteConfig()
+	}
 }
 
 func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
 	databases := viper.GetStringMap("databases")
 	databases[id] = dbSettings
 	viper.Set("databases", databases)
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
-	}
+	s.changed = true
 }
 
 func (s *Settings) RegisterUse(cmd string) bool {
@@ -63,20 +75,13 @@ func (s *Settings) RegisterUse(cmd string) bool {
 	}
 	commands[cmd] = true
 	viper.Set("usedCommands", commands)
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
-	}
+	s.changed = true
 	return firstTime
 }
 
-func (s *Settings) SetOrganization(org string) error {
+func (s *Settings) SetOrganization(org string) {
 	viper.Set("organization", org)
-	err := viper.WriteConfig()
-	if err != nil {
-		return fmt.Errorf("error saving select org to local settings: %w", err)
-	}
-	return nil
+	s.changed = true
 }
 
 func (s *Settings) Organization() string {
@@ -90,11 +95,8 @@ func (s *Settings) DeleteDatabase(name string) {
 		mapstructure.Decode(rawSettings, &settings)
 		if settings.Name == name {
 			delete(databases, id)
+			s.changed = true
 		}
-	}
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
 	}
 }
 
@@ -120,21 +122,22 @@ func (s *Settings) SetDatabasePassword(id string, password string) error {
 	settings.Password = password
 	databases[id] = settings
 	viper.Set("databases", databases)
-	return viper.WriteConfig()
+	s.changed = true
+	return nil
 }
 
-func (s *Settings) SetToken(token string) error {
+func (s *Settings) SetToken(token string) {
 	viper.Set("token", token)
-	return viper.WriteConfig()
+	s.changed = true
 }
 
 func (s *Settings) GetToken() string {
 	return viper.GetString("token")
 }
 
-func (s *Settings) SetUsername(username string) error {
+func (s *Settings) SetUsername(username string) {
 	viper.Set("username", username)
-	return viper.WriteConfig()
+	s.changed = true
 }
 
 func (s *Settings) GetUsername() string {

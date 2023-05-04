@@ -167,15 +167,9 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 
 		server.Shutdown(context.Background())
 
-		err = settings.SetToken(jwt)
-		if err != nil {
-			return fmt.Errorf("error persisting token on local config: %w", err)
-		}
+		settings.SetToken(jwt)
+		settings.SetUsername(username)
 
-		err = settings.SetUsername(username)
-		if err != nil {
-			return fmt.Errorf("error persisting username on local config: %w", err)
-		}
 		fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 		firstTime := settings.RegisterUse("auth_login")

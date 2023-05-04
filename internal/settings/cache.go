@@ -28,6 +28,7 @@ func setCache[T any](key string, ttl int64, value T) error {
 		entry.Expiration = time.Now().Unix() + ttl
 	}
 	viper.Set(cacheKey(key), entry)
+	settings.changed = true
 	return nil
 }
 
@@ -55,6 +56,7 @@ func invalidateCache(key string) error {
 	if err := viper.ReadConfig(bytes.NewReader(encodedConfig)); err != nil {
 		return err
 	}
+	settings.changed = true
 	return nil
 }
 
