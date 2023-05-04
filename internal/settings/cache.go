@@ -24,10 +24,7 @@ func cacheKey(key string) string {
 }
 
 func setCache[T any](key string, ttl int64, value T) error {
-	exp := int64(0)
-	if ttl > 0 {
-		exp = time.Now().Unix() + ttl
-	}
+	exp := time.Now().Unix() + ttl
 	return setCacheWithExp(key, exp, value)
 }
 
@@ -46,7 +43,7 @@ func getCache[T any](key string) (T, error) {
 		return entry.Data, fmt.Errorf("failed to get cache data for %s", key)
 	}
 
-	if entry.Expiration != 0 && entry.Expiration < time.Now().Unix() {
+	if entry.Expiration < time.Now().Unix() {
 		return entry.Data, ErrExpired
 	}
 
@@ -125,8 +122,5 @@ func (s *Settings) SetTokenValidCache(token string, exp int64) {
 func (s *Settings) TokenValidCache(token string) bool {
 	key := TOKEN_VALID_CACHE_KEY_PREFIX + strings.ReplaceAll(token, ".", "_")
 	ok, err := getCache[bool](key)
-	if err != nil {
-		return false
-	}
-	return ok
+	return err == nil && ok
 }
