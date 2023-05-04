@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -23,10 +24,16 @@ func cacheKey(key string) string {
 }
 
 func setCache[T any](key string, ttl int64, value T) error {
-	entry := Entry[T]{Data: value}
+	exp := int64(0)
 	if ttl > 0 {
-		entry.Expiration = time.Now().Unix() + ttl
+		exp = time.Now().Unix() + ttl
 	}
+	return setCacheWithExp(key, exp, value)
+}
+
+func setCacheWithExp[T any](key string, exp int64, value T) error {
+	entry := Entry[T]{Data: value}
+	entry.Expiration = exp
 	viper.Set(cacheKey(key), entry)
 	settings.changed = true
 	return nil
@@ -106,4 +113,20 @@ func (s *Settings) ClosestLocationCache() string {
 		return ""
 	}
 	return defaultLocation
+}
+
+const TOKEN_VALID_CACHE_KEY_PREFIX = "token_valid."
+
+func (s *Settings) SetTokenValidCache(token string, exp int64) {
+	key := TOKEN_VALID_CACHE_KEY_PREFIX + strings.ReplaceAll(token, ".", "_")
+	setCacheWithExp(key, exp, true)
+}
+
+func (s *Settings) TokenValidCache(token string) bool {
+	key := TOKEN_VALID_CACHE_KEY_PREFIX + strings.ReplaceAll(token, ".", "_")
+	ok, err := getCache[bool](key)
+	if err != nil {
+		return false
+	}
+	return ok
 }

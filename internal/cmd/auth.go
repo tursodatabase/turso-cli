@@ -92,12 +92,20 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
+	settings, _ := settings.ReadSettings()
+	if settings.TokenValidCache(token) {
+		return true
+	}
 	client, err := tursoClient(token)
 	if err != nil {
 		return false
 	}
-	resp, err := client.Get("/v2/validate/token", nil)
-	return err == nil && resp.StatusCode == http.StatusOK
+	exp, err := client.Tokens.Validate(token)
+	if err != nil {
+		return false
+	}
+	settings.SetTokenValidCache(token, exp)
+	return true
 }
 
 func signup(cmd *cobra.Command, args []string) error {
