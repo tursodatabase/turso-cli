@@ -102,7 +102,7 @@ func createReplica(c *qt.C, dbName string, configPath *string, replicaName strin
 }
 
 func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, tablePrefix string, replicaName string) {
-	output, err := turso(configPath, "db", "show", dbName)
+	output, err := turso(configPath, "db", "show", dbName, "--instance-urls")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Locations:      ams, waw")
 	c.Assert(output, qt.Contains, "primary     waw")
