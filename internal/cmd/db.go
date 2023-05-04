@@ -132,19 +132,33 @@ func getHost() string {
 }
 
 func locations(client *turso.Client) (map[string]string, error) {
+	settings, _ := settings.ReadSettings()
+	if locations, _ := settings.LocationsCache(); locations != nil {
+		return locations, nil
+	}
+
 	data, err := client.Locations.Get()
 	if err != nil {
 		return nil, err
 	}
+
+	settings.SetLocationsCache(data.Locations, data.Default)
 	return data.Locations, nil
 }
 
 func closestLocation(client *turso.Client) (string, error) {
+	settings, _ := settings.ReadSettings()
+	if _, closest := settings.LocationsCache(); closest != "" {
+		return closest, nil
+	}
+
 	data, err := client.Locations.Get()
 	if err != nil {
 		// We fallback to ams if we are unable to probe the closest location.
 		return "ams", err
 	}
+
+	settings.SetLocationsCache(data.Locations, data.Default)
 	return data.Default, nil
 }
 
