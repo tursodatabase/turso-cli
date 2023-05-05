@@ -27,39 +27,33 @@ var createCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+		name, err := getDatabaseName(args)
+		if err != nil {
+			return err
+		}
+
 		config, err := settings.ReadSettings()
 		if err != nil {
 			return err
 		}
-		name := ""
-		if len(args) == 0 || args[0] == "" {
-			rng, err := codename.DefaultRNG()
-			if err != nil {
-				return err
-			}
-			name = codename.Generate(rng, 0)
-		} else {
-			name = args[0]
-		}
+
 		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
+
 		region := locationFlag
-		if region != "" && !isValidLocation(client, region) {
-			return fmt.Errorf("location '%s' is not a valid one", region)
-		}
 		if region == "" {
 			region, _ = closestLocation(client)
 		}
-		var image string
+		if !isValidLocation(client, region) {
+			return fmt.Errorf("location '%s' is not a valid one", region)
+		}
+
+		image := "latest"
 		if canary {
 			image = "canary"
-		} else {
-			image = "latest"
 		}
-		start := time.Now()
-		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
 
 		dbFile, err := getDbFile(fromFileFlag)
 		if err != nil {
@@ -70,7 +64,9 @@ var createCmd = &cobra.Command{
 		if fromFileFlag != "" {
 			dbText = fmt.Sprintf(" from file %s", internal.Emph(fromFileFlag))
 		}
+		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
 
+		start := time.Now()
 		description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
@@ -79,6 +75,7 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
+
 		dbSettings := settings.DatabaseSettings{
 			Name:     res.Database.Name,
 			Username: res.Username,
@@ -123,11 +120,13 @@ var createCmd = &cobra.Command{
 		fmt.Printf("   turso db show %s\n\n", name)
 		config.AddDatabase(res.Database.ID, &dbSettings)
 		config.InvalidateDbNamesCache()
+
 		firstTime := config.RegisterUse("db_create")
 		if firstTime {
 			fmt.Printf("✏️  Now that you created a database, the next step is to create a replica. Why don't we try?\n\t%s\n\t%s\n",
 				internal.Emph("turso db locations"), internal.Emph(fmt.Sprintf("turso db replicate %s [location]", name)))
 		}
+
 		return nil
 	},
 }
@@ -160,4 +159,16 @@ func getDbFile(path string) (*os.File, error) {
 	}
 
 	return f, nil
+}
+
+func getDatabaseName(args []string) (string, error) {
+	if len(args) > 0 && len(args[0]) > 0 {
+		return args[0], nil
+	}
+
+	rng, err := codename.DefaultRNG()
+	if err != nil {
+		return "", err
+	}
+	return codename.Generate(rng, 0), nil
 }
