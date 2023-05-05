@@ -17,6 +17,7 @@ func init() {
 	addCanaryFlag(createCmd)
 	addDbFromFileFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
+	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
 }
 
 var createCmd = &cobra.Command{
@@ -104,7 +105,7 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		if dbFile != nil {
+		if waitFlag || dbFile != nil {
 			description = fmt.Sprintf("Waiting for database %s to be ready", internal.Emph(name))
 			spinner.Text(description)
 			if err = client.Instances.Wait(name, instance.Name); err != nil {
