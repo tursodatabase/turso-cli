@@ -71,8 +71,8 @@ var createCmd = &cobra.Command{
 		}
 
 		description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
-		bar := prompt.Spinner(description)
-		defer bar.Stop()
+		spinner := prompt.Spinner(description)
+		defer spinner.Stop()
 
 		res, err := client.Databases.Create(name, region, image)
 		if err != nil {
@@ -86,18 +86,24 @@ var createCmd = &cobra.Command{
 
 		if dbFile != nil {
 			defer dbFile.Close()
+			description = fmt.Sprintf("Uploading database file %s", internal.Emph(fromFileFlag))
+			spinner.Text(description)
+
 			err := client.Databases.Seed(name, dbFile)
 			if err != nil {
 				client.Databases.Delete(name)
 				return fmt.Errorf("could not create database %s: %w", name, err)
 			}
+
+			description = fmt.Sprintf("Finishing creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
+			spinner.Text(description)
 		}
 
 		if _, err = client.Instances.Create(name, "", region, image); err != nil {
 			return err
 		}
 
-		bar.Stop()
+		spinner.Stop()
 		elapsed := time.Since(start)
 		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(regionText), int(elapsed.Seconds()))
 
