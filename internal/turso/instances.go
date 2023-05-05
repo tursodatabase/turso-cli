@@ -42,7 +42,7 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 }
 
 func (i *InstancesClient) Delete(db, instance string) error {
-	url := i.URL(db, instance)
+	url := i.URL(db, "/"+instance)
 	r, err := i.client.Delete(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to destroy instances %s of %s: %s", instance, db, err)
@@ -106,7 +106,7 @@ func (d *InstancesClient) Create(dbName, instanceName, region, image string) (*I
 }
 
 func (i *InstancesClient) Wait(db, instance string) error {
-	url := i.URL(db, instance+"/wait")
+	url := i.URL(db, "/"+instance+"/wait")
 	r, err := i.client.Get(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to wait for instance %s to of %s be ready: %s", instance, db, err)
@@ -140,5 +140,5 @@ func (d *InstancesClient) URL(database, suffix string) string {
 	if d.client.org != "" {
 		prefix = "/v1/organizations/" + d.client.org
 	}
-	return fmt.Sprintf("%s/databases/%s/instances/%s", prefix, database, suffix)
+	return fmt.Sprintf("%s/databases/%s/instances%s", prefix, database, suffix)
 }
