@@ -95,12 +95,21 @@ var createCmd = &cobra.Command{
 				return fmt.Errorf("could not create database %s: %w", name, err)
 			}
 
-			description = fmt.Sprintf("Finishing creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
+			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
 			spinner.Text(description)
 		}
 
-		if _, err = client.Instances.Create(name, "", region, image); err != nil {
+		instance, err := client.Instances.Create(name, "", region, image)
+		if err != nil {
 			return err
+		}
+
+		if dbFile != nil {
+			description = fmt.Sprintf("Waiting for database %s to be ready", internal.Emph(name))
+			spinner.Text(description)
+			if err = client.Instances.Wait(name, instance.Name); err != nil {
+				return err
+			}
 		}
 
 		spinner.Stop()
