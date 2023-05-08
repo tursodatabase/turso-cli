@@ -24,6 +24,7 @@ type Client struct {
 	Databases     *DatabasesClient
 	Feedback      *FeedbackClient
 	Organizations *OrganizationsClient
+	ApiTokens     *ApiTokensClient
 	Locations     *LocationsClient
 	Tokens        *TokensClient
 }
@@ -41,6 +42,7 @@ func New(base *url.URL, token string, cliVersion string, org string) *Client {
 	c.Databases = (*DatabasesClient)(c.base)
 	c.Feedback = (*FeedbackClient)(c.base)
 	c.Organizations = (*OrganizationsClient)(c.base)
+	c.ApiTokens = (*ApiTokensClient)(c.base)
 	c.Locations = (*LocationsClient)(c.base)
 	c.Tokens = (*TokensClient)(c.base)
 	return c

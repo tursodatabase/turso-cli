@@ -41,7 +41,7 @@ func extractDatabaseNames(databases []turso.Database) []string {
 }
 
 func fetchDatabaseNames(client *turso.Client) []string {
-	databases, err := getDatabases(client)
+	databases, err := client.Databases.List()
 	if err != nil {
 		return []string{}
 	}
@@ -49,7 +49,7 @@ func fetchDatabaseNames(client *turso.Client) []string {
 }
 
 func getDatabase(client *turso.Client, name string) (turso.Database, error) {
-	databases, err := getDatabases(client)
+	databases, err := client.Databases.List()
 	if err != nil {
 		return turso.Database{}, err
 	}
@@ -75,10 +75,6 @@ func getDatabaseNames(client *turso.Client) []string {
 	names := fetchDatabaseNames(client)
 	settings.SetDbNamesCache(names)
 	return names
-}
-
-func getDatabases(client *turso.Client) ([]turso.Database, error) {
-	return client.Databases.List()
 }
 
 func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

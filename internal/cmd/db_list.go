@@ -26,7 +26,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		databases, err := getDatabases(client)
+		databases, err := client.Databases.List()
 		if err != nil {
 			return err
 		}

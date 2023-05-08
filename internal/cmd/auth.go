@@ -79,12 +79,21 @@ var tokenCmd = &cobra.Command{
 	},
 }
 
+var apiTokensCmd = &cobra.Command{
+	Use:   "api-tokens",
+	Short: "Manage your API tokens",
+	Long: "" +
+		"API tokens are revocable non-expiring tokens that authenticate holders as the user who created them.\n" +
+		"They can be used to implement automations with the " + internal.Emph("turso") + " CLI or the platform API.",
+}
+
 func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.AddCommand(signupCmd)
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(logoutCmd)
 	authCmd.AddCommand(tokenCmd)
+	authCmd.AddCommand(apiTokensCmd)
 	loginCmd.Flags().BoolVar(&headlessFlag, "headless", false, "Show access token on the website instead of updating the CLI.")
 }
 
@@ -185,7 +194,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		if err != nil {
 			return err
 		}
-		dbs, err := getDatabases(client)
+		dbs, err := client.Databases.List()
 		if firstTime && err == nil && len(dbs) == 0 {
 			fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
 		}

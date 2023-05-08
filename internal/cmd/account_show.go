@@ -32,7 +32,7 @@ var accountShowCmd = &cobra.Command{
 			return err
 		}
 
-		databases, err := getDatabases(client)
+		databases, err := client.Databases.List()
 		if err != nil {
 			return err
 		}
