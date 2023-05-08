@@ -60,6 +60,10 @@ func (m *spinner) Stop() {
 	<-m.done
 }
 
+func (m *spinner) Text(t string) {
+	m.suffix = t
+}
+
 func (m *spinner) Start() {
 	go func() {
 		tea.NewProgram(m).Run()

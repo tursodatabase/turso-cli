@@ -14,6 +14,7 @@ import (
 func init() {
 	dbCmd.AddCommand(replicateCmd)
 	addCanaryFlag(replicateCmd)
+	addWaitFlag(replicateCmd, "Wait for the replica to be ready to receive requests.")
 }
 
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -73,11 +74,20 @@ var replicateCmd = &cobra.Command{
 		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
 		s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
 		start := time.Now()
-		_, err = client.Instances.Create(dbName, instanceName, region, image)
-		s.Stop()
+		instance, err := client.Instances.Create(dbName, instanceName, region, image)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)
 		}
+
+		if waitFlag {
+			description := fmt.Sprintf("Waiting for replica of %s in %s to be ready", internal.Emph(dbName), internal.Emph(regionText))
+			s.Text(description)
+			if err = client.Instances.Wait(dbName, instance.Name); err != nil {
+				return err
+			}
+		}
+
+		s.Stop()
 		end := time.Now()
 		elapsed := end.Sub(start)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(regionText), int(elapsed.Seconds()))
