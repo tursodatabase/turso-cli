@@ -71,15 +71,8 @@ var createCmd = &cobra.Command{
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
 
-		res, err := client.Databases.Create(name, region, image)
-		if err != nil {
+		if _, err := client.Databases.Create(name, region, image); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
-		}
-
-		dbSettings := settings.DatabaseSettings{
-			Name:     res.Database.Name,
-			Username: res.Username,
-			Password: res.Password,
 		}
 
 		if dbFile != nil {
@@ -118,7 +111,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("   turso db shell %s\n\n", name)
 		fmt.Printf("To see information about the database, including a connection URL, run:\n\n")
 		fmt.Printf("   turso db show %s\n\n", name)
-		config.AddDatabase(res.Database.ID, &dbSettings)
+
 		config.InvalidateDbNamesCache()
 
 		firstTime := config.RegisterUse("db_create")

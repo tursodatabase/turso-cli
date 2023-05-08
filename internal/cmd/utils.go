@@ -72,43 +72,27 @@ func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others
 }
 
 func getDatabaseUrl(settings *settings.Settings, db *turso.Database, password bool) string {
-	return getUrl(settings, db, nil, "libsql", password)
+	return getUrl(settings, db, nil, "libsql")
 }
 
 func getInstanceUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "libsql", false)
+	return getUrl(settings, db, inst, "libsql")
 }
 
 func getDatabaseHttpUrl(settings *settings.Settings, db *turso.Database) string {
-	return getUrl(settings, db, nil, "https", true)
+	return getUrl(settings, db, nil, "https")
 }
 
 func getInstanceHttpUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "https", true)
+	return getUrl(settings, db, inst, "https")
 }
 
-func getInstanceHttpUrlWithoutAuth(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "https", false)
-}
-
-func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string, password bool) string {
-	dbSettings := settings.GetDatabaseSettings(db.ID)
-	if dbSettings == nil {
-		// Backwards compatibility with old settings files.
-		dbSettings = settings.GetDatabaseSettings(db.Name)
-	}
-
+func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string) string {
 	host := db.Hostname
 	if inst != nil {
 		host = inst.Hostname
 	}
-
-	user := ""
-	if password && dbSettings != nil {
-		user = fmt.Sprintf("%s:%s@", dbSettings.Username, dbSettings.Password)
-	}
-
-	return fmt.Sprintf("%s://%s%s", scheme, user, host)
+	return fmt.Sprintf("%s://%s", scheme, host)
 }
 
 func getDatabaseRegions(db turso.Database) string {
@@ -159,7 +143,6 @@ func destroyDatabase(client *turso.Client, name string) error {
 		settings.InvalidateDbNamesCache()
 	}
 
-	settings.DeleteDatabase(name)
 	return nil
 }
 

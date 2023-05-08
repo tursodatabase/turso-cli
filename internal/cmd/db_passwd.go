@@ -5,7 +5,6 @@ import (
 	"syscall"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -30,15 +29,6 @@ var changePasswordCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		db, err := getDatabase(client, args[0])
-		if err != nil {
-			return err
-		}
-
-		config, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
 
 		var newPassword string
 		if len(passwordFlag) > 0 {
@@ -59,10 +49,7 @@ var changePasswordCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = config.SetDatabasePassword(db.ID, newPassword)
-		if err != nil {
-			return fmt.Errorf("password changed but failed to persist in locally. Please retry. Error: %s", err)
-		}
+
 		fmt.Println("Password changed succesfully!")
 		return nil
 	},

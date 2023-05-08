@@ -113,16 +113,13 @@ var showCmd = &cobra.Command{
 }
 
 func fetchInstanceVersion(client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) string {
-	baseUrl := getInstanceHttpUrlWithoutAuth(config, db, instance)
+	baseUrl := getInstanceHttpUrl(config, db, instance)
 
 	token, err := tokenFromDb(db, client)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
 	}
 
-	if token == "" {
-		baseUrl = getInstanceHttpUrl(config, db, instance)
-	}
 	url, err := url.Parse(baseUrl)
 	if err != nil {
 		return fmt.Sprintf("fetch failed: %s", err)
