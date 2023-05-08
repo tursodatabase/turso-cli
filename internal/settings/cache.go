@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -23,10 +24,13 @@ func cacheKey(key string) string {
 }
 
 func setCache[T any](key string, ttl int64, value T) error {
+	exp := time.Now().Unix() + ttl
+	return setCacheWithExp(key, exp, value)
+}
+
+func setCacheWithExp[T any](key string, exp int64, value T) error {
 	entry := Entry[T]{Data: value}
-	if ttl > 0 {
-		entry.Expiration = time.Now().Unix() + ttl
-	}
+	entry.Expiration = exp
 	viper.Set(cacheKey(key), entry)
 	settings.changed = true
 	return nil
@@ -39,7 +43,7 @@ func getCache[T any](key string) (T, error) {
 		return entry.Data, fmt.Errorf("failed to get cache data for %s", key)
 	}
 
-	if entry.Expiration != 0 && entry.Expiration < time.Now().Unix() {
+	if entry.Expiration < time.Now().Unix() {
 		return entry.Data, ErrExpired
 	}
 
@@ -106,4 +110,17 @@ func (s *Settings) ClosestLocationCache() string {
 		return ""
 	}
 	return defaultLocation
+}
+
+const TOKEN_VALID_CACHE_KEY_PREFIX = "token_valid."
+
+func (s *Settings) SetTokenValidCache(token string, exp int64) {
+	key := TOKEN_VALID_CACHE_KEY_PREFIX + strings.ReplaceAll(token, ".", "_")
+	setCacheWithExp(key, exp, true)
+}
+
+func (s *Settings) TokenValidCache(token string) bool {
+	key := TOKEN_VALID_CACHE_KEY_PREFIX + strings.ReplaceAll(token, ".", "_")
+	ok, err := getCache[bool](key)
+	return err == nil && ok
 }
