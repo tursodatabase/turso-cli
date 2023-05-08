@@ -44,6 +44,11 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
+		token, err := client.Databases.Token(db.Name, "1d", true)
+		if err != nil {
+			return err
+		}
+
 		config, err := settings.ReadSettings()
 		if err != nil {
 			return err
@@ -78,21 +83,13 @@ var showCmd = &cobra.Command{
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		versions := [](chan string){}
-		urls := []string{}
-		for idx, instance := range instances {
-			urls = append(urls, getInstanceUrl(config, &db, &instance))
-			versions = append(versions, make(chan string, 1))
-			go func(idx int, client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
-				versions[idx] <- fetchInstanceVersion(client, config, db, instance)
-			}(idx, client, config, &db, &instance)
-		}
+		instancesInfo := getInstancesInfo(client, instances, config, db, token)
 
 		data := [][]string{}
 		for idx, instance := range instances {
-			version := <-versions[idx]
+			version := <-instancesInfo.versions[idx]
 			if showInstanceUrlsFlag {
-				data = append(data, []string{instance.Name, instance.Type, instance.Region, version, urls[idx]})
+				data = append(data, []string{instance.Name, instance.Type, instance.Region, version, instancesInfo.urls[idx]})
 			} else {
 				data = append(data, []string{instance.Name, instance.Type, instance.Region, version})
 			}
@@ -102,6 +99,7 @@ var showCmd = &cobra.Command{
 		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
+		fmt.Println("Size:          ", instancesInfo.size)
 		fmt.Println()
 		fmt.Print("Database Instances:\n")
 		if showInstanceUrlsFlag {
