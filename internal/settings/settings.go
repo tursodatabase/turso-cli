@@ -1,18 +1,9 @@
 package settings
 
 import (
-	"errors"
-
 	"github.com/kirsle/configdir"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
-
-type DatabaseSettings struct {
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Password string `json:"Password"`
-}
 
 type Settings struct {
 	changed bool
@@ -60,13 +51,6 @@ func PersistChanges() {
 	}
 }
 
-func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
-	databases := viper.GetStringMap("databases")
-	databases[id] = dbSettings
-	viper.Set("databases", databases)
-	s.changed = true
-}
-
 func (s *Settings) RegisterUse(cmd string) bool {
 	commands := viper.GetStringMap("usedCommands")
 	firstTime := true
@@ -86,44 +70,6 @@ func (s *Settings) SetOrganization(org string) {
 
 func (s *Settings) Organization() string {
 	return viper.GetString("organization")
-}
-
-func (s *Settings) DeleteDatabase(name string) {
-	databases := viper.GetStringMap("databases")
-	for id, rawSettings := range databases {
-		settings := DatabaseSettings{}
-		mapstructure.Decode(rawSettings, &settings)
-		if settings.Name == name {
-			delete(databases, id)
-			s.changed = true
-		}
-	}
-}
-
-func (s *Settings) GetDatabaseSettings(id string) *DatabaseSettings {
-	databases := viper.GetStringMap("databases")
-	rawSettings, ok := databases[id]
-	if !ok {
-		return nil
-	}
-	settings := DatabaseSettings{}
-	mapstructure.Decode(rawSettings, &settings)
-	return &settings
-}
-
-func (s *Settings) SetDatabasePassword(id string, password string) error {
-	databases := viper.GetStringMap("databases")
-	rawSettings, ok := databases[id]
-	if !ok {
-		return errors.New("database not found")
-	}
-	settings := DatabaseSettings{}
-	mapstructure.Decode(rawSettings, &settings)
-	settings.Password = password
-	databases[id] = settings
-	viper.Set("databases", databases)
-	s.changed = true
-	return nil
 }
 
 func (s *Settings) SetToken(token string) {
