@@ -3,13 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"golang.org/x/sync/errgroup"
-	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
@@ -33,6 +33,11 @@ var accountShowCmd = &cobra.Command{
 		}
 
 		databases, err := client.Databases.List()
+		if err != nil {
+			return err
+		}
+
+		userInfo, err := client.Users.GetUser()
 		if err != nil {
 			return err
 		}
@@ -88,7 +93,7 @@ var accountShowCmd = &cobra.Command{
 			inspectRet.Accumulate(ret)
 		}
 
-		fmt.Printf("You are currently on %s plan.\n", internal.Emph("starter"))
+		fmt.Printf("You are currently on %s plan.\n", internal.Emph(userInfo.Plan))
 		fmt.Println()
 
 		columns := make([]interface{}, 0)
@@ -101,10 +106,12 @@ var accountShowCmd = &cobra.Command{
 		columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
 		tbl.WithFirstColumnFormatter(columnFmt)
 
-		tbl.AddRow("storage", inspectRet.PrintTotal(), humanize.IBytes(8*1024*1024*1024))
+		planInfo := getPlanInfo(PlanType(userInfo.Plan))
+
+		tbl.AddRow("storage", inspectRet.PrintTotal(), planInfo.maxStorage)
 		tbl.AddRow("rows read", inspectRet.RowsReadCount, fmt.Sprintf("%d", int(1e9)))
-		tbl.AddRow("databases", numDatabases, "3")
-		tbl.AddRow("locations", numLocations, "3")
+		tbl.AddRow("databases", numDatabases, planInfo.maxDatabases)
+		tbl.AddRow("locations", numLocations, planInfo.maxLocation)
 		tbl.Print()
 
 		return nil
