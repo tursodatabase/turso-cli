@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -21,6 +22,7 @@ func init() {
 	dbCmd.AddCommand(showCmd)
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
 	showCmd.Flags().BoolVar(&showBasicAuthFlag, "basic-auth", false, "Show basic authentication in the URL.")
+	showCmd.Flags().BoolVar(&showInstanceUrlsFlag, "instance-urls", false, "Show URL for the HTTP API of all existing instances")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
 	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstanceName)
@@ -38,6 +40,11 @@ var showCmd = &cobra.Command{
 			return err
 		}
 		db, err := getDatabase(client, args[0])
+		if err != nil {
+			return err
+		}
+
+		token, err := client.Databases.Token(db.Name, "1d", true)
 		if err != nil {
 			return err
 		}
@@ -76,29 +83,30 @@ var showCmd = &cobra.Command{
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		versions := [](chan string){}
-		urls := []string{}
-		for idx, instance := range instances {
-			urls = append(urls, getInstanceUrl(config, &db, &instance))
-			versions = append(versions, make(chan string, 1))
-			go func(idx int, client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
-				versions[idx] <- fetchInstanceVersion(client, config, db, instance)
-			}(idx, client, config, &db, &instance)
-		}
+		instancesInfo := getInstancesInfo(client, instances, config, db, token)
 
 		data := [][]string{}
 		for idx, instance := range instances {
-			version := <-versions[idx]
-			data = append(data, []string{instance.Name, instance.Type, instance.Region, version, urls[idx]})
+			version := <-instancesInfo.versions[idx]
+			if showInstanceUrlsFlag {
+				data = append(data, []string{instance.Name, instance.Type, instance.Region, version, instancesInfo.urls[idx]})
+			} else {
+				data = append(data, []string{instance.Name, instance.Type, instance.Region, version})
+			}
 		}
 
 		fmt.Println("Name:          ", db.Name)
 		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
+		fmt.Println("Size:          ", instancesInfo.size)
 		fmt.Println()
 		fmt.Print("Database Instances:\n")
-		printTable([]string{"Name", "Type", "Location", "Version", "URL"}, data)
+		if showInstanceUrlsFlag {
+			printTable([]string{"Name", "Type", "Location", "Version", "URL"}, data)
+		} else {
+			printTable([]string{"Name", "Type", "Location", "Version"}, data)
+		}
 
 		return nil
 	},

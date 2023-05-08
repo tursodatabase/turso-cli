@@ -2,9 +2,6 @@ package settings
 
 import (
 	"errors"
-	"fmt"
-	"os"
-	"time"
 
 	"github.com/kirsle/configdir"
 	"github.com/mitchellh/mapstructure"
@@ -17,14 +14,23 @@ type DatabaseSettings struct {
 	Password string `json:"Password"`
 }
 
-type Settings struct{}
+type Settings struct {
+	changed bool
+}
+
+var settings *Settings
 
 func ReadSettings() (*Settings, error) {
+	if settings != nil {
+		return settings, nil
+	}
+
 	configPath := configdir.LocalConfig("turso")
 	configPathFlag := viper.GetString("config-path")
 	if len(configPathFlag) > 0 {
 		configPath = configPathFlag
 	}
+
 	err := configdir.MakePath(configPath)
 	if err != nil {
 		return nil, err
@@ -43,64 +49,14 @@ func ReadSettings() (*Settings, error) {
 			return nil, err
 		}
 	}
-	return &Settings{}, nil
+
+	settings = &Settings{}
+	return settings, nil
 }
 
-const DB_NAMES_CACHE_KEY = "cached_db_names"
-const DB_NAMES_CACHE_TTL_SECONDS = 30 * 60
-const DB_NAMES_CACHE_VALUE_FIELD_NAME = "db_names"
-
-func (s *Settings) SetDbNamesCache(dbNames []string) {
-	setCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_VALUE_FIELD_NAME, DB_NAMES_CACHE_TTL_SECONDS, dbNames)
-}
-
-func (s *Settings) GetDbNamesCache() []string {
-	return getCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_VALUE_FIELD_NAME)
-}
-
-func (s *Settings) InvalidateDbNamesCache() {
-	invalidateCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_VALUE_FIELD_NAME)
-}
-
-const REGIONS_CACHE_KEY = "cached_region_names"
-const REGIONS_CACHE_TTL_SECONDS = 24 * 60 * 60
-const REGIONS_CACHE_VALUE_FIELD_NAME = "region_names"
-
-func (s *Settings) SetRegionsCache(regions []string) {
-	setCache(REGIONS_CACHE_KEY, REGIONS_CACHE_VALUE_FIELD_NAME, REGIONS_CACHE_TTL_SECONDS, regions)
-}
-
-func (s *Settings) GetRegionsCache() []string {
-	return getCache(REGIONS_CACHE_KEY, REGIONS_CACHE_VALUE_FIELD_NAME)
-}
-
-func setCache(cacheKey string, valueFieldName string, ttl int64, value []string) {
-	viper.Set(cacheKey+"."+valueFieldName, value)
-	viper.Set(cacheKey+".expiration_time", time.Now().Unix()+ttl)
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
-	}
-}
-
-func getCache(cacheKey string, valueFieldName string) []string {
-	expirationTime := viper.GetInt64(cacheKey + ".expiration_time")
-	if expirationTime == 0 {
-		return nil
-	}
-	if expirationTime <= time.Now().Unix() {
-		invalidateCache(cacheKey, valueFieldName)
-		return nil
-	}
-	return viper.GetStringSlice(cacheKey + "." + valueFieldName)
-}
-
-func invalidateCache(cacheKey string, valueFieldName string) {
-	viper.Set(DB_NAMES_CACHE_KEY+".expiration_time", 0)
-	viper.Set(DB_NAMES_CACHE_KEY+"."+valueFieldName, []string{})
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
+func PersistChanges() {
+	if settings.changed {
+		viper.WriteConfig()
 	}
 }
 
@@ -108,10 +64,7 @@ func (s *Settings) AddDatabase(id string, dbSettings *DatabaseSettings) {
 	databases := viper.GetStringMap("databases")
 	databases[id] = dbSettings
 	viper.Set("databases", databases)
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
-	}
+	s.changed = true
 }
 
 func (s *Settings) RegisterUse(cmd string) bool {
@@ -122,20 +75,13 @@ func (s *Settings) RegisterUse(cmd string) bool {
 	}
 	commands[cmd] = true
 	viper.Set("usedCommands", commands)
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
-	}
+	s.changed = true
 	return firstTime
 }
 
-func (s *Settings) SetOrganization(org string) error {
+func (s *Settings) SetOrganization(org string) {
 	viper.Set("organization", org)
-	err := viper.WriteConfig()
-	if err != nil {
-		return fmt.Errorf("error saving select org to local settings: %w", err)
-	}
-	return nil
+	s.changed = true
 }
 
 func (s *Settings) Organization() string {
@@ -149,11 +95,8 @@ func (s *Settings) DeleteDatabase(name string) {
 		mapstructure.Decode(rawSettings, &settings)
 		if settings.Name == name {
 			delete(databases, id)
+			s.changed = true
 		}
-	}
-	err := viper.WriteConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error saving settings: ", err)
 	}
 }
 
@@ -179,21 +122,22 @@ func (s *Settings) SetDatabasePassword(id string, password string) error {
 	settings.Password = password
 	databases[id] = settings
 	viper.Set("databases", databases)
-	return viper.WriteConfig()
+	s.changed = true
+	return nil
 }
 
-func (s *Settings) SetToken(token string) error {
+func (s *Settings) SetToken(token string) {
 	viper.Set("token", token)
-	return viper.WriteConfig()
+	s.changed = true
 }
 
 func (s *Settings) GetToken() string {
 	return viper.GetString("token")
 }
 
-func (s *Settings) SetUsername(username string) error {
+func (s *Settings) SetUsername(username string) {
 	viper.Set("username", username)
-	return viper.WriteConfig()
+	s.changed = true
 }
 
 func (s *Settings) GetUsername() string {

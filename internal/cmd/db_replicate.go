@@ -8,6 +8,7 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
 )
 
 func init() {
@@ -21,7 +22,8 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	if len(args) == 1 {
-		return getRegionIds(client), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+		locations, _ := locations(client)
+		return maps.Keys(locations), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	return dbNameArg(cmd, args, toComplete)
 }
@@ -49,7 +51,7 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if !isValidRegion(client, region) {
+		if !isValidLocation(client, region) {
 			return fmt.Errorf("invalid location ID. Run %s to see a list of valid location IDs", internal.Emph("turso db locations"))
 		}
 
@@ -62,22 +64,16 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		dbSettings := config.GetDatabaseSettings(database.ID)
-		if dbSettings == nil {
-			// Backwards compatibility with old settings files.
-			dbSettings = config.GetDatabaseSettings(database.Name)
-		}
-		password := dbSettings.Password
 
 		instanceName := ""
 		if len(args) > 2 {
 			instanceName = args[2]
 		}
 
-		regionText := fmt.Sprintf("%s (%s)", toLocation(client, region), region)
+		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
 		s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
 		start := time.Now()
-		_, err = client.Instances.Create(dbName, instanceName, password, region, image)
+		_, err = client.Instances.Create(dbName, instanceName, region, image)
 		s.Stop()
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)

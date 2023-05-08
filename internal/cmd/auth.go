@@ -3,9 +3,7 @@ package cmd
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -103,12 +101,20 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
+	settings, _ := settings.ReadSettings()
+	if settings.TokenValidCache(token) {
+		return true
+	}
 	client, err := tursoClient(token)
 	if err != nil {
 		return false
 	}
-	resp, err := client.Get("/v2/validate/token", nil)
-	return err == nil && resp.StatusCode == http.StatusOK
+	exp, err := client.Tokens.Validate(token)
+	if err != nil {
+		return false
+	}
+	settings.SetTokenValidCache(token, exp)
+	return true
 }
 
 func signup(cmd *cobra.Command, args []string) error {
@@ -178,15 +184,9 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 
 		server.Shutdown(context.Background())
 
-		err = settings.SetToken(jwt)
-		if err != nil {
-			return fmt.Errorf("error persisting token on local config: %w", err)
-		}
+		settings.SetToken(jwt)
+		settings.SetUsername(username)
 
-		err = settings.SetUsername(username)
-		if err != nil {
-			return fmt.Errorf("error persisting username on local config: %w", err)
-		}
 		fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 		firstTime := settings.RegisterUse("auth_login")
@@ -206,39 +206,11 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 
 		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", internal.Emph("Turso CLI"))
 		fmt.Printf("You're currently using version %s while latest available version is %s.\n", internal.Emph(version), internal.Emph(latestVersion))
-		fmt.Printf("Please consider updating to get new features and more stable experience.\n\n")
+		fmt.Printf("Please consider updating to get new features and more stable experience. To update:\n\n")
+		fmt.Printf("\n\t%s\n", internal.Emph("turso update"))
 	}
 
 	return nil
-}
-
-func fetchLatestVersion() (string, error) {
-	client, err := createUnauthenticatedTursoClient()
-	if err != nil {
-		return "", err
-	}
-	resp, err := client.Get("/releases/latest", nil)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error getting latest release: %s", resp.Status)
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	var versionResp struct {
-		Version string `json:"latest"`
-	}
-	if err := json.Unmarshal(body, &versionResp); err != nil {
-		return "", err
-	}
-	if len(versionResp.Version) == 0 {
-		return "", fmt.Errorf("got empty version for latest release")
-	}
-	return versionResp.Version, nil
 }
 
 func beginAuth(port int, headless bool, path string) (string, error) {

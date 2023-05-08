@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/dustin/go-humanize"
-	"github.com/rodaine/table"
-	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/dustin/go-humanize"
+	"github.com/rodaine/table"
+	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 func init() {
@@ -87,36 +89,79 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		inspectRet := InspectInfo{}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		g, ctx := errgroup.WithContext(ctx)
-		results := make(chan *InspectInfo, len(instances))
-		for _, instance := range instances {
-			loopInstance := instance
-			g.Go(func() error {
-				url := getInstanceHttpUrl(config, &db, &loopInstance)
-				ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
-				if err != nil {
-					return err
-				}
-				results <- ret
-				return nil
-			})
-		}
-		if err := g.Wait(); err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				return fmt.Errorf("timeout while inspecting database. It's possible that this database is too old and does not support inspecting or one of the instances is not reachable")
-			}
+		sizeInfo, err := calculateInstancesUsedSize(instances, config, db, token)
+		if err != nil {
 			return err
 		}
-		for range instances {
-			ret := <-results
-			inspectRet.Accumulate(ret)
-		}
-		inspectRet.show()
+
+		sizeInfo.show()
 		return nil
 	},
+}
+
+func calculateInstancesUsedSize(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
+	inspectInfo := &InspectInfo{}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
+	results := make(chan *InspectInfo, len(instances))
+	for _, instance := range instances {
+		loopInstance := instance
+		g.Go(func() error {
+			url := getInstanceHttpUrl(config, &db, &loopInstance)
+			ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
+			if err != nil {
+				return err
+			}
+			results <- ret
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return &InspectInfo{}, fmt.Errorf("timeout while inspecting database. It's possible that this database is too old and does not support inspecting or one of the instances is not reachable")
+		}
+		return &InspectInfo{}, err
+	}
+	for range instances {
+		ret := <-results
+		inspectInfo.Accumulate(ret)
+	}
+
+	return inspectInfo, nil
+}
+
+type GetInstancesInfoReturnType struct {
+	size     string
+	versions []chan string
+	urls     []string
+}
+
+func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *settings.Settings, db turso.Database, token string) GetInstancesInfoReturnType {
+	versions := [](chan string){}
+	urls := []string{}
+
+	for idx, instance := range instances {
+		urls = append(urls, getInstanceUrl(config, &db, &instance))
+		versions = append(versions, make(chan string, 1))
+		go func(idx int, client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) {
+			versions[idx] <- fetchInstanceVersion(client, config, db, instance)
+		}(idx, client, config, &db, &instance)
+	}
+
+	var size string
+	inspectInfo, err := calculateInstancesUsedSize(instances, config, db, token)
+	if err != nil {
+		size = fmt.Sprintf("fetching size failed: %s", err)
+	} else {
+		size = inspectInfo.PrintTotal()
+	}
+	instancesInfo := GetInstancesInfoReturnType{
+		size:     size,
+		versions: versions,
+		urls:     urls,
+	}
+	return instancesInfo
 }
 
 func inspect(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {

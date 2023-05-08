@@ -102,16 +102,14 @@ func createReplica(c *qt.C, dbName string, configPath *string, replicaName strin
 }
 
 func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, tablePrefix string, replicaName string) {
-	output, err := turso(configPath, "db", "show", dbName)
+	output, err := turso(configPath, "db", "show", dbName, "--instance-urls")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Contains, "Locations:      ams, waw")
 	c.Assert(output, qt.Contains, "primary     waw")
 	c.Assert(output, qt.Contains, "replica     ams")
 	primaryPattern := "primary     waw"
 	start := strings.Index(output, primaryPattern) + len(primaryPattern)
-	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
-	start = start + strings.Index(output[start:], " ")
-	start = start + strings.IndexFunc(output[start:], func(r rune) bool { return r != ' ' })
+	start = start + strings.Index(output[start:], "libsql://")
 	end := start + strings.Index(output[start:], " ")
 	primaryUrl := output[start:end]
 	output, err = turso(configPath, "db", "show", dbName, "--instance-url", replicaName)
@@ -212,6 +210,7 @@ func turso(configPath *string, args ...string) (string, error) {
 		}
 		args = newArgs
 	}
+	args = append(args, "--no-multiple-token-sources-warning")
 	cmd = exec.Command("../cmd/turso/turso", args...)
 	output, err := cmd.CombinedOutput()
 	return string(output), err
@@ -221,7 +220,7 @@ func TestMain(m *testing.M) {
 	if len(os.Getenv("TURSO_API_TOKEN")) == 0 {
 		output, err := turso(nil, "auth", "token")
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Unable to run turso auth token", err)
 		}
 		if strings.Contains(output, "no user logged in") {
 			log.Fatal("Tests need a user to be logged in or TURSO_API_TOKEN env variable needs to be set")

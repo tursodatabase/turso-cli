@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
@@ -28,13 +30,31 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		data := [][]string{}
 		for _, database := range databases {
 			url := getDatabaseUrl(settings, &database, false)
 			regions := getDatabaseRegions(database)
-			data = append(data, []string{database.Name, regions, url})
+
+			instances, err := client.Instances.List(database.Name)
+			if err != nil {
+				return err
+			}
+
+			token, err := client.Databases.Token(database.Name, "1d", true)
+			if err != nil {
+				return err
+			}
+			var size string
+			sizeInfo, err := calculateInstancesUsedSize(instances, settings, database, token)
+			if err != nil {
+				size = fmt.Sprintf("fetching size failed: %s", err)
+			} else {
+				size = sizeInfo.PrintTotal()
+			}
+			data = append(data, []string{database.Name, regions, url, size})
 		}
-		printTable([]string{"Name", "Locations", "URL"}, data)
+		printTable([]string{"Name", "Locations", "URL", "Size"}, data)
 		settings.SetDbNamesCache(extractDatabaseNames(databases))
 		return nil
 	},
