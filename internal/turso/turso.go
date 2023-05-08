@@ -27,6 +27,7 @@ type Client struct {
 	ApiTokens     *ApiTokensClient
 	Locations     *LocationsClient
 	Tokens        *TokensClient
+	Users         *UsersClient
 }
 
 // Client struct that will be aliases by all other clients
@@ -45,6 +46,7 @@ func New(base *url.URL, token string, cliVersion string, org string) *Client {
 	c.ApiTokens = (*ApiTokensClient)(c.base)
 	c.Locations = (*LocationsClient)(c.base)
 	c.Tokens = (*TokensClient)(c.base)
+	c.Users = (*UsersClient)(c.base)
 	return c
 }
 
