@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
 )
 
 func init() {
@@ -20,32 +20,39 @@ var regionsCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
 		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
-		regions, err := turso.GetRegions(client)
+		locations, err := locations(client)
 		if err != nil {
 			return err
 		}
-		defaultRegionId := probeClosestRegion()
+
+		closest, err := closestLocation(client)
+		if err != nil {
+			return err
+		}
+
+		ids := maps.Keys(locations)
+		sort.Strings(ids)
+
 		fmt.Println("ID   LOCATION")
-		for idx := range regions.Ids {
+		for _, location := range ids {
+			description := locations[location]
+
 			suffix := ""
-			if regions.Ids[idx] == defaultRegionId {
+			if location == closest {
 				suffix = "  [default]"
 			}
-			line := fmt.Sprintf("%s  %s%s", regions.Ids[idx], regions.Descriptions[idx], suffix)
-			if regions.Ids[idx] == defaultRegionId {
+
+			line := fmt.Sprintf("%s  %s%s", location, description, suffix)
+			if location == closest {
 				line = internal.Emph(line)
 			}
+
 			fmt.Printf("%s\n", line)
 		}
-		settings.SetRegionsCache(regions.Ids)
 		return nil
 	},
 }

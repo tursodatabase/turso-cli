@@ -158,9 +158,7 @@ var orgSelectCmd = &cobra.Command{
 			slug = ""
 		}
 
-		if err := settings.SetOrganization(slug); err != nil {
-			return err
-		}
+		settings.SetOrganization(slug)
 
 		fmt.Printf("Default organization set to %s.\n", internal.Emph(org.Slug))
 		fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))

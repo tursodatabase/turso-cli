@@ -179,7 +179,8 @@ func unsetOrganization() error {
 	if err != nil {
 		return err
 	}
-	return settings.SetOrganization("")
+	settings.SetOrganization("")
+	return nil
 }
 
 func isNotMemberErr(status int, org string) bool {

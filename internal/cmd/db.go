@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var showUrlFlag bool
@@ -19,25 +19,6 @@ var showInstanceUrlFlag string
 var passwordFlag string
 var yesFlag bool
 var instanceFlag string
-
-func getRegionIds(client *turso.Client) []string {
-	settings, err := settings.ReadSettings()
-	var cached_names []string
-	if err == nil {
-		cached_names = settings.GetRegionsCache()
-		if cached_names != nil {
-			return cached_names
-		}
-	}
-	regions, err := turso.GetRegions(client)
-	if err != nil {
-		return []string{}
-	}
-	if settings != nil {
-		settings.SetRegionsCache(regions.Ids)
-	}
-	return regions.Ids
-}
 
 func getInstanceNames(client *turso.Client, dbName string) []string {
 	instances, err := client.Instances.List(dbName)
@@ -151,44 +132,50 @@ func getHost() string {
 	return host
 }
 
-// The fallback region ID to use if we are unable to probe the closest location.
-const FallbackRegionId = "ams"
-
-const FallbackWarning = "Warning: we could not determine the deployment location closest to your physical location.\nThe location is defaulting to Amsterdam (ams). Consider specifying a location to select a better option using\n\n\tturso db create --location [location].\n\nRun turso db locations for a list of supported locations.\n"
-
-type Region struct {
-	Server string
-}
-
-func probeClosestRegion() string {
-	region := turso.GetDefaultRegion()
-	if region == "" {
-		return FallbackRegionId
+func locations(client *turso.Client) (map[string]string, error) {
+	settings, _ := settings.ReadSettings()
+	if locations := settings.LocationsCache(); locations != nil {
+		return locations, nil
 	}
-	return region
+
+	locations, err := client.Locations.Get()
+	if err != nil {
+		return nil, err
+	}
+
+	settings.SetLocationsCache(locations)
+	return locations, nil
 }
 
-func isValidRegion(client *turso.Client, region string) bool {
-	regionIds := getRegionIds(client)
-	if len(regionIds) == 0 {
+func closestLocation(client *turso.Client) (string, error) {
+	settings, _ := settings.ReadSettings()
+	if closest := settings.ClosestLocationCache(); closest != "" {
+		return closest, nil
+	}
+
+	closest, err := client.Locations.Closest()
+	if err != nil {
+		// We fallback to ams if we are unable to probe the closest location.
+		return "ams", err
+	}
+
+	settings.SetClosestLocationCache(closest)
+	return closest, nil
+}
+
+func isValidLocation(client *turso.Client, location string) bool {
+	locations, err := locations(client)
+	if err != nil {
 		return true
 	}
-	for _, regionId := range regionIds {
-		if region == regionId {
-			return true
-		}
-	}
-	return false
+	_, ok := locations[location]
+	return ok
 }
 
-func toLocation(client *turso.Client, regionId string) string {
-	regions, err := turso.GetRegions(client)
-	if err == nil {
-		for idx := range regions.Ids {
-			if regions.Ids[idx] == regionId {
-				return regions.Descriptions[idx]
-			}
-		}
+func locationDescription(client *turso.Client, id string) string {
+	locations, _ := locations(client)
+	if desc, ok := locations[id]; ok {
+		return desc
 	}
-	return fmt.Sprintf("Location ID: %s", regionId)
+	return fmt.Sprintf("Location ID: %s", id)
 }

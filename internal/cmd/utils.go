@@ -164,7 +164,7 @@ func destroyDatabase(client *turso.Client, name string) error {
 }
 
 func destroyDatabaseRegion(client *turso.Client, database, region string) error {
-	if !isValidRegion(client, region) {
+	if !isValidLocation(client, region) {
 		return fmt.Errorf("location '%s' is not a valid one", region)
 	}
 
