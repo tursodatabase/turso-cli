@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +32,10 @@ var createCmd = &cobra.Command{
 		name, err := getDatabaseName(args)
 		if err != nil {
 			return err
+		}
+
+		if !turso.IsValidName(name) {
+			return errors.New("invalid name: names only support lowercase letters, numbers, and hyphens")
 		}
 
 		config, err := settings.ReadSettings()
