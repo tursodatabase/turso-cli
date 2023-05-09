@@ -23,6 +23,25 @@ var revokeApiTokensCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		tokenName := args[0]
+
+		apiTokens, err := client.ApiTokens.List()
+		if err != nil {
+			return err
+		}
+
+		found := false
+		for _, apiToken := range apiTokens {
+			if apiToken.Name == tokenName {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			fmt.Println("API token not found, revocation skipped.")
+			return nil
+		}
 
 		ok, err := promptConfirmation("Are you sure you want to revoke this token?")
 		if err != nil {
@@ -33,8 +52,6 @@ var revokeApiTokensCmd = &cobra.Command{
 			fmt.Println("Revocation skipped by the user.")
 			return nil
 		}
-
-		tokenName := args[0]
 
 		s := prompt.Spinner(fmt.Sprintf("Revoking API token %s... ", internal.Emph(tokenName)))
 		defer s.Stop()
