@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +30,12 @@ var createApiTokensCmd = &cobra.Command{
 			return err
 		}
 
-		tokenName := args[0]
+		tokenName := strings.TrimSpace(args[0])
+
+		if !turso.IsValidName(tokenName) {
+			return errors.New("invalid name: names only support lowercase letters, numbers, and hyphens")
+		}
+
 		description := fmt.Sprintf("Creating api token %s", internal.Emph(tokenName))
 		bar := prompt.Spinner(description)
 		defer bar.Stop()
