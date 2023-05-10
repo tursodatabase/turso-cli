@@ -106,9 +106,8 @@ func getAccessToken(warnMultipleAccessTokenSources bool) (string, error) {
 		return "", fmt.Errorf("could not read local settings")
 	}
 	settingsToken := settings.GetToken()
-
 	if !viper.GetBool("no-multiple-token-sources-warning") && envToken != "" && settingsToken != "" && warnMultipleAccessTokenSources {
-		fmt.Printf("Warning: User logged in as %s but TURSO_API_TOKEN environment variable is set so proceeding to use it instead", settings.GetUsername())
+		fmt.Printf("Warning: User logged in as %s but TURSO_API_TOKEN environment variable is set so proceeding to use it instead\n\n", settings.GetUsername())
 	}
 	if envToken != "" {
 		return envToken, nil
