@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"unicode"
 )
 
 func unmarshal[T any](r *http.Response) (T, error) {
@@ -30,4 +31,13 @@ func parseResponseError(res *http.Response) error {
 		return fmt.Errorf("%s", result.Error)
 	}
 	return fmt.Errorf("response failed with status %s", res.Status)
+}
+
+func IsValidName(name string) bool {
+	for _, r := range name {
+		if !(unicode.IsDigit(r) || (unicode.IsLetter(r) && unicode.IsLower(r)) || r == '-') {
+			return false
+		}
+	}
+	return true
 }
