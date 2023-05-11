@@ -26,6 +26,7 @@ var authCmd = &cobra.Command{
 	Use:               "auth",
 	Short:             "Authenticate with Turso",
 	ValidArgsFunction: noSpaceArg,
+	PersistentPreRunE: verifyIfTokenIsSetInEnv,
 }
 
 var signupCmd = &cobra.Command{
@@ -284,6 +285,16 @@ func logout(cmd *cobra.Command, args []string) error {
 		settings.SetToken("")
 		settings.SetUsername("")
 		fmt.Println("Logged out.")
+	}
+
+	return nil
+}
+
+func verifyIfTokenIsSetInEnv(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
+	envToken := os.Getenv(ENV_ACCESS_TOKEN)
+	if envToken != "" {
+		return fmt.Errorf("auth commands aren't effective when a token is set in the environment variable")
 	}
 
 	return nil
