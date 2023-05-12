@@ -8,7 +8,6 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var showUrlFlag bool
@@ -106,7 +105,8 @@ func getAccessToken(warnMultipleAccessTokenSources bool) (string, error) {
 		return "", fmt.Errorf("could not read local settings")
 	}
 	settingsToken := settings.GetToken()
-	if !viper.GetBool("no-multiple-token-sources-warning") && envToken != "" && settingsToken != "" && warnMultipleAccessTokenSources {
+
+	if !noMultipleTokenSourcesWarning && envToken != "" && settingsToken != "" && warnMultipleAccessTokenSources {
 		fmt.Printf("Warning: User logged in as %s but TURSO_API_TOKEN environment variable is set so proceeding to use it instead\n\n", settings.GetUsername())
 	}
 	if envToken != "" {
