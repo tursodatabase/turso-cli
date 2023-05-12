@@ -13,7 +13,7 @@ var listApiTokensCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List API tokens.",
 	Long: "" +
-		"API tokens are revocable non-expiring tokens that authenticate holders as the user who created them.\n" +
+		"API tokens are revocable non-expiring tokens that authenticate holders as the user who minted them.\n" +
 		"They can be used to implement automations with the " + internal.Emph("turso") + " CLI or the platform API.",
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {

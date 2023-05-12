@@ -16,10 +16,10 @@ func init() {
 }
 
 var createApiTokensCmd = &cobra.Command{
-	Use:   "create api_token_name",
-	Short: "Create an API token.",
+	Use:   "mint api_token_name",
+	Short: "Mint an API token.",
 	Long: "" +
-		"API tokens are revocable non-expiring tokens that authenticate holders as the user who created them.\n" +
+		"API tokens are revocable non-expiring tokens that authenticate holders as the user who minted them.\n" +
 		"They can be used to implement automations with the " + internal.Emph("turso") + " CLI or the platform API.",
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
