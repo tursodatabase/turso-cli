@@ -76,7 +76,7 @@ var accountShowCmd = &cobra.Command{
 				instance := instance
 				g.Go(func() error {
 					url := getInstanceHttpUrl(settings, &database, &instance)
-					ret, err := inspect(ctx, url, dbTokens[idx], instance.Region, false)
+					ret, err := inspect(client, ctx, instance.Uuid, url, dbTokens[idx], instance.Region, false)
 					if err != nil {
 						return err
 					}

@@ -89,7 +89,7 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		sizeInfo, err := calculateInstancesUsedSize(instances, config, db, token)
+		sizeInfo, err := calculateInstancesUsedSize(client, instances, config, db, token)
 		if err != nil {
 			return err
 		}
@@ -99,7 +99,7 @@ var dbInspectCmd = &cobra.Command{
 	},
 }
 
-func calculateInstancesUsedSize(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
+func calculateInstancesUsedSize(client *turso.Client, instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
 	inspectInfo := &InspectInfo{}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -109,7 +109,7 @@ func calculateInstancesUsedSize(instances []turso.Instance, config *settings.Set
 		loopInstance := instance
 		g.Go(func() error {
 			url := getInstanceHttpUrl(config, &db, &loopInstance)
-			ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
+			ret, err := inspect(client, ctx, loopInstance.Uuid, url, token, loopInstance.Region, verboseFlag)
 			if err != nil {
 				return err
 			}
@@ -150,7 +150,7 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 	}
 
 	var size string
-	inspectInfo, err := calculateInstancesUsedSize(instances, config, db, token)
+	inspectInfo, err := calculateInstancesUsedSize(client, instances, config, db, token)
 	if err != nil {
 		size = fmt.Sprintf("fetching size failed: %s", err)
 	} else {
@@ -164,20 +164,16 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 	return instancesInfo
 }
 
-func inspect(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {
-	inspectComputeResult := make(chan uint64, 1)
-	go func() {
-		rowsRead, err := inspectCompute(ctx, url, token, detailed, location)
-		if err != nil {
-			rowsRead = 0
-		}
-		inspectComputeResult <- rowsRead
-	}()
+func inspect(client *turso.Client, ctx context.Context, instanceID, url, token, location string, detailed bool) (*InspectInfo, error) {
+	rowsRead, err := client.Instances.GetUsage(instanceID)
+	if err != nil {
+		return nil, err
+	}
 	storageInfo, err := inspectStorage(ctx, url, token, detailed, location)
 	if err != nil {
 		return nil, err
 	}
-	rowsRead := <-inspectComputeResult
+
 	return &InspectInfo{
 		StorageInfo:   *storageInfo,
 		RowsReadCount: rowsRead,
