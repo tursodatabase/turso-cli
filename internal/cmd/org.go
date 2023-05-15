@@ -14,7 +14,7 @@ func init() {
 	orgCmd.AddCommand(orgListCmd)
 	orgCmd.AddCommand(orgCreateCmd)
 	orgCmd.AddCommand(orgDestroyCmd)
-	orgCmd.AddCommand(orgSelectCmd)
+	orgCmd.AddCommand(orgSwitchCmd)
 	orgCmd.AddCommand(membersCmd)
 	membersCmd.AddCommand(membersListCmd)
 	membersCmd.AddCommand(membersAddCmd)
@@ -113,7 +113,7 @@ var orgDestroyCmd = &cobra.Command{
 		}
 
 		if settings.Organization() == slug {
-			return fmt.Errorf("cannot destroy current organization, please select another one first")
+			return fmt.Errorf("cannot destroy current organization, please switch to another one first")
 		}
 
 		if err = client.Organizations.Delete(slug); err != nil {
@@ -125,9 +125,9 @@ var orgDestroyCmd = &cobra.Command{
 	},
 }
 
-var orgSelectCmd = &cobra.Command{
-	Use:               "select <slug>",
-	Short:             "Select an organization as the context for your commands.",
+var orgSwitchCmd = &cobra.Command{
+	Use:               "switch <slug>",
+	Short:             "switch to an organization as the context for your commands.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
 	RunE: func(cmd *cobra.Command, args []string) error {
