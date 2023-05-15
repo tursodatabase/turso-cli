@@ -135,6 +135,26 @@ func (i *InstancesClient) Wait(db, instance string) error {
 	return nil
 }
 
+func (i *InstancesClient) GetUsage(instanceID string) (uint64, error) {
+	url := fmt.Sprintf("/v1/instances/%s/usage", instanceID)
+	res, err := i.client.Get(url, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get instance usage: %s", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("failed to get instance usage: %s", res.Status)
+	}
+
+	type GetUsageResponse struct {
+		RowsReadCount uint64 `json:"rows_read_count"`
+	}
+	resp, err := unmarshal[GetUsageResponse](res)
+
+	return resp.RowsReadCount, err
+}
+
 func (d *InstancesClient) URL(database, suffix string) string {
 	prefix := "/v1"
 	if d.client.org != "" {
