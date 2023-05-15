@@ -180,32 +180,6 @@ func inspect(client *turso.Client, ctx context.Context, instanceID, url, token, 
 	}, nil
 }
 
-func inspectCompute(ctx context.Context, url, token string, detailed bool, location string) (uint64, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/stats", nil)
-	if err != nil {
-		return 0, err
-	}
-	if token != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return 0, err
-	}
-	var results struct {
-		RowsReadCount uint64 `json:"rows_read_count"`
-	}
-	if err := json.Unmarshal(body, &results); err != nil {
-		return 0, err
-	}
-	return results.RowsReadCount, nil
-}
-
 func getTypeMap(ctx context.Context, url, token string) (map[string]string, error) {
 	typeStmt := `select name, type from sqlite_schema where
 	name != 'sqlite_schema'
