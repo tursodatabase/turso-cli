@@ -260,12 +260,13 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 	}()
 
 	storageInfo := StorageInfo{}
-	stmt := `select name, pgsize from dbstat where
-	name != 'sqlite_schema'
+	stmt := `select name, SUM(pgsize) as size from dbstat
+	where name != 'sqlite_schema'
         and name != '_litestream_seq'
         and name != '_litestream_lock'
         and name != 'libsql_wasm_func_table'
-	order by pgsize desc, name asc`
+	group by name
+	order by size desc, name asc`
 	resp, err := doQueryContext(ctx, url, token, stmt)
 	if err != nil {
 		return nil, err
