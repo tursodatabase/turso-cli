@@ -46,7 +46,7 @@ func ReadSettings() (*Settings, error) {
 }
 
 func PersistChanges() {
-	if settings.changed {
+	if settings != nil && settings.changed {
 		viper.WriteConfig()
 	}
 }
