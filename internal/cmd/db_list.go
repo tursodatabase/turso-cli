@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	"sort"
@@ -44,15 +45,31 @@ var listCmd = &cobra.Command{
 			g.Go(func() error {
 				url := getDatabaseUrl(settings, &database, false)
 				regions := getDatabaseRegions(database)
-				instances, err := client.Instances.List(database.Name)
-				if err != nil {
-					return err
-				}
+				g, _ := errgroup.WithContext(ctx)
+				instancesCh := make(chan []turso.Instance, 1)
+				g.Go(func() error {
+					instances, err := client.Instances.List(database.Name)
+					if err != nil {
+						return err
+					}
+					instancesCh <- instances
+					return nil
+				})
 
-				token, err := client.Databases.Token(database.Name, "1d", true)
-				if err != nil {
+				tokenCh := make(chan string, 1)
+				g.Go(func() error {
+					token, err := client.Databases.Token(database.Name, "1d", true)
+					if err != nil {
+						return err
+					}
+					tokenCh <- token
+					return nil
+				})
+				if err := g.Wait(); err != nil {
 					return err
 				}
+				instances := <-instancesCh
+				token := <-tokenCh
 				var size string
 				sizeInfo, err := calculateInstancesUsedSize(instances, settings, database, token)
 				if err != nil {
