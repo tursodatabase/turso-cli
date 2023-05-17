@@ -1,8 +1,6 @@
 package settings
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -50,18 +48,8 @@ func getCache[T any](key string) (T, error) {
 	return entry.Data, nil
 }
 
-func invalidateCache(key string) error {
-	configMap := viper.AllSettings()
-	delete(configMap, cacheKey(key))
-	encodedConfig, err := json.MarshalIndent(configMap, "", " ")
-	if err != nil {
-		return err
-	}
-	if err := viper.ReadConfig(bytes.NewReader(encodedConfig)); err != nil {
-		return err
-	}
-	settings.changed = true
-	return nil
+func invalidateCache[T any](key string) error {
+	return setCacheWithExp[T](key, 0, *new(T))
 }
 
 const DB_NAMES_CACHE_KEY = "database_names"
@@ -80,7 +68,7 @@ func (s *Settings) GetDbNamesCache() []string {
 }
 
 func (s *Settings) InvalidateDbNamesCache() {
-	invalidateCache(DB_NAMES_CACHE_KEY)
+	invalidateCache[[]string](DB_NAMES_CACHE_KEY)
 }
 
 const REGIONS_CACHE_KEY = "locations"
