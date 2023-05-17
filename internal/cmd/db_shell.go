@@ -1,11 +1,7 @@
 package cmd
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -16,7 +12,6 @@ import (
 	"github.com/libsql/libsql-shell-go/pkg/shell"
 	"github.com/libsql/libsql-shell-go/pkg/shell/enums"
 	"github.com/spf13/cobra"
-	"github.com/xwb1989/sqlparser"
 )
 
 func init() {
@@ -181,34 +176,4 @@ func getConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Se
 
 func addTokenAsQueryParameter(dbUrl string, token string) string {
 	return fmt.Sprintf("%s?jwt=%s", dbUrl, token)
-}
-
-type SqlError struct {
-	Message string
-}
-
-func (e *SqlError) Error() string {
-	return e.Message
-}
-
-func doQueryContext(ctx context.Context, url, token, stmt string) (*http.Response, error) {
-	stmts, err := sqlparser.SplitStatementToPieces(stmt)
-	if err != nil {
-		return nil, err
-	}
-	rawReq := QueryRequest{
-		Statements: stmts,
-	}
-	body, err := json.Marshal(rawReq)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	if token != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-	}
-	return http.DefaultClient.Do(req)
 }

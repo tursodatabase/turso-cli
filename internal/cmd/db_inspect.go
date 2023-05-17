@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"github.com/xwb1989/sqlparser"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -332,4 +334,34 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 		return nil, &SqlError{(strings.Join(errs, "; "))}
 	}
 	return &storageInfo, nil
+}
+
+type SqlError struct {
+	Message string
+}
+
+func (e *SqlError) Error() string {
+	return e.Message
+}
+
+func doQueryContext(ctx context.Context, url, token, stmt string) (*http.Response, error) {
+	stmts, err := sqlparser.SplitStatementToPieces(stmt)
+	if err != nil {
+		return nil, err
+	}
+	rawReq := QueryRequest{
+		Statements: stmts,
+	}
+	body, err := json.Marshal(rawReq)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
+	return http.DefaultClient.Do(req)
 }
