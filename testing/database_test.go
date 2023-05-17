@@ -59,7 +59,7 @@ func runSql(c *qt.C, dbName string, configPath *string) {
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	output, err = turso(configPath, "db", "shell", dbName, "select * from test")
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 }
 
 func TestDbCreation(t *testing.T) {
@@ -132,7 +132,7 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 	// Select row from test2 on primary
 	output, err = turso(configPath, "db", "shell", primaryUrl, fmt.Sprintf("select * from %s2", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 
 	// We have to give replication time to happen
 	time.Sleep(5 * time.Second)
@@ -140,16 +140,16 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 	// Select row from test on replica
 	output, err = turso(configPath, "db", "shell", replicaUrl, fmt.Sprintf("select * from %s1", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 	// Select row from test on primary
 	output, err = turso(configPath, "db", "shell", primaryUrl, fmt.Sprintf("select * from %s1", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 
 	// Select row from test2 on replica
 	output, err = turso(configPath, "db", "shell", replicaUrl, fmt.Sprintf("select * from %s2", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	c.Assert(output, qt.Equals, "A    B       \n123  foobar  \n")
+	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 }
 
 func TestDbReplication(t *testing.T) {
