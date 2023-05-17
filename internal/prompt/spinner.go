@@ -20,7 +20,7 @@ type spinner struct {
 func newSpinner(prefix, suffix string) *spinner {
 	s := spn.New()
 	s.Spinner = spn.Dot
-	return &spinner{spinner: s, prefix: prefix, suffix: suffix, done: make(chan bool)}
+	return &spinner{spinner: s, prefix: prefix, suffix: suffix}
 }
 
 func (m *spinner) Init() tea.Cmd {
@@ -57,7 +57,9 @@ func (m *spinner) View() string {
 
 func (m *spinner) Stop() {
 	m.quitting = true
-	<-m.done
+	if m.done != nil {
+		<-m.done
+	}
 }
 
 func (m *spinner) Text(t string) {
@@ -65,9 +67,13 @@ func (m *spinner) Text(t string) {
 }
 
 func (m *spinner) Start() {
+	ch := make(chan bool)
+	m.done = ch
+	m.quitting = false
+	m.cancelled = false
 	go func() {
+		defer close(ch)
 		tea.NewProgram(m).Run()
-		close(m.done)
 		if m.cancelled {
 			os.Exit(130)
 		}
