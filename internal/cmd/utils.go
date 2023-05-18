@@ -191,7 +191,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 }
 
 func destroyDatabaseInstance(client *turso.Client, database, instance string) error {
-	s := prompt.Spinner(fmt.Sprintf("Destroying instance %s s of database %s... ", instance, internal.Emph(database)))
+	s := prompt.Spinner(fmt.Sprintf("Destroying instance %s of database %s... ", instance, internal.Emph(database)))
 	defer s.Stop()
 
 	err := deleteDatabaseInstance(client, database, instance)
