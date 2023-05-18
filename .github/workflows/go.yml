@@ -16,7 +16,7 @@ jobs:
 
   build:
     environment: 'fork'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v3
 
@@ -58,7 +58,7 @@ jobs:
   integration-tests:
     needs: build
     if: github.repository == 'chiselstrike/turso-cli'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v3
 
@@ -81,7 +81,7 @@ jobs:
     needs: build
     if: github.repository != 'chiselstrike/turso-cli'
     environment: 'fork'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v3
 
