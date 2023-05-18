@@ -150,7 +150,7 @@ func databaseFromURL(dbURL string, client *turso.Client) (*turso.Database, error
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("hostname '%s' not found", parsed.Hostname())
 }
 
 func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
