@@ -4,8 +4,6 @@
 name: Go
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request_target:
     branches: [ "main" ]
 
@@ -14,12 +12,23 @@ env:
 
 jobs:
 
+  authorize:
+    environment:
+      ${{ github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name != github.repository &&
+      'external' || 'internal' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+
   build:
+    needs: authorize
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v3
       with:
-        ref: "refs/pull/${{ github.event.number }}/merge" # THIS IS INSECURE
+        ref: ${{ github.event.pull_request.head.sha || github.ref }}
+        #ref: "refs/pull/${{ github.event.number }}/merge" # THIS IS INSECURE
 
     - name: Setup Golang with cache
       uses: magnetikonline/action-golang-cache@v4
