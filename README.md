@@ -1,5 +1,7 @@
 # Turso CLI
 
+Test
+
 [![Go](https://github.com/chiselstrike/turso-cli/actions/workflows/go.yml/badge.svg)](https://github.com/chiselstrike/turso-cli/actions/workflows/go.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/chiselstrike/turso-cli/blob/main/LICENSE)
 
