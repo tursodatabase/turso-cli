@@ -9,9 +9,9 @@ import (
 
 	"database/sql"
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 	"io"
+	_ "modernc.org/sqlite"
 )
 
 func init() {
@@ -135,7 +135,7 @@ var devCmd = &cobra.Command{
 			r.Use(gin.LoggerWithWriter(io.Discard))
 		}
 
-		db, err := sql.Open("sqlite3", devFile)
+		db, err := sql.Open("sqlite", devFile)
 		if err != nil {
 			fmt.Println("Failed to connect to SQLite database:", err)
 			return err
