@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"database/sql"
@@ -182,6 +183,17 @@ type hranaBatchSuccessResponse struct {
 	Result hranaBatchResponse `json:"result"`
 }
 
+func convertValue(val hranaValue) (interface{}, error) {
+	if val.Type == "blob" {
+		return []byte(val.Base64), nil
+	} else if val.Type == "integer" {
+		return strconv.Atoi(val.Value.(string))
+	} else {
+		return val.Value, nil
+	}
+
+}
+
 func executeHranaStatement(stmt hranaStmt, db *sql.DB) (*hranaStmtResult, *hranaError) {
 	var result hranaStmtResult
 
@@ -190,11 +202,11 @@ func executeHranaStatement(stmt hranaStmt, db *sql.DB) (*hranaStmtResult, *hrana
 
 	if stmt.Args != nil {
 		for _, narg := range *stmt.Args {
-			if narg.Type == "blob" {
-				params = append(params, narg.Base64)
-			} else {
-				params = append(params, narg.Value)
+			val, err := convertValue(narg)
+			if err != nil {
+				return nil, hranaErr(err)
 			}
+			params = append(params, val)
 		}
 	}
 
@@ -205,11 +217,12 @@ func executeHranaStatement(stmt hranaStmt, db *sql.DB) (*hranaStmtResult, *hrana
 				name = name[1:]
 			}
 
-			if narg.Value.Type == "blob" {
-				params = append(params, sql.Named(name, narg.Value.Base64))
-			} else {
-				params = append(params, sql.Named(name, narg.Value.Value))
+			val, err := convertValue(narg.Value)
+			if err != nil {
+				return nil, hranaErr(err)
 			}
+
+			params = append(params, sql.Named(name, val))
 		}
 	}
 
