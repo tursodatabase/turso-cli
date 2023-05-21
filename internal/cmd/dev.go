@@ -190,13 +190,26 @@ func executeHranaStatement(stmt hranaStmt, db *sql.DB) (*hranaStmtResult, *hrana
 
 	if stmt.Args != nil {
 		for _, narg := range *stmt.Args {
-			params = append(params, narg.Value)
+			if narg.Type == "blob" {
+				params = append(params, narg.Base64)
+			} else {
+				params = append(params, narg.Value)
+			}
 		}
 	}
 
 	if stmt.NamedArgs != nil {
 		for _, narg := range *stmt.NamedArgs {
-			params = append(params, sql.Named(narg.Name, narg.Value.Value))
+			name := narg.Name
+			if strings.HasPrefix(name, ":") || strings.HasPrefix(name, "@") || strings.HasPrefix(name, "$") {
+				name = name[1:]
+			}
+
+			if narg.Value.Type == "blob" {
+				params = append(params, sql.Named(name, narg.Value.Base64))
+			} else {
+				params = append(params, sql.Named(name, narg.Value.Value))
+			}
 		}
 	}
 
