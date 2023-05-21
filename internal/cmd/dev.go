@@ -108,8 +108,9 @@ type hranaCol struct {
 }
 
 type hranaValue struct {
-	Type  string      `json:"type"`
-	Value interface{} `json:"value,omitempty"`
+	Type   string      `json:"type"`
+	Value  interface{} `json:"value,omitempty"`
+	Base64 string      `json:"base64,omitempty"`
 }
 
 type hranaNamedArg struct {
@@ -234,7 +235,7 @@ func executeHranaStatement(stmt hranaStmt, db *sql.DB) (*hranaStmtResult, *hrana
 			case float64:
 				row = append(row, hranaValue{Type: "float", Value: v})
 			case []byte:
-				row = append(row, hranaValue{Type: "blob", Value: string(v)})
+				row = append(row, hranaValue{Type: "blob", Base64: string(v)})
 			case string:
 				row = append(row, hranaValue{Type: "text", Value: v})
 			default:
