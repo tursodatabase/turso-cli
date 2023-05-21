@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"database/sql"
@@ -20,6 +21,17 @@ func init() {
 	addDevPortFlag(devCmd)
 	addDevFileFlag(devCmd)
 	addVerboseFlag(devCmd)
+}
+
+var statementRegex = regexp.MustCompile(`^\s*(?i)(INSERT|DELETE|UPDATE)\b`)
+
+// need to decide if we'll use Query or Exec
+func shouldExec(statement string, args ...interface{}) bool {
+	matches := statementRegex.FindStringSubmatch(statement)
+	if len(matches) >= 1 {
+		return true
+	}
+	return false
 }
 
 type resultSet struct {
@@ -192,57 +204,71 @@ func executeHranaStatement(stmt hranaStmt, db *sql.DB) (*hranaStmtResult, *hrana
 		fmt.Printf("Executing %s, %s\n", internal.Emph(statement), internal.Emph(params))
 	}
 
-	rows, err := db.Query(statement, params...)
-	if err != nil {
-		// FIXME: I can't get the actual SQLite error code from this
-		return nil, hranaErr(err)
-	}
-	defer rows.Close()
-
-	result.Cols = make([]hranaCol, 0)
-	columns, _ := rows.Columns()
-	if columns == nil {
-		columns = []string{}
-	}
-
-	for _, col := range columns {
-		// Consistent with the response from SQLd
-		if strings.ToLower(col) == "null" {
-			col = "NULL"
-		}
-		c := hranaCol{col}
-		result.Cols = append(result.Cols, c)
-	}
-
 	result.Rows = make([][]hranaValue, 0)
-	for rows.Next() {
-		values := make([]interface{}, len(columns))
-		pointers := make([]interface{}, len(columns))
-		for i := range values {
-			pointers[i] = &values[i]
-		}
-		err := rows.Scan(pointers...)
+	result.Cols = make([]hranaCol, 0)
+
+	if shouldExec(statement, params...) {
+		res, err := db.Exec(statement, params...)
 		if err != nil {
 			return nil, hranaErr(err)
 		}
-		row := make([]hranaValue, 0)
-		for _, val := range values {
-			switch v := val.(type) {
-			case nil:
-				row = append(row, hranaValue{Type: "null"})
-			case int64:
-				row = append(row, hranaValue{Type: "integer", Value: fmt.Sprintf("%d", v)})
-			case float64:
-				row = append(row, hranaValue{Type: "float", Value: v})
-			case []byte:
-				row = append(row, hranaValue{Type: "blob", Base64: string(v)})
-			case string:
-				row = append(row, hranaValue{Type: "text", Value: v})
-			default:
-				row = append(row, hranaValue{Type: "text", Value: v.(string)})
-			}
+		aff, _ := res.RowsAffected()
+		result.Affected = int32(aff)
+		ir, _ := res.LastInsertId()
+		irStr := fmt.Sprintf("%d", ir)
+		result.LastIR = &irStr
+
+	} else {
+		rows, err := db.Query(statement, params...)
+		if err != nil {
+			// FIXME: I can't get the actual SQLite error code from this
+			return nil, hranaErr(err)
 		}
-		result.Rows = append(result.Rows, row)
+		defer rows.Close()
+
+		columns, _ := rows.Columns()
+		if columns == nil {
+			columns = []string{}
+		}
+
+		for _, col := range columns {
+			// Consistent with the response from SQLd
+			if strings.ToLower(col) == "null" {
+				col = "NULL"
+			}
+			c := hranaCol{col}
+			result.Cols = append(result.Cols, c)
+		}
+
+		for rows.Next() {
+			values := make([]interface{}, len(columns))
+			pointers := make([]interface{}, len(columns))
+			for i := range values {
+				pointers[i] = &values[i]
+			}
+			err := rows.Scan(pointers...)
+			if err != nil {
+				return nil, hranaErr(err)
+			}
+			row := make([]hranaValue, 0)
+			for _, val := range values {
+				switch v := val.(type) {
+				case nil:
+					row = append(row, hranaValue{Type: "null"})
+				case int64:
+					row = append(row, hranaValue{Type: "integer", Value: fmt.Sprintf("%d", v)})
+				case float64:
+					row = append(row, hranaValue{Type: "float", Value: v})
+				case []byte:
+					row = append(row, hranaValue{Type: "blob", Base64: string(v)})
+				case string:
+					row = append(row, hranaValue{Type: "text", Value: v})
+				default:
+					row = append(row, hranaValue{Type: "text", Value: v.(string)})
+				}
+			}
+			result.Rows = append(result.Rows, row)
+		}
 	}
 	return &result, nil
 }
