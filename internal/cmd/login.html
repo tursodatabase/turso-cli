@@ -1,53 +1,67 @@
 <html>
   <head>
-    <title>ChiselStrike</title>
+    <title>Turso</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Login to your turso app" />
-    <link rel="stylesheet" href="{{.assetsURL}}/static/style.css" />
+    <link rel="stylesheet" href="{{.assetsURL}}/static/style.v2.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="{{.assetsURL}}/static/images/favicon.ico"
+    />
   </head>
   <body class="instructions">
-    <div class="instructions__container">
-      <header class="instructions__header">
+    <main class="login-wrapper">
+      <section class="login-section login-section--complete">
         <img
-          src="{{.assetsURL}}/static/images/logo-turso.svg"
-          alt="Turso Logo"
+          class="login-section__intro-image"
+          src="{{.assetsURL}}/static/images/logo-turso-solo.svg"
+          alt="turso"
         />
-      </header>
-      <main class="instructions__main">
-        <section class="result">
-          <img src="{{.assetsURL}}/static/images/icon-success.svg" alt="" />
-          <h1 class="result__title">Sign in Successful</h1>
-          <p class="result__desc">
-            Your credentials have been automatically generated, feel free to
-            close this window and return to your CLI.
-          </p>
-        </section>
-        <section class="steps">
-          <h2 class="steps__title">Instructions:</h2>
-          <p class="steps__paragraph">
-	    To create a database:
-          </p>
-          <p class="steps__paragraph">
-	    <b>turso db create</b>
-          </p>
-          <p class="steps__paragraph">
-            For more information on the CLI commands:
-          </p>
-          <p class="steps__paragraph">
-            <b>turso help</b>
-          </p>
-          <a class="steps__link" target="_blank" href="https://docs.turso.tech/tutorials/get-started-turso-cli/step-03-create-database"
-            >Learn more →</a
+        <div class="combo-wrapper">
+          <div class="combo">
+            <div class="combo__icon">
+              <img
+                src="{{.assetsURL}}/static/images/icon-check-negative.svg"
+                alt=""
+              />
+            </div>
+            <h1 class="combo__text combo__text--aqua text-big-bold">
+              Authentication Complete
+            </h1>
+          </div>
+        </div>
+        <p class="text-box text-body">
+          Your credentials have been automatically generated.<br />
+          You can close this window and return to your CLI.
+        </p>
+        <p class="login-section__disclaimer text-body-medium">
+          <b>We are here for you.</b> <br />
+          <a
+            class="login-section__disclaimer-link"
+            href="https://calendly.com/d/gt7-bfd-83n/meet-with-chiselstrike"
+            target="_blank"
           >
-        </section>
-      </main>
-    </div>
+            Schedule a Zoom</a
+          >
+          with us,<br />
+          or
+          <a
+            class="login-section__disclaimer-link"
+            target="_blank"
+            href="https://docs.turso.tech/tutorials/get-started-turso-cli/step-01-installation"
+          >
+            read our Docs↗</a
+          >
+        </p>
+      </section>
+    </main>
   </body>
 </html>
