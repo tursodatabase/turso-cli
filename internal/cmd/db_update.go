@@ -55,9 +55,9 @@ var dbUpdateCmd = &cobra.Command{
 func update(client *turso.Client, name string) error {
 	msg := fmt.Sprintf("Updating database %s", internal.Emph(name))
 	s := prompt.Spinner(msg)
+	defer s.Stop()
 
 	if err := client.Databases.Update(name); err != nil {
-		s.Stop()
 		return fmt.Errorf("error updating database")
 	}
 

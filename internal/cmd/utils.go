@@ -131,6 +131,7 @@ func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
 	s := prompt.Spinner(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
 	defer s.Stop()
+
 	if err := client.Databases.Delete(name); err != nil {
 		return err
 	}

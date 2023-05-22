@@ -55,6 +55,7 @@ var dbInvalidateTokensCmd = &cobra.Command{
 
 func rotate(turso *turso.Client, name string) error {
 	s := prompt.Spinner("Invalidating db auth tokens... ")
+	defer s.Stop()
 
 	if err := turso.Databases.Rotate(name); err != nil {
 		s.Stop()
