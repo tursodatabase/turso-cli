@@ -45,7 +45,7 @@ var createApiTokensCmd = &cobra.Command{
 		}
 
 		bar.Stop()
-		fmt.Println(data.Token)
+		fmt.Println(data.Value)
 		return nil
 	},
 }
