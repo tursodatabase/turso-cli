@@ -241,12 +241,26 @@ func executeSQLFile(f *os.File, config shell.ShellConfig, path string, batchSize
 			continue
 		}
 
-		err := shell.RunShellLine(config, strings.Join(batch, "\n"))
+		err := executeBatch(batch, config, path, idx, batchSize)
 		if err != nil {
-			return fmt.Errorf("error executing SQL file %s batch %d of size %d: %w", path, idx, batchSize, err)
+			return err
 		}
+
 		idx += 1
 		batch = batch[:0]
+	}
+
+	return executeBatch(batch, config, path, idx, batchSize)
+}
+
+func executeBatch(batch []string, config shell.ShellConfig, path string, idx int, batchSize int) error {
+	if len(batch) == 0 {
+		return nil
+	}
+
+	err := shell.RunShellLine(config, strings.Join(batch, "\n"))
+	if err != nil {
+		return fmt.Errorf("error executing SQL file %s batch %d of size %d: %w", path, idx, batchSize, err)
 	}
 
 	return nil
