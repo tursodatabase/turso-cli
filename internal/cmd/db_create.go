@@ -145,8 +145,8 @@ func getDbFile(path string) (*os.File, error) {
 		return nil, fmt.Errorf("can't stat %s: %w", fromFileFlag, err)
 	}
 
-	if stat.Size() > (2 << 30) {
-		return nil, fmt.Errorf("only files up to 2GiB are supported")
+	if stat.Size() > 100*(1<<20) {
+		return nil, fmt.Errorf("only files up to 100MiB are supported")
 	}
 
 	valid, err := isSQLiteFile(f)
