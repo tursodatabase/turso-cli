@@ -39,6 +39,7 @@ var createApiTokensCmd = &cobra.Command{
 		description := fmt.Sprintf("Creating api token %s", internal.Emph(tokenName))
 		bar := prompt.Spinner(description)
 		defer bar.Stop()
+
 		data, err := client.ApiTokens.Create(tokenName)
 		if err != nil {
 			return err

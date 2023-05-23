@@ -73,6 +73,8 @@ var replicateCmd = &cobra.Command{
 
 		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
 		s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
+		defer s.Stop()
+
 		start := time.Now()
 		instance, err := client.Instances.Create(dbName, instanceName, region, image)
 		if err != nil {

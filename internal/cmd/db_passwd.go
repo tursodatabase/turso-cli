@@ -44,6 +44,7 @@ var changePasswordCmd = &cobra.Command{
 
 		bar := prompt.Spinner("Changing password...")
 		defer bar.Stop()
+
 		err = client.Databases.ChangePassword(args[0], newPassword)
 		bar.Stop()
 		if err != nil {

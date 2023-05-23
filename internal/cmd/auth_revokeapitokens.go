@@ -55,6 +55,7 @@ var revokeApiTokensCmd = &cobra.Command{
 
 		s := prompt.Spinner(fmt.Sprintf("Revoking API token %s... ", internal.Emph(tokenName)))
 		defer s.Stop()
+
 		if err := client.ApiTokens.Revoke(tokenName); err != nil {
 			return err
 		}
