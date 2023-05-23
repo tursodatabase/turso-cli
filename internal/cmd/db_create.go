@@ -17,7 +17,7 @@ import (
 func init() {
 	dbCmd.AddCommand(createCmd)
 	addCanaryFlag(createCmd)
-	addDbFromFileFlag(createCmd)
+	addFromFileFlag(createCmd, "create the database from a local SQLite3-compatible file")
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
 }
