@@ -1,9 +1,15 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"net/url"
+	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt/spinner"
@@ -16,6 +22,8 @@ import (
 
 func init() {
 	dbCmd.AddCommand(shellCmd)
+	addFromFileFlag(shellCmd, "execute SQL commands from a file line by line")
+	addBatchFlag(shellCmd, "sets the size of the batch of operations executed at once when using the --from-file flag")
 }
 
 var shellCmd = &cobra.Command{
@@ -77,6 +85,11 @@ var shellCmd = &cobra.Command{
 			AfterDbConnectionCallback: func() {
 				spinner.Stop()
 			},
+		}
+
+		if fromFileFlag != "" {
+			shellConfig.AfterDbConnectionCallback = func() {}
+			return shellFromFile(fromFileFlag, batchFlag, shellConfig, spinner)
 		}
 
 		if len(args) == 2 {
@@ -176,4 +189,93 @@ func getConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Se
 
 func addTokenAsQueryParameter(dbUrl string, token string) string {
 	return fmt.Sprintf("%s?jwt=%s", dbUrl, token)
+}
+
+func shellFromFile(path string, batchSize int, shellConfig shell.ShellConfig, s *spinner.Spinner) error {
+	start := time.Now()
+
+	f, err := getSQLFile(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	total := "..."
+	lines, err := countFileLines(f)
+	if err == nil {
+		total = strconv.Itoa(lines)
+	}
+
+	err = executeSQLFile(f, shellConfig, path, batchSize, func(i int) {
+		s.Text(fmt.Sprintf("Executing SQL commands from file (%d/%s)", i, total))
+	})
+
+	if err != nil {
+		return err
+	}
+
+	s.Stop()
+	fmt.Printf("Executed all %s SQL statements from %s in %d seconds.\n", total, internal.Emph(path), int(time.Since(start).Seconds()))
+	return nil
+}
+
+func getSQLFile(path string) (*os.File, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("error opening SQL file %s: %w", path, err)
+	}
+
+	return f, nil
+}
+
+func executeSQLFile(f *os.File, config shell.ShellConfig, path string, batchSize int, update func(int)) error {
+	idx := 0
+	scanner := bufio.NewScanner(f)
+	batch := make([]string, 0, batchSize)
+	for scanner.Scan() {
+		if update != nil {
+			update(idx * batchSize)
+		}
+		batch = append(batch, scanner.Text())
+		if len(batch) < batchSize {
+			continue
+		}
+
+		err := shell.RunShellLine(config, strings.Join(batch, "\n"))
+		if err != nil {
+			return fmt.Errorf("error executing SQL file %s batch %d of size %d: %w", path, idx, batchSize, err)
+		}
+		idx += 1
+		batch = batch[:0]
+	}
+
+	return nil
+}
+
+// Derived/copied from https://stackoverflow.com/a/52153000
+func countFileLines(f *os.File) (int, error) {
+	defer f.Seek(0, 0)
+	count := 0
+	buf := make([]byte, bufio.MaxScanTokenSize)
+	for {
+		bufferSize, err := f.Read(buf)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+
+		var buffPosition int
+		for {
+			i := bytes.IndexByte(buf[buffPosition:], '\n')
+			if i == -1 || bufferSize == buffPosition {
+				break
+			}
+			buffPosition += i + 1
+			count++
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+
+	return count, nil
 }
