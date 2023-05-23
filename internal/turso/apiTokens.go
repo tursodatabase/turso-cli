@@ -32,31 +32,35 @@ func (a *ApiTokensClient) List() ([]ApiToken, error) {
 	return resp.ApiTokens, err
 }
 
-type CreateApiTokenResponse struct {
+type CreateApiToken struct {
 	Name  string `json:"name"`
 	ID    string `json:"id"`
-	Token string `json:"token"`
+	Value string `json:"value"`
 }
 
-func (a *ApiTokensClient) Create(name string) (CreateApiTokenResponse, error) {
-	url := fmt.Sprintf("/v1/auth/api-tokens/%s", name)
+func (a *ApiTokensClient) Create(name string) (CreateApiToken, error) {
+	url := fmt.Sprintf("/v2/auth/api-tokens/%s", name)
 
 	res, err := a.client.Post(url, nil)
 	if err != nil {
-		return CreateApiTokenResponse{}, fmt.Errorf("failed to create token: %s", err)
+		return CreateApiToken{}, fmt.Errorf("failed to create token: %s", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return CreateApiTokenResponse{}, parseResponseError(res)
+		return CreateApiToken{}, parseResponseError(res)
+	}
+
+	type CreateApiTokenResponse struct {
+		ApiToken CreateApiToken `json:"token"`
 	}
 
 	data, err := unmarshal[CreateApiTokenResponse](res)
 	if err != nil {
-		return CreateApiTokenResponse{}, fmt.Errorf("failed to deserialize response: %w", err)
+		return CreateApiToken{}, fmt.Errorf("failed to deserialize response: %w", err)
 	}
 
-	return data, nil
+	return data.ApiToken, nil
 }
 
 func (a *ApiTokensClient) Revoke(name string) error {
