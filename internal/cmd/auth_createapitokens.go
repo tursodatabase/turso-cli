@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +37,7 @@ var createApiTokensCmd = &cobra.Command{
 		}
 
 		description := fmt.Sprintf("Creating api token %s", internal.Emph(tokenName))
-		bar := prompt.Spinner(description)
+		bar := spinner.Start(description)
 		defer bar.Stop()
 
 		data, err := client.ApiTokens.Create(tokenName)

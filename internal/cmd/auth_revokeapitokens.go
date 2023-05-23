@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt/spinner"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +53,7 @@ var revokeApiTokensCmd = &cobra.Command{
 			return nil
 		}
 
-		s := prompt.Spinner(fmt.Sprintf("Revoking API token %s... ", internal.Emph(tokenName)))
+		s := spinner.Start(fmt.Sprintf("Revoking API token %s... ", internal.Emph(tokenName)))
 		defer s.Stop()
 
 		if err := client.ApiTokens.Revoke(tokenName); err != nil {

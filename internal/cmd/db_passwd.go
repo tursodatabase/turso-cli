@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt/spinner"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -42,7 +42,7 @@ var changePasswordCmd = &cobra.Command{
 			newPassword = string(bytePassword)
 		}
 
-		bar := prompt.Spinner("Changing password...")
+		bar := spinner.Start("Changing password...")
 		defer bar.Stop()
 
 		err = client.Databases.ChangePassword(args[0], newPassword)

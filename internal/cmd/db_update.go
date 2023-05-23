@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -54,7 +54,7 @@ var dbUpdateCmd = &cobra.Command{
 
 func update(client *turso.Client, name string) error {
 	msg := fmt.Sprintf("Updating database %s", internal.Emph(name))
-	s := prompt.Spinner(msg)
+	s := spinner.Start(msg)
 	defer s.Stop()
 
 	if err := client.Databases.Update(name); err != nil {

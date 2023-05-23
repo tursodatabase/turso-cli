@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/olekukonko/tablewriter"
@@ -129,7 +129,7 @@ func printTable(header []string, data [][]string) {
 
 func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
-	s := prompt.Spinner(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
+	s := spinner.Start(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
 	defer s.Stop()
 
 	if err := client.Databases.Delete(name); err != nil {
@@ -152,7 +152,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 		return fmt.Errorf("location '%s' is not a valid one", region)
 	}
 
-	s := prompt.Spinner(fmt.Sprintf("Destroying region %s of database %s... ", internal.Emph(region), internal.Emph(database)))
+	s := spinner.Start(fmt.Sprintf("Destroying region %s of database %s... ", internal.Emph(region), internal.Emph(database)))
 	defer s.Stop()
 
 	db, err := getDatabase(client, database)
@@ -192,7 +192,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 }
 
 func destroyDatabaseInstance(client *turso.Client, database, instance string) error {
-	s := prompt.Spinner(fmt.Sprintf("Destroying instance %s of database %s... ", instance, internal.Emph(database)))
+	s := spinner.Start(fmt.Sprintf("Destroying instance %s of database %s... ", instance, internal.Emph(database)))
 	defer s.Stop()
 
 	err := deleteDatabaseInstance(client, database, instance)

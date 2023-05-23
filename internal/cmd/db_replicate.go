@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt/spinner"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
@@ -72,7 +72,7 @@ var replicateCmd = &cobra.Command{
 		}
 
 		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
-		s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
+		s := spinner.Start(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
 		defer s.Stop()
 
 		start := time.Now()
