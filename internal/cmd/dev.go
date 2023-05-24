@@ -1,206 +1,85 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"syscall"
 
-	"database/sql"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
-	"io"
-	_ "modernc.org/sqlite"
 )
 
 func init() {
 	rootCmd.AddCommand(devCmd)
 	addDevPortFlag(devCmd)
 	addDevFileFlag(devCmd)
-	addVerboseFlag(devCmd)
-}
-
-type resultSet struct {
-	Columns []string        `json:"columns"`
-	Rows    [][]interface{} `json:"rows"`
-}
-
-type statementSuccessResponse struct {
-	Results resultSet `json:"results"`
-}
-
-type errorResponse struct {
-	Error struct {
-		Message string `json:"message"`
-	} `json:"error"`
-}
-
-type statement struct {
-	Query  string `json:"q"`
-	Params []interface{}
-}
-
-func (s statement) String() string {
-	var buf bytes.Buffer
-	buf.WriteString(s.Query)
-	buf.WriteString("; ")
-	jsonData, err := json.Marshal(s.Params)
-	if err != nil {
-		panic("can't convert json data from params")
-	}
-	buf.WriteString(string(jsonData))
-	return buf.String()
-}
-
-type statementList struct {
-	Statements []statement `json:"statements"`
-}
-
-func (s *statement) UnmarshalJSON(data []byte) error {
-	var query interface{}
-	err := json.Unmarshal(data, &query)
-	if err != nil {
-		return err
-	}
-
-	switch q := query.(type) {
-	case string:
-		s.Query = q
-	case map[string]interface{}:
-		qValue, ok := q["q"].(string)
-		if !ok {
-			return fmt.Errorf("invalid JSON: 'q' field is missing or not a string")
-		}
-		s.Query = qValue
-
-		switch p := q["params"].(type) {
-		case []interface{}:
-			s.Params = p
-		case map[string]interface{}:
-			var named []interface{}
-			for k, v := range p {
-				named = append(named, sql.Named(k, v))
-			}
-			s.Params = named
-		}
-	}
-
-	return nil
-}
-
-func errorJson(e error) []errorResponse {
-	return []errorResponse{
-		{
-			Error: struct {
-				Message string `json:"message"`
-			}{
-				Message: e.Error(),
-			},
-		},
-	}
 }
 
 var devCmd = &cobra.Command{
 	Use:               "dev",
 	Short:             "starts a local development server for Turso",
+	Long:              fmt.Sprintf("starts a local development server for Turso.\n\nIf you're using a libSQL client SDK that supports SQLite database files on the local filesystem, then you might not need this server at all.\nInstead, you can use a %s URL with the path to the file you want the SDK to read and write.", internal.Emph("file:")),
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		port := fmt.Sprintf(":%d", devPort)
-		var filename string
-		var dbLocation string
-		if devFile == "" {
-			filename = "file:somefile.db"
-			devFile = ":memory:"
-			dbLocation = internal.Emph("in-memory")
-		} else {
-			filename = fmt.Sprintf("file:%s", devFile)
-			dbLocation = fmt.Sprintf("at %s", internal.Emph(devFile))
-		}
 
-		fmt.Printf("%s In particular, some Turso features are currently not present in local-server mode:\n", internal.Warn("This is experimental:"))
-		fmt.Printf("%s extensions.\n", internal.Warn("→  "))
-		fmt.Printf("%s interactive transactions/libsql-based URLs.\n", internal.Warn("→  "))
-		fmt.Println()
-		fmt.Printf("For environments where a filesystem is available:\n")
-		fmt.Printf("%s use %s as a URL. This server is not needed. (Ctrl-C)\n", internal.Emph("→  "), internal.Emph(filename))
-		fmt.Printf("For all others environments:\n")
-		fmt.Printf("%s Database is %s. Connect to %s%s.\n", internal.Emph("→  "), dbLocation, internal.Emph("http://localhost"), internal.Emph(port))
-
-		gin.SetMode(gin.ReleaseMode)
-		r := gin.New()
-		if !verboseFlag {
-			r.Use(gin.LoggerWithWriter(io.Discard))
-		}
-
-		db, err := sql.Open("sqlite", devFile)
+		tempDir, err := os.MkdirTemp("", "*tursodev")
 		if err != nil {
-			fmt.Println("Failed to connect to SQLite database:", err)
+			return fmt.Errorf("Error creating temporary directory: %w", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		if devFile != "" {
+			absDevFile, err := filepath.Abs(devFile)
+			if err != nil {
+				return fmt.Errorf("Error getting absolute path: %w", err)
+			}
+			destFile := filepath.Join(tempDir, "data")
+			err = os.Symlink(absDevFile, destFile)
+			if err != nil {
+				return fmt.Errorf("Error creating link to file: %w", err)
+			}
+		}
+
+		addr := fmt.Sprintf("0.0.0.0:%d", devPort)
+		conn := fmt.Sprintf("ws://127.0.0.1:%d", devPort)
+
+		sqld := exec.Command("sqld", "--no-welcome", "--http-listen-addr", addr, "-d", tempDir)
+		sqld.Env = append(os.Environ(), "RUST_LOG=error")
+
+		// Set the appropriate output and error streams for the server process
+		sqld.Stdout = os.Stdout
+		sqld.Stderr = os.Stderr
+
+		// Start the server process
+		err = sqld.Start()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s.\no install it, follow the instructions at %s.\nAlso make sure %s is on your PATH\n", internal.Warn("Could not start libsql-server"),
+				internal.Emph("https://github.com/libsql/sqld/blob/main/docs/BUILD-RUN.md"),
+				internal.Emph("sqld"))
 			return err
 		}
-		defer db.Close()
+		fmt.Printf("%s sqld listening on port %s. Use this URL to configure your libSQL client SDK for local development: %s\n\n",
+			internal.Emph("→  "), internal.Emph(devPort), internal.Emph(conn))
 
-		r.POST("/", func(c *gin.Context) {
-			var reqBody statementList
+		if devFile != "" {
+			fmt.Printf("Using database file %s.\n", internal.Emph(devFile))
+		} else {
+			fmt.Printf("This server is using an ephemeral database. Changes will be lost when this server stops. If you want to persist changes, use %s to specify a SQLite database file instead.\n", internal.Emph("--db-file"))
+		}
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		<-sigCh
 
-			err := c.BindJSON(&reqBody)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, errorJson(err))
-				return
-			}
-
-			statements := reqBody.Statements
-
-			var stmtRes = []statementSuccessResponse{}
-
-			for _, statement := range statements {
-				if verboseFlag {
-					fmt.Printf("Executing %s\n", internal.Emph(statement))
-				}
-				rows, err := db.Query(statement.Query, statement.Params...)
-				if err != nil {
-					c.JSON(http.StatusOK, errorJson(err))
-					return
-				}
-
-				columns, err := rows.Columns()
-				if err != nil {
-					// FIXME: 200 or 400 for this one?
-					c.JSON(http.StatusOK, errorJson(err))
-					return
-				}
-				if columns == nil {
-					columns = []string{}
-				}
-
-				var rowsData = [][]interface{}{}
-				for rows.Next() {
-					values := make([]interface{}, len(columns))
-					pointers := make([]interface{}, len(columns))
-					for i := range values {
-						pointers[i] = &values[i]
-					}
-					err := rows.Scan(pointers...)
-					if err != nil {
-						// FIXME: 200 or 400 for this one?
-						c.JSON(http.StatusOK, errorJson(err))
-						return
-					}
-					rowsData = append(rowsData, values)
-				}
-
-				var resultSet = resultSet{columns, rowsData}
-				var response = statementSuccessResponse{resultSet}
-				stmtRes = append(stmtRes, response)
-				defer rows.Close()
-			}
-
-			c.JSON(http.StatusOK, stmtRes)
-		})
-
-		r.Run(port)
+		// Terminate the server process
+		err = sqld.Process.Kill()
+		if err != nil {
+			return fmt.Errorf("could not kill sqld: %w", err)
+		}
 		return nil
 	},
 }
