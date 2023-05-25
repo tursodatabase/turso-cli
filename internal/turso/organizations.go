@@ -17,7 +17,7 @@ type Organization struct {
 }
 
 func (c *OrganizationsClient) List() ([]Organization, error) {
-	r, err := c.client.Get("/v1/organizations", nil)
+	r, err := c.client.Get("/v2/organizations", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request organizations: %s", err)
 	}
@@ -28,12 +28,16 @@ func (c *OrganizationsClient) List() ([]Organization, error) {
 
 	}
 
-	data, err := unmarshal[[]Organization](r)
+	type ListResponse struct {
+		Orgs []Organization `json:"organizations"`
+	}
+
+	data, err := unmarshal[ListResponse](r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize list organizations response: %w", err)
 	}
 
-	return data, nil
+	return data.Orgs, nil
 }
 
 func (c *OrganizationsClient) Create(name string) (Organization, error) {
