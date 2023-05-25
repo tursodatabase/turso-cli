@@ -205,10 +205,9 @@ func TestChangeDbPassword(t *testing.T) {
 func turso(configPath *string, args ...string) (string, error) {
 	var cmd *exec.Cmd
 	if configPath != nil {
-		newArgs := []string{"-c", *configPath}
-		for _, arg := range args {
-			newArgs = append(newArgs, arg)
-		}
+		newArgs := make([]string, 0, len(args)+3)
+		newArgs = append(newArgs, "-c", *configPath)
+		newArgs = append(newArgs, args...)
 		args = newArgs
 	}
 	args = append(args, "--no-multiple-token-sources-warning")
