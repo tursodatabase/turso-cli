@@ -57,7 +57,7 @@ var createCmd = &cobra.Command{
 		}
 
 		image := "latest"
-		if canary {
+		if canaryFlag {
 			image = "canary"
 		}
 

@@ -57,7 +57,7 @@ var replicateCmd = &cobra.Command{
 		}
 
 		image := "latest"
-		if canary {
+		if canaryFlag {
 			image = "canary"
 		}
 
