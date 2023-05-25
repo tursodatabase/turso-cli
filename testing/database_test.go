@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -64,7 +65,7 @@ func runSql(c *qt.C, dbName string, configPath *string) {
 
 func TestDbCreation(t *testing.T) {
 	c := qt.New(t)
-	dbNamePrefix := uuid.NewString()
+	dbNamePrefix := strconv.FormatInt(time.Now().Unix(), 36)
 	{
 		dir, err := os.MkdirTemp("", "turso-test-settings-*")
 		if err != nil {
@@ -155,7 +156,7 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 func TestDbReplication(t *testing.T) {
 	c := qt.New(t)
 	primaryRegion := "waw"
-	dbNamePrefix := uuid.NewString()
+	dbNamePrefix := strconv.FormatInt(time.Now().Unix(), 36)
 	testCreate(c, dbNamePrefix, &primaryRegion, nil, func(c *qt.C, dbName string, configPath *string) {
 		replicaName := uuid.NewString()
 		createReplica(c, dbName, configPath, replicaName)
@@ -169,7 +170,7 @@ func changePassword(c *qt.C, dbName string, configPath *string, newPassword stri
 
 func TestChangeDbPassword(t *testing.T) {
 	c := qt.New(t)
-	dbNamePrefix := uuid.NewString()
+	dbNamePrefix := strconv.FormatInt(time.Now().Unix(), 36)
 	{
 		dir, err := os.MkdirTemp("", "turso-test-settings-*")
 		if err != nil {
@@ -204,10 +205,9 @@ func TestChangeDbPassword(t *testing.T) {
 func turso(configPath *string, args ...string) (string, error) {
 	var cmd *exec.Cmd
 	if configPath != nil {
-		newArgs := []string{"-c", *configPath}
-		for _, arg := range args {
-			newArgs = append(newArgs, arg)
-		}
+		newArgs := make([]string, 0, len(args)+3)
+		newArgs = append(newArgs, "-c", *configPath)
+		newArgs = append(newArgs, args...)
 		args = newArgs
 	}
 	args = append(args, "--no-multiple-token-sources-warning")
