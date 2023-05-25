@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"unicode"
 )
 
@@ -35,6 +36,10 @@ func parseResponseError(res *http.Response) error {
 
 func IsValidName(name string) bool {
 	if len(name) == 0 || len(name) > 32 {
+		return false
+	}
+
+	if strings.HasPrefix(name, "-") || strings.HasSuffix(name, "-") {
 		return false
 	}
 
