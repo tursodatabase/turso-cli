@@ -17,6 +17,7 @@ import (
 func init() {
 	dbCmd.AddCommand(createCmd)
 	addCanaryFlag(createCmd)
+	addEnableExtensionsFlag(createCmd)
 	addDbFromFileFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
@@ -61,6 +62,11 @@ var createCmd = &cobra.Command{
 			image = "canary"
 		}
 
+		extensions := ""
+		if enableExtensionsFlag {
+			extensions = "all"
+		}
+
 		dbFile, err := getDbFile(fromFileFlag)
 		if err != nil {
 			return err
@@ -77,7 +83,7 @@ var createCmd = &cobra.Command{
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
 
-		if _, err := client.Databases.Create(name, region, image); err != nil {
+		if _, err := client.Databases.Create(name, region, image, extensions); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
