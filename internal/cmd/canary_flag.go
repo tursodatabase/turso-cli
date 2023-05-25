@@ -2,8 +2,8 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-var canary bool
+var canaryFlag bool
 
 func addCanaryFlag(cmd *cobra.Command) {
-	cmd.Flags().BoolVar(&canary, "canary", false, "Use database canary build.")
+	cmd.Flags().BoolVar(&canaryFlag, "canary", false, "Use database canary build.")
 }
