@@ -12,6 +12,7 @@ require (
 	github.com/athoscouto/codename v0.0.3
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.1
+	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/frankban/quicktest v1.14.4
 	github.com/google/uuid v1.3.0
@@ -32,7 +33,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.18 // indirect
+	github.com/mattn/go-isatty v0.0.18
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/rodaine/table v1.1.0
 	github.com/spf13/afero v1.9.3 // indirect
@@ -51,7 +52,6 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
-	github.com/charmbracelet/lipgloss v0.6.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/gin-gonic/gin v1.9.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
