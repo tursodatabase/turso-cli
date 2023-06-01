@@ -2,15 +2,19 @@ package cmd
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
+	"unicode/utf8"
 )
 
 func init() {
 	dbCmd.AddCommand(regionsCmd)
+	addLatencyFlag(regionsCmd)
 }
 
 var regionsCmd = &cobra.Command{
@@ -34,25 +38,61 @@ var regionsCmd = &cobra.Command{
 			return err
 		}
 
-		ids := maps.Keys(locations)
-		sort.Strings(ids)
+		columns := make([]interface{}, 0)
 
-		fmt.Println("ID   LOCATION")
+		lats := make(map[string]int)
+		var ids []string
+		if latencyFlag {
+			lats, err = latencies(client)
+			if err != nil {
+				return err
+			}
+			ids = maps.Keys(lats)
+			sort.Slice(ids, func(i, j int) bool {
+				return lats[ids[i]] < lats[ids[j]]
+			})
+			columns = append(columns, "ID")
+			columns = append(columns, "LOCATION")
+			columns = append(columns, "LATENCY↓")
+		} else {
+			ids = maps.Keys(locations)
+			sort.Strings(ids)
+			columns = append(columns, "ID↓")
+			columns = append(columns, "LOCATION")
+		}
+
+		regex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+		tbl := table.New(columns...).WithWidthFunc(func(s string) int {
+			plainText := regex.ReplaceAllString(s, "")
+			return utf8.RuneCountInString(plainText)
+		})
+
 		for _, location := range ids {
 			description := locations[location]
-
-			suffix := ""
-			if location == closest {
-				suffix = "  [default]"
+			lat, ok := lats[location]
+			var latency string
+			if ok {
+				latency = fmt.Sprintf("%dms", lat)
+			} else {
+				latency = "???"
 			}
 
-			line := fmt.Sprintf("%s  %s%s", location, description, suffix)
 			if location == closest {
-				line = internal.Emph(line)
+				description = fmt.Sprintf("%s  [default]", description)
+				if latencyFlag {
+					tbl.AddRow(internal.Emph(location), internal.Emph(description), internal.Emph(latency))
+				} else {
+					tbl.AddRow(internal.Emph(location), internal.Emph(description))
+				}
+			} else {
+				if latencyFlag {
+					tbl.AddRow(location, description, latency)
+				} else {
+					tbl.AddRow(location, description)
+				}
 			}
-
-			fmt.Printf("%s\n", line)
 		}
+		tbl.Print()
 		return nil
 	},
 }

@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"os"
+	"sync"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -127,8 +129,56 @@ func getHost() string {
 	return host
 }
 
+type latMap struct {
+	id  string
+	lat int
+}
+
 func locations(client *turso.Client) (map[string]string, error) {
 	settings, _ := settings.ReadSettings()
+	return readLocations(settings, client)
+}
+
+func latencies(client *turso.Client) (map[string]int, error) {
+	settings, _ := settings.ReadSettings()
+	locations, err := readLocations(settings, client)
+	if err != nil {
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	latencies := make(map[string]int)
+	c := make(chan latMap, len(locations))
+	for id := range locations {
+		wg.Add(1)
+		go func(id string) {
+			defer wg.Done()
+			measure := math.MaxInt
+			// XXX: Running this in different goroutines makes all latencies dogslow.
+			// Not sure if this is contention at the client or API level
+			for i := 0; i < 3; i++ {
+				d := turso.ProbeLocation(id)
+				if d != nil {
+					measure = int(math.Min(float64(d.Milliseconds()), float64(measure)))
+				}
+			}
+			if measure != math.MaxInt {
+				c <- latMap{id: id, lat: measure}
+			}
+
+		}(id)
+	}
+
+	wg.Wait()
+	close(c)
+
+	for kvp := range c {
+		latencies[kvp.id] = kvp.lat
+	}
+	return latencies, nil
+}
+
+func readLocations(settings *settings.Settings, client *turso.Client) (map[string]string, error) {
 	if locations := settings.LocationsCache(); locations != nil {
 		return locations, nil
 	}
