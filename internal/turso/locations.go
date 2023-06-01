@@ -3,6 +3,7 @@ package turso
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type LocationsClient client
@@ -53,4 +54,21 @@ func (c *LocationsClient) Closest() (string, error) {
 	}
 
 	return data.Server, nil
+}
+
+func ProbeLocation(location string) *time.Duration {
+	client := &http.Client{Timeout: 2 * time.Second}
+	req, err := http.NewRequest("GET", "http://region.turso.io:8080/", nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Add("fly-prefer-region", location)
+
+	start := time.Now()
+	_, err = client.Do(req)
+	if err != nil {
+		return nil
+	}
+	dur := time.Since(start)
+	return &dur
 }
