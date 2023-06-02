@@ -3,14 +3,18 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/exp/maps"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/athoscouto/codename"
+	tbl "github.com/charmbracelet/bubbles/table"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +25,108 @@ func init() {
 	addDbFromFileFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
+}
+
+func firstTimeHint(dbName string, image string, client *turso.Client, location string, locations map[string]string) {
+	c := make(chan map[string]int)
+	go func() {
+		latencies, err := latencies(client)
+		if err != nil {
+			latencies = make(map[string]int)
+		}
+		c <- latencies
+	}()
+
+	str := fmt.Sprintf("🎉 Congrats on creating your first database! Shall we make it available on another location?\n(Don't worry! We'll only ask you this the first time.).\n%s", internal.Emph("Let's do it?"))
+	doReplica, err := promptConfirmation(str)
+	fmt.Println("")
+	if err != nil {
+		doReplica = false
+	}
+
+	replicaStr := fmt.Sprintf("If you want to create a replica later, you can pick a location with %s, and then:\n\n   %s\n\n",
+		internal.Emph("turso db locations"), internal.Emph(fmt.Sprintf("turso db replicate %s [location]", dbName)))
+
+	latencies := <-c
+	switch doReplica {
+	case true:
+		suggestedLoc, suggestedRegion := suggestedLocation(location, locations)
+
+		rows := make([]tbl.Row, 0, len(locations))
+
+		ids := maps.Keys(locations)
+		sort.Slice(ids, func(i, j int) bool {
+			return latencies[ids[i]] < latencies[ids[j]]
+		})
+
+		initPos := 0
+		cur := 0 // keep it manually so we can skip the original location
+		for _, id := range ids {
+			lat, ok := latencies[id]
+			var latency string
+			if ok {
+				latency = fmt.Sprintf("%dms", lat)
+			} else {
+				latency = "???"
+			}
+
+			if id == location {
+				continue
+			}
+			row := tbl.Row{
+				id,
+				locations[id],
+				latency,
+			}
+			rows = append(rows, row)
+			if id == suggestedLoc {
+				initPos = cur
+			}
+			cur = cur + 1
+		}
+		columns := []tbl.Column{
+			{Title: "ID", Width: 4},
+			{Title: "LOCATION", Width: 32},
+			{Title: "LATENCY↓", Width: 8},
+		}
+
+		fmt.Printf("Great!! Where? We suggest %s, since you don't yet have coverage in %s\n", internal.Emph(suggestedLoc), internal.Emph(suggestedRegion))
+		t := prompt.Table(columns, rows, initPos)
+		if t == "" {
+			fmt.Printf("Ok! %s", replicaStr)
+		} else {
+			replicate(client, dbName, t, locations[t], image)
+			fmt.Printf("Don't forget: %s", replicaStr)
+		}
+	case false:
+		fmt.Printf("Ok! %s", replicaStr)
+	}
+
+}
+
+func replicate(client *turso.Client, dbName string, location string, locationText string, image string) error {
+	s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(locationText)))
+	defer s.Stop()
+
+	start := time.Now()
+	instance, err := client.Instances.Create(dbName, "", location, image)
+	if err != nil {
+		return fmt.Errorf("failed to create database: %s", err)
+	}
+
+	if waitFlag {
+		description := fmt.Sprintf("Waiting for replica of %s in %s to be ready", internal.Emph(dbName), internal.Emph(locationText))
+		s.Text(description)
+		if err = client.Instances.Wait(dbName, instance.Name); err != nil {
+			return err
+		}
+	}
+
+	s.Stop()
+	end := time.Now()
+	elapsed := end.Sub(start)
+	fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(locationText), int(elapsed.Seconds()))
+	return nil
 }
 
 var createCmd = &cobra.Command{
@@ -55,6 +161,11 @@ var createCmd = &cobra.Command{
 		}
 		if !isValidLocation(client, region) {
 			return fmt.Errorf("location '%s' is not a valid one", region)
+		}
+
+		locations, err := locations(client)
+		if err != nil {
+			return err
 		}
 
 		image := "latest"
@@ -119,18 +230,24 @@ var createCmd = &cobra.Command{
 		elapsed := time.Since(start)
 		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(regionText), int(elapsed.Seconds()))
 
+		firstTime := config.RegisterUse("db_create")
+		isInteractive := isatty.IsTerminal(os.Stdin.Fd())
+		isOnlyDatabase := false
+		databases, err := client.Databases.List()
+		if err == nil && len(databases) == 1 {
+			isOnlyDatabase = true
+		}
+
+		if firstTime && isInteractive && isOnlyDatabase {
+			firstTimeHint(name, image, client, region, locations)
+		}
+
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
 		fmt.Printf("To see information about the database, including a connection URL, run:\n\n")
 		fmt.Printf("   turso db show %s\n\n", name)
 
 		config.InvalidateDbNamesCache()
-
-		firstTime := config.RegisterUse("db_create")
-		if firstTime {
-			fmt.Printf("✏️  Now that you created a database, the next step is to create a replica. Why don't we try?\n\t%s\n\t%s\n",
-				internal.Emph("turso db locations"), internal.Emph(fmt.Sprintf("turso db replicate %s [location]", name)))
-		}
 
 		return nil
 	},
