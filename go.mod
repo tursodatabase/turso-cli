@@ -15,6 +15,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/frankban/quicktest v1.14.4
+	github.com/gdamore/tcell v1.4.0
 	github.com/google/uuid v1.3.0
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/libsql/libsql-shell-go v0.4.0
@@ -53,6 +54,7 @@ require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/containerd/console v1.0.3 // indirect
+	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gin-gonic/gin v1.9.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
