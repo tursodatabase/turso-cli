@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -30,17 +29,17 @@ var createApiTokensCmd = &cobra.Command{
 			return err
 		}
 
-		tokenName := strings.TrimSpace(args[0])
+		name := strings.TrimSpace(args[0])
 
-		if !turso.IsValidName(tokenName) {
-			return errors.New("invalid name: names only support lowercase letters, numbers, and hyphens")
+		if err := turso.CheckName(name); err != nil {
+			return fmt.Errorf("invalid token name: %w", err)
 		}
 
-		description := fmt.Sprintf("Creating api token %s", internal.Emph(tokenName))
+		description := fmt.Sprintf("Creating api token %s", internal.Emph(name))
 		bar := prompt.Spinner(description)
 		defer bar.Stop()
 
-		data, err := client.ApiTokens.Create(tokenName)
+		data, err := client.ApiTokens.Create(name)
 		if err != nil {
 			return err
 		}

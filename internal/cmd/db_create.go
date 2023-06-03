@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"golang.org/x/exp/maps"
 	"os"
@@ -141,8 +140,8 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		if !turso.IsValidName(name) {
-			return errors.New("invalid name: names only support lowercase letters, numbers, and hyphens")
+		if err := turso.CheckName(name); err != nil {
+			return fmt.Errorf("invalid database name: %w", err)
 		}
 
 		config, err := settings.ReadSettings()

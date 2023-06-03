@@ -34,19 +34,19 @@ func parseResponseError(res *http.Response) error {
 	return fmt.Errorf("response failed with status %s", res.Status)
 }
 
-func IsValidName(name string) bool {
+func CheckName(name string) error {
 	if len(name) == 0 || len(name) > 32 {
-		return false
+		return fmt.Errorf("name must be between 1 and 32 characters long")
 	}
 
 	if strings.HasPrefix(name, "-") || strings.HasSuffix(name, "-") {
-		return false
+		return fmt.Errorf("name cannot start or end with a hyphen")
 	}
 
 	for _, r := range name {
 		if !(unicode.IsDigit(r) || (unicode.IsLetter(r) && unicode.IsLower(r)) || r == '-') {
-			return false
+			return fmt.Errorf("name can only contain lowercase letters, numbers, and hyphens")
 		}
 	}
-	return true
+	return nil
 }
