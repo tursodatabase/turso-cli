@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/rodaine/table"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"github.com/xwb1989/sqlparser"
 	"golang.org/x/sync/errgroup"
@@ -90,13 +91,28 @@ func (curr *InspectInfo) TotalRowsReadCount() uint64 {
 	return total
 }
 
-func (curr *InspectInfo) show() {
+func (curr *InspectInfo) show(detailed bool) {
 	tables := humanize.IBytes(curr.totalTablesSize())
 	indexes := humanize.IBytes(curr.totalIndexesSize())
 	rowsRead := fmt.Sprintf("%d", curr.TotalRowsReadCount())
 	fmt.Printf("Total space used for tables: %s\n", tables)
 	fmt.Printf("Total space used for indexes: %s\n", indexes)
 	fmt.Printf("Number of rows read: %s\n", rowsRead)
+
+	if detailed {
+		sort.Slice(curr.instanceInfos, func(i, j int) bool {
+			return curr.instanceInfos[i].Location < curr.instanceInfos[j].Location
+		})
+		for _, instanceInfo := range curr.instanceInfos {
+			fmt.Println()
+			fmt.Printf("For location: %s\n", instanceInfo.Location)
+			tbl := table.New("TYPE", "NAME", "SIZE")
+			for _, storageInfo := range instanceInfo.StorageInfos {
+				tbl.AddRow(storageInfo.Type, storageInfo.Name, humanize.IBytes(storageInfo.SizeTables+storageInfo.SizeIndexes))
+			}
+			tbl.Print()
+		}
+	}
 }
 
 var dbInspectCmd = &cobra.Command{
@@ -141,7 +157,7 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		inspectInfo.show()
+		inspectInfo.show(verboseFlag)
 		return nil
 	},
 }
@@ -164,7 +180,7 @@ func inspectInstances(instances []turso.Instance, config *settings.Settings, db 
 		loopInstance := instance
 		g.Go(func() error {
 			url := getInstanceHttpUrl(config, &db, &loopInstance)
-			ret, err := inspectInstance(ctx, url, token, loopInstance.Region, verboseFlag)
+			ret, err := inspectInstance(ctx, url, token)
 			if err != nil {
 				return err
 			}
@@ -213,7 +229,7 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 	return instancesInfo
 }
 
-func inspectInstance(ctx context.Context, url, token string, location string, detailed bool) (*InspectInstanceInfo, error) {
+func inspectInstance(ctx context.Context, url, token string) (*InspectInstanceInfo, error) {
 	inspectComputeResult := make(chan uint64, 1)
 	go func() {
 		rowsRead, err := inspectCompute(ctx, url, token)
@@ -222,7 +238,7 @@ func inspectInstance(ctx context.Context, url, token string, location string, de
 		}
 		inspectComputeResult <- rowsRead
 	}()
-	storageInfos, err := inspectStorage(ctx, url, token, detailed, location)
+	storageInfos, err := inspectStorage(ctx, url, token)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +312,7 @@ func getTypeMap(ctx context.Context, url, token string) (map[string]string, erro
 	return typeMap, nil
 }
 
-func inspectStorage(ctx context.Context, url, token string, detailed bool, location string) ([]StorageInfo, error) {
+func inspectStorage(ctx context.Context, url, token string) ([]StorageInfo, error) {
 	typeMapResult := make(chan map[string]string)
 	typeMapError := make(chan error)
 	go func() {
@@ -350,12 +366,6 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 			errs = append(errs, result.Error.Message)
 		}
 		if result.Results != nil {
-			columns := make([]interface{}, 0)
-			columns = append(columns, "TYPE")
-			columns = append(columns, "NAME")
-			columns = append(columns, "SIZE (KB)")
-			tbl := table.New(columns...)
-
 			for _, row := range result.Results.Rows {
 				type_ := "?"
 				name := row[0].(string)
@@ -372,12 +382,6 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 					storageInfo.SizeTables = size
 				}
 				res = append(res, storageInfo)
-				tbl.AddRow(type_, name, size/1024.0)
-			}
-			if detailed {
-				fmt.Printf("For location: %s\n", location)
-				tbl.Print()
-				fmt.Println()
 			}
 		}
 	}
