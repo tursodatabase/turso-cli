@@ -26,23 +26,40 @@ func init() {
 }
 
 type InspectInfo struct {
-	storageInfo   StorageInfo
+	storageInfos  []StorageInfo
 	rowsReadCount uint64
 }
 
 type StorageInfo struct {
+	Type        string
+	Name        string
 	SizeTables  uint64
 	SizeIndexes uint64
 }
 
 func (curr *InspectInfo) Accumulate(n *InspectInfo) {
-	curr.storageInfo.SizeTables += n.storageInfo.SizeTables
-	curr.storageInfo.SizeIndexes += n.storageInfo.SizeIndexes
+	curr.storageInfos = append(curr.storageInfos, n.storageInfos...)
 	curr.rowsReadCount += n.rowsReadCount
 }
 
+func (curr *InspectInfo) totalTablesSize() uint64 {
+	var total uint64
+	for _, storageInfo := range curr.storageInfos {
+		total += storageInfo.SizeTables
+	}
+	return total
+}
+
+func (curr *InspectInfo) totalIndexesSize() uint64 {
+	var total uint64
+	for _, storageInfo := range curr.storageInfos {
+		total += storageInfo.SizeIndexes
+	}
+	return total
+}
+
 func (curr *InspectInfo) PrintTotalStorage() string {
-	return humanize.IBytes(curr.storageInfo.SizeTables + curr.storageInfo.SizeIndexes)
+	return humanize.IBytes(curr.totalTablesSize() + curr.totalIndexesSize())
 }
 
 func (curr *InspectInfo) TotalRowsReadCount() uint64 {
@@ -50,8 +67,8 @@ func (curr *InspectInfo) TotalRowsReadCount() uint64 {
 }
 
 func (curr *InspectInfo) show() {
-	tables := humanize.IBytes(curr.storageInfo.SizeTables)
-	indexes := humanize.IBytes(curr.storageInfo.SizeIndexes)
+	tables := humanize.IBytes(curr.totalTablesSize())
+	indexes := humanize.IBytes(curr.totalIndexesSize())
 	rowsRead := fmt.Sprintf("%d", curr.TotalRowsReadCount())
 	fmt.Printf("Total space used for tables: %s\n", tables)
 	fmt.Printf("Total space used for indexes: %s\n", indexes)
@@ -123,7 +140,7 @@ func inspectInstances(instances []turso.Instance, config *settings.Settings, db 
 		loopInstance := instance
 		g.Go(func() error {
 			url := getInstanceHttpUrl(config, &db, &loopInstance)
-			ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
+			ret, err := inspectInstance(ctx, url, token, loopInstance.Region, verboseFlag)
 			if err != nil {
 				return err
 			}
@@ -171,7 +188,7 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 	return instancesInfo
 }
 
-func inspect(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {
+func inspectInstance(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {
 	inspectComputeResult := make(chan uint64, 1)
 	go func() {
 		rowsRead, err := inspectCompute(ctx, url, token, detailed, location)
@@ -180,13 +197,13 @@ func inspect(ctx context.Context, url, token string, location string, detailed b
 		}
 		inspectComputeResult <- rowsRead
 	}()
-	storageInfo, err := inspectStorage(ctx, url, token, detailed, location)
+	storageInfos, err := inspectStorage(ctx, url, token, detailed, location)
 	if err != nil {
 		return nil, err
 	}
 	rowsRead := <-inspectComputeResult
 	return &InspectInfo{
-		storageInfo:   *storageInfo,
+		storageInfos:  storageInfos,
 		rowsReadCount: rowsRead,
 	}, nil
 }
@@ -254,7 +271,7 @@ func getTypeMap(ctx context.Context, url, token string) (map[string]string, erro
 	return typeMap, nil
 }
 
-func inspectStorage(ctx context.Context, url, token string, detailed bool, location string) (*StorageInfo, error) {
+func inspectStorage(ctx context.Context, url, token string, detailed bool, location string) ([]StorageInfo, error) {
 	typeMapResult := make(chan map[string]string)
 	typeMapError := make(chan error)
 	go func() {
@@ -266,7 +283,6 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 		}
 	}()
 
-	storageInfo := StorageInfo{}
 	stmt := `select name, SUM(pgsize) as size from dbstat
 	where name != 'sqlite_schema'
         and name != '_litestream_seq'
@@ -302,7 +318,8 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 	case typeMap = <-typeMapResult:
 	}
 
-	errs := []string{}
+	var errs []string
+	var res []StorageInfo
 	for _, result := range results {
 		if result.Error != nil {
 			errs = append(errs, result.Error.Message)
@@ -321,11 +338,15 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 					type_ = t
 				}
 				size := uint64(row[1].(float64))
+				storageInfo := StorageInfo{}
+				storageInfo.Type = type_
+				storageInfo.Name = name
 				if type_ == "index" {
-					storageInfo.SizeIndexes += size
+					storageInfo.SizeIndexes = size
 				} else {
-					storageInfo.SizeTables += size
+					storageInfo.SizeTables = size
 				}
+				res = append(res, storageInfo)
 				tbl.AddRow(type_, name, size/1024.0)
 			}
 			if detailed {
@@ -338,7 +359,7 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 	if len(errs) > 0 {
 		return nil, &SqlError{(strings.Join(errs, "; "))}
 	}
-	return &storageInfo, nil
+	return res, nil
 }
 
 type SqlError struct {
