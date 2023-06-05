@@ -41,7 +41,7 @@ func (curr *InspectInfo) Accumulate(n *InspectInfo) {
 	curr.RowsReadCount += n.RowsReadCount
 }
 
-func (curr *InspectInfo) PrintTotal() string {
+func (curr *InspectInfo) PrintTotalStorage() string {
 	return humanize.IBytes(curr.StorageInfo.SizeTables + curr.StorageInfo.SizeIndexes)
 }
 
@@ -106,7 +106,7 @@ func calculateInstancesUsedSize(instances []turso.Instance, config *settings.Set
 	if err != nil {
 		return fmt.Sprintf("fetching size failed: %s", err)
 	}
-	return inspectInfo.PrintTotal()
+	return inspectInfo.PrintTotalStorage()
 }
 
 func inspectInstances(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
