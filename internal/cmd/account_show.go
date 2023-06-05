@@ -109,7 +109,7 @@ var accountShowCmd = &cobra.Command{
 		planInfo := getPlanInfo(PlanType(userInfo.Plan))
 
 		tbl.AddRow("storage", inspectRet.PrintTotalStorage(), planInfo.maxStorage)
-		tbl.AddRow("rows read", inspectRet.RowsReadCount, fmt.Sprintf("%d", int(1e9)))
+		tbl.AddRow("rows read", inspectRet.TotalRowsReadCount(), fmt.Sprintf("%d", int(1e9)))
 		tbl.AddRow("databases", numDatabases, planInfo.maxDatabases)
 		tbl.AddRow("locations", numLocations, planInfo.maxLocation)
 		tbl.Print()
