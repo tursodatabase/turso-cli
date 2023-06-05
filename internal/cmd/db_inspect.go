@@ -25,9 +25,14 @@ func init() {
 	addVerboseFlag(dbInspectCmd)
 }
 
+type InspectInstanceInfo struct {
+	Location      string
+	StorageInfos  []StorageInfo
+	RowsReadCount uint64
+}
+
 type InspectInfo struct {
-	storageInfos  []StorageInfo
-	rowsReadCount uint64
+	instanceInfos [](*InspectInstanceInfo)
 }
 
 type StorageInfo struct {
@@ -37,23 +42,38 @@ type StorageInfo struct {
 	SizeIndexes uint64
 }
 
-func (curr *InspectInfo) Accumulate(n *InspectInfo) {
-	curr.storageInfos = append(curr.storageInfos, n.storageInfos...)
-	curr.rowsReadCount += n.rowsReadCount
+func (curr *InspectInstanceInfo) totalTablesSize() uint64 {
+	var total uint64
+	for _, storageInfo := range curr.StorageInfos {
+		total += storageInfo.SizeTables
+	}
+	return total
+}
+
+func (curr *InspectInstanceInfo) totalIndexesSize() uint64 {
+	var total uint64
+	for _, storageInfo := range curr.StorageInfos {
+		total += storageInfo.SizeIndexes
+	}
+	return total
+}
+
+func (curr *InspectInfo) Accumulate(n *InspectInstanceInfo) {
+	curr.instanceInfos = append(curr.instanceInfos, n)
 }
 
 func (curr *InspectInfo) totalTablesSize() uint64 {
 	var total uint64
-	for _, storageInfo := range curr.storageInfos {
-		total += storageInfo.SizeTables
+	for _, instanceInfo := range curr.instanceInfos {
+		total += instanceInfo.totalTablesSize()
 	}
 	return total
 }
 
 func (curr *InspectInfo) totalIndexesSize() uint64 {
 	var total uint64
-	for _, storageInfo := range curr.storageInfos {
-		total += storageInfo.SizeIndexes
+	for _, instanceInfo := range curr.instanceInfos {
+		total += instanceInfo.totalIndexesSize()
 	}
 	return total
 }
@@ -63,7 +83,11 @@ func (curr *InspectInfo) PrintTotalStorage() string {
 }
 
 func (curr *InspectInfo) TotalRowsReadCount() uint64 {
-	return curr.rowsReadCount
+	var total uint64
+	for _, instanceInfo := range curr.instanceInfos {
+		total += instanceInfo.RowsReadCount
+	}
+	return total
 }
 
 func (curr *InspectInfo) show() {
@@ -135,7 +159,7 @@ func inspectInstances(instances []turso.Instance, config *settings.Settings, db 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
-	results := make(chan *InspectInfo, len(instances))
+	results := make(chan *InspectInstanceInfo, len(instances))
 	for _, instance := range instances {
 		loopInstance := instance
 		g.Go(func() error {
@@ -144,6 +168,7 @@ func inspectInstances(instances []turso.Instance, config *settings.Settings, db 
 			if err != nil {
 				return err
 			}
+			ret.Location = loopInstance.Region
 			results <- ret
 			return nil
 		})
@@ -188,7 +213,7 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 	return instancesInfo
 }
 
-func inspectInstance(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {
+func inspectInstance(ctx context.Context, url, token string, location string, detailed bool) (*InspectInstanceInfo, error) {
 	inspectComputeResult := make(chan uint64, 1)
 	go func() {
 		rowsRead, err := inspectCompute(ctx, url, token, detailed, location)
@@ -202,9 +227,9 @@ func inspectInstance(ctx context.Context, url, token string, location string, de
 		return nil, err
 	}
 	rowsRead := <-inspectComputeResult
-	return &InspectInfo{
-		storageInfos:  storageInfos,
-		rowsReadCount: rowsRead,
+	return &InspectInstanceInfo{
+		StorageInfos:  storageInfos,
+		RowsReadCount: rowsRead,
 	}, nil
 }
 

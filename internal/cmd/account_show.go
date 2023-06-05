@@ -67,7 +67,7 @@ var accountShowCmd = &cobra.Command{
 			instanceCount += len(instances)
 			dbInstances = append(dbInstances, instances)
 		}
-		inspectResCh := make(chan *InspectInfo, instanceCount)
+		inspectResCh := make(chan *InspectInstanceInfo, instanceCount)
 		g, ctx := errgroup.WithContext(ctx)
 		for idx, database := range databases {
 			idx := idx
@@ -80,6 +80,7 @@ var accountShowCmd = &cobra.Command{
 					if err != nil {
 						return err
 					}
+					ret.Location = instance.Region
 					inspectResCh <- ret
 					return nil
 				})
