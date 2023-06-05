@@ -26,7 +26,7 @@ func init() {
 }
 
 type InspectInfo struct {
-	StorageInfo   StorageInfo
+	storageInfo   StorageInfo
 	rowsReadCount uint64
 }
 
@@ -36,13 +36,13 @@ type StorageInfo struct {
 }
 
 func (curr *InspectInfo) Accumulate(n *InspectInfo) {
-	curr.StorageInfo.SizeTables += n.StorageInfo.SizeTables
-	curr.StorageInfo.SizeIndexes += n.StorageInfo.SizeIndexes
+	curr.storageInfo.SizeTables += n.storageInfo.SizeTables
+	curr.storageInfo.SizeIndexes += n.storageInfo.SizeIndexes
 	curr.rowsReadCount += n.rowsReadCount
 }
 
 func (curr *InspectInfo) PrintTotalStorage() string {
-	return humanize.IBytes(curr.StorageInfo.SizeTables + curr.StorageInfo.SizeIndexes)
+	return humanize.IBytes(curr.storageInfo.SizeTables + curr.storageInfo.SizeIndexes)
 }
 
 func (curr *InspectInfo) TotalRowsReadCount() uint64 {
@@ -50,8 +50,8 @@ func (curr *InspectInfo) TotalRowsReadCount() uint64 {
 }
 
 func (curr *InspectInfo) show() {
-	tables := humanize.IBytes(curr.StorageInfo.SizeTables)
-	indexes := humanize.IBytes(curr.StorageInfo.SizeIndexes)
+	tables := humanize.IBytes(curr.storageInfo.SizeTables)
+	indexes := humanize.IBytes(curr.storageInfo.SizeIndexes)
 	rowsRead := fmt.Sprintf("%d", curr.TotalRowsReadCount())
 	fmt.Printf("Total space used for tables: %s\n", tables)
 	fmt.Printf("Total space used for indexes: %s\n", indexes)
@@ -186,7 +186,7 @@ func inspect(ctx context.Context, url, token string, location string, detailed b
 	}
 	rowsRead := <-inspectComputeResult
 	return &InspectInfo{
-		StorageInfo:   *storageInfo,
+		storageInfo:   *storageInfo,
 		rowsReadCount: rowsRead,
 	}, nil
 }
