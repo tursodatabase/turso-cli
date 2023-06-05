@@ -216,7 +216,7 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 func inspectInstance(ctx context.Context, url, token string, location string, detailed bool) (*InspectInstanceInfo, error) {
 	inspectComputeResult := make(chan uint64, 1)
 	go func() {
-		rowsRead, err := inspectCompute(ctx, url, token, detailed, location)
+		rowsRead, err := inspectCompute(ctx, url, token)
 		if err != nil {
 			rowsRead = 0
 		}
@@ -233,7 +233,7 @@ func inspectInstance(ctx context.Context, url, token string, location string, de
 	}, nil
 }
 
-func inspectCompute(ctx context.Context, url, token string, detailed bool, location string) (uint64, error) {
+func inspectCompute(ctx context.Context, url, token string) (uint64, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/stats", nil)
 	if err != nil {
 		return 0, err
