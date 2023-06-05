@@ -91,17 +91,17 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		sizeInfo, err := calculateInstancesUsedSize(instances, config, db, token)
+		inspectInfo, err := inspectInstances(instances, config, db, token)
 		if err != nil {
 			return err
 		}
 
-		sizeInfo.show()
+		inspectInfo.show()
 		return nil
 	},
 }
 
-func calculateInstancesUsedSize(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
+func inspectInstances(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
 	inspectInfo := &InspectInfo{}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -152,7 +152,7 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 	}
 
 	var size string
-	inspectInfo, err := calculateInstancesUsedSize(instances, config, db, token)
+	inspectInfo, err := inspectInstances(instances, config, db, token)
 	if err != nil {
 		size = fmt.Sprintf("fetching size failed: %s", err)
 	} else {

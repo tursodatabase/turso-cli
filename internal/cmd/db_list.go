@@ -71,7 +71,7 @@ var listCmd = &cobra.Command{
 				instances := <-instancesCh
 				token := <-tokenCh
 				var size string
-				sizeInfo, err := calculateInstancesUsedSize(instances, settings, database, token)
+				sizeInfo, err := inspectInstances(instances, settings, database, token)
 				if err != nil {
 					size = fmt.Sprintf("fetching size failed: %s", err)
 				} else {
