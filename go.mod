@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/athoscouto/codename v0.0.3
+	github.com/buger/goterm v1.0.4
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.1
 	github.com/charmbracelet/lipgloss v0.6.0
