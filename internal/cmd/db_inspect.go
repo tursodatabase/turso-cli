@@ -28,6 +28,8 @@ func init() {
 
 type InspectInstanceInfo struct {
 	Location      string
+	Name          string
+	Type          string
 	StorageInfos  []StorageInfo
 	RowsReadCount uint64
 }
@@ -92,14 +94,21 @@ func (curr *InspectInfo) TotalRowsReadCount() uint64 {
 }
 
 func (curr *InspectInfo) show(detailed bool) {
-	tables := humanize.IBytes(curr.totalTablesSize())
-	indexes := humanize.IBytes(curr.totalIndexesSize())
-	rowsRead := fmt.Sprintf("%d", curr.TotalRowsReadCount())
-	fmt.Printf("Total space used for tables: %s\n", tables)
-	fmt.Printf("Total space used for indexes: %s\n", indexes)
-	fmt.Printf("Number of rows read: %s\n", rowsRead)
+	if !detailed {
+		tables := humanize.IBytes(curr.totalTablesSize())
+		indexes := humanize.IBytes(curr.totalIndexesSize())
+		rowsRead := fmt.Sprintf("%d", curr.TotalRowsReadCount())
+		fmt.Printf("Total space used for tables: %s\n", tables)
+		fmt.Printf("Total space used for indexes: %s\n", indexes)
+		fmt.Printf("Number of rows read: %s\n", rowsRead)
+	} else {
+		tbl := table.New("LOCATION", "TYPE", "INSTANCE NAME", "ROWS READ", "TABLE STORAGE", "INDEX STORAGE")
+		for _, instanceInfo := range curr.instanceInfos {
+			tbl.AddRow(instanceInfo.Location, instanceInfo.Type, instanceInfo.Name, instanceInfo.RowsReadCount, humanize.IBytes(instanceInfo.totalTablesSize()), humanize.IBytes(instanceInfo.totalIndexesSize()))
+		}
+		tbl.AddRow("", "", "TOTAL", curr.TotalRowsReadCount(), humanize.IBytes(curr.totalTablesSize()), humanize.IBytes(curr.totalIndexesSize()))
+		tbl.Print()
 
-	if detailed {
 		sort.Slice(curr.instanceInfos, func(i, j int) bool {
 			return curr.instanceInfos[i].Location < curr.instanceInfos[j].Location
 		})
@@ -185,6 +194,8 @@ func inspectInstances(instances []turso.Instance, config *settings.Settings, db 
 				return err
 			}
 			ret.Location = loopInstance.Region
+			ret.Name = loopInstance.Name
+			ret.Type = loopInstance.Type
 			results <- ret
 			return nil
 		})

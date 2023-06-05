@@ -81,6 +81,8 @@ var accountShowCmd = &cobra.Command{
 						return err
 					}
 					ret.Location = instance.Region
+					ret.Name = instance.Name
+					ret.Type = instance.Type
 					inspectResCh <- ret
 					return nil
 				})
