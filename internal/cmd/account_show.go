@@ -67,7 +67,7 @@ var accountShowCmd = &cobra.Command{
 			instanceCount += len(instances)
 			dbInstances = append(dbInstances, instances)
 		}
-		inspectResCh := make(chan *InspectInfo, instanceCount)
+		inspectResCh := make(chan *InspectInstanceInfo, instanceCount)
 		g, ctx := errgroup.WithContext(ctx)
 		for idx, database := range databases {
 			idx := idx
@@ -76,10 +76,13 @@ var accountShowCmd = &cobra.Command{
 				instance := instance
 				g.Go(func() error {
 					url := getInstanceHttpUrl(settings, &database, &instance)
-					ret, err := inspect(ctx, url, dbTokens[idx], instance.Region, false)
+					ret, err := inspectInstance(ctx, url, dbTokens[idx])
 					if err != nil {
 						return err
 					}
+					ret.Location = instance.Region
+					ret.Name = instance.Name
+					ret.Type = instance.Type
 					inspectResCh <- ret
 					return nil
 				})
@@ -108,8 +111,8 @@ var accountShowCmd = &cobra.Command{
 
 		planInfo := getPlanInfo(PlanType(userInfo.Plan))
 
-		tbl.AddRow("storage", inspectRet.PrintTotal(), planInfo.maxStorage)
-		tbl.AddRow("rows read", inspectRet.RowsReadCount, fmt.Sprintf("%d", int(1e9)))
+		tbl.AddRow("storage", inspectRet.PrintTotalStorage(), planInfo.maxStorage)
+		tbl.AddRow("rows read", inspectRet.TotalRowsReadCount(), fmt.Sprintf("%d", int(1e9)))
 		tbl.AddRow("databases", numDatabases, planInfo.maxDatabases)
 		tbl.AddRow("locations", numLocations, planInfo.maxLocation)
 		tbl.Print()

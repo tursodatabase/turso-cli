@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/rodaine/table"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"github.com/xwb1989/sqlparser"
 	"golang.org/x/sync/errgroup"
@@ -25,33 +26,102 @@ func init() {
 	addVerboseFlag(dbInspectCmd)
 }
 
-type InspectInfo struct {
-	StorageInfo   StorageInfo
+type InspectInstanceInfo struct {
+	Location      string
+	Name          string
+	Type          string
+	StorageInfos  []StorageInfo
 	RowsReadCount uint64
 }
 
+type InspectInfo struct {
+	instanceInfos [](*InspectInstanceInfo)
+}
+
 type StorageInfo struct {
+	Type        string
+	Name        string
 	SizeTables  uint64
 	SizeIndexes uint64
 }
 
-func (curr *InspectInfo) Accumulate(n *InspectInfo) {
-	curr.StorageInfo.SizeTables += n.StorageInfo.SizeTables
-	curr.StorageInfo.SizeIndexes += n.StorageInfo.SizeIndexes
-	curr.RowsReadCount += n.RowsReadCount
+func (curr *InspectInstanceInfo) totalTablesSize() uint64 {
+	var total uint64
+	for _, storageInfo := range curr.StorageInfos {
+		total += storageInfo.SizeTables
+	}
+	return total
 }
 
-func (curr *InspectInfo) PrintTotal() string {
-	return humanize.IBytes(curr.StorageInfo.SizeTables + curr.StorageInfo.SizeIndexes)
+func (curr *InspectInstanceInfo) totalIndexesSize() uint64 {
+	var total uint64
+	for _, storageInfo := range curr.StorageInfos {
+		total += storageInfo.SizeIndexes
+	}
+	return total
 }
 
-func (curr *InspectInfo) show() {
-	tables := humanize.IBytes(curr.StorageInfo.SizeTables)
-	indexes := humanize.IBytes(curr.StorageInfo.SizeIndexes)
-	rowsRead := fmt.Sprintf("%d", curr.RowsReadCount)
-	fmt.Printf("Total space used for tables: %s\n", tables)
-	fmt.Printf("Total space used for indexes: %s\n", indexes)
-	fmt.Printf("Number of rows read: %s\n", rowsRead)
+func (curr *InspectInfo) Accumulate(n *InspectInstanceInfo) {
+	curr.instanceInfos = append(curr.instanceInfos, n)
+}
+
+func (curr *InspectInfo) totalTablesSize() uint64 {
+	var total uint64
+	for _, instanceInfo := range curr.instanceInfos {
+		total += instanceInfo.totalTablesSize()
+	}
+	return total
+}
+
+func (curr *InspectInfo) totalIndexesSize() uint64 {
+	var total uint64
+	for _, instanceInfo := range curr.instanceInfos {
+		total += instanceInfo.totalIndexesSize()
+	}
+	return total
+}
+
+func (curr *InspectInfo) PrintTotalStorage() string {
+	return humanize.IBytes(curr.totalTablesSize() + curr.totalIndexesSize())
+}
+
+func (curr *InspectInfo) TotalRowsReadCount() uint64 {
+	var total uint64
+	for _, instanceInfo := range curr.instanceInfos {
+		total += instanceInfo.RowsReadCount
+	}
+	return total
+}
+
+func (curr *InspectInfo) show(detailed bool) {
+	if !detailed {
+		tables := humanize.IBytes(curr.totalTablesSize())
+		indexes := humanize.IBytes(curr.totalIndexesSize())
+		rowsRead := fmt.Sprintf("%d", curr.TotalRowsReadCount())
+		fmt.Printf("Total space used for tables: %s\n", tables)
+		fmt.Printf("Total space used for indexes: %s\n", indexes)
+		fmt.Printf("Number of rows read: %s\n", rowsRead)
+	} else {
+		tbl := table.New("LOCATION", "TYPE", "INSTANCE NAME", "ROWS READ", "TABLE STORAGE", "INDEX STORAGE")
+		for _, instanceInfo := range curr.instanceInfos {
+			tbl.AddRow(instanceInfo.Location, instanceInfo.Type, instanceInfo.Name, instanceInfo.RowsReadCount, humanize.IBytes(instanceInfo.totalTablesSize()), humanize.IBytes(instanceInfo.totalIndexesSize()))
+		}
+		tbl.AddRow("", "", "TOTAL", curr.TotalRowsReadCount(), humanize.IBytes(curr.totalTablesSize()), humanize.IBytes(curr.totalIndexesSize()))
+		tbl.Print()
+
+		sort.Slice(curr.instanceInfos, func(i, j int) bool {
+			return curr.instanceInfos[i].Location < curr.instanceInfos[j].Location
+		})
+		for _, instanceInfo := range curr.instanceInfos {
+			fmt.Println()
+			fmt.Printf("For location: %s\n", instanceInfo.Location)
+			tbl := table.New("TYPE", "NAME", "SIZE")
+			for _, storageInfo := range instanceInfo.StorageInfos {
+				tbl.AddRow(storageInfo.Type, storageInfo.Name, humanize.IBytes(storageInfo.SizeTables+storageInfo.SizeIndexes))
+			}
+			tbl.Print()
+		}
+	}
 }
 
 var dbInspectCmd = &cobra.Command{
@@ -91,30 +161,41 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		sizeInfo, err := calculateInstancesUsedSize(instances, config, db, token)
+		inspectInfo, err := inspectInstances(instances, config, db, token)
 		if err != nil {
 			return err
 		}
 
-		sizeInfo.show()
+		inspectInfo.show(verboseFlag)
 		return nil
 	},
 }
 
-func calculateInstancesUsedSize(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
+func calculateInstancesUsedSize(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) string {
+	inspectInfo, err := inspectInstances(instances, config, db, token)
+	if err != nil {
+		return fmt.Sprintf("fetching size failed: %s", err)
+	}
+	return inspectInfo.PrintTotalStorage()
+}
+
+func inspectInstances(instances []turso.Instance, config *settings.Settings, db turso.Database, token string) (*InspectInfo, error) {
 	inspectInfo := &InspectInfo{}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
-	results := make(chan *InspectInfo, len(instances))
+	results := make(chan *InspectInstanceInfo, len(instances))
 	for _, instance := range instances {
 		loopInstance := instance
 		g.Go(func() error {
 			url := getInstanceHttpUrl(config, &db, &loopInstance)
-			ret, err := inspect(ctx, url, token, loopInstance.Region, verboseFlag)
+			ret, err := inspectInstance(ctx, url, token)
 			if err != nil {
 				return err
 			}
+			ret.Location = loopInstance.Region
+			ret.Name = loopInstance.Name
+			ret.Type = loopInstance.Type
 			results <- ret
 			return nil
 		})
@@ -151,42 +232,35 @@ func getInstancesInfo(client *turso.Client, instances []turso.Instance, config *
 		}(idx, client, config, &db, &instance)
 	}
 
-	var size string
-	inspectInfo, err := calculateInstancesUsedSize(instances, config, db, token)
-	if err != nil {
-		size = fmt.Sprintf("fetching size failed: %s", err)
-	} else {
-		size = inspectInfo.PrintTotal()
-	}
 	instancesInfo := GetInstancesInfoReturnType{
-		size:     size,
+		size:     calculateInstancesUsedSize(instances, config, db, token),
 		versions: versions,
 		urls:     urls,
 	}
 	return instancesInfo
 }
 
-func inspect(ctx context.Context, url, token string, location string, detailed bool) (*InspectInfo, error) {
+func inspectInstance(ctx context.Context, url, token string) (*InspectInstanceInfo, error) {
 	inspectComputeResult := make(chan uint64, 1)
 	go func() {
-		rowsRead, err := inspectCompute(ctx, url, token, detailed, location)
+		rowsRead, err := inspectCompute(ctx, url, token)
 		if err != nil {
 			rowsRead = 0
 		}
 		inspectComputeResult <- rowsRead
 	}()
-	storageInfo, err := inspectStorage(ctx, url, token, detailed, location)
+	storageInfos, err := inspectStorage(ctx, url, token)
 	if err != nil {
 		return nil, err
 	}
 	rowsRead := <-inspectComputeResult
-	return &InspectInfo{
-		StorageInfo:   *storageInfo,
+	return &InspectInstanceInfo{
+		StorageInfos:  storageInfos,
 		RowsReadCount: rowsRead,
 	}, nil
 }
 
-func inspectCompute(ctx context.Context, url, token string, detailed bool, location string) (uint64, error) {
+func inspectCompute(ctx context.Context, url, token string) (uint64, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/stats", nil)
 	if err != nil {
 		return 0, err
@@ -249,7 +323,7 @@ func getTypeMap(ctx context.Context, url, token string) (map[string]string, erro
 	return typeMap, nil
 }
 
-func inspectStorage(ctx context.Context, url, token string, detailed bool, location string) (*StorageInfo, error) {
+func inspectStorage(ctx context.Context, url, token string) ([]StorageInfo, error) {
 	typeMapResult := make(chan map[string]string)
 	typeMapError := make(chan error)
 	go func() {
@@ -261,7 +335,6 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 		}
 	}()
 
-	storageInfo := StorageInfo{}
 	stmt := `select name, SUM(pgsize) as size from dbstat
 	where name != 'sqlite_schema'
         and name != '_litestream_seq'
@@ -297,18 +370,13 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 	case typeMap = <-typeMapResult:
 	}
 
-	errs := []string{}
+	var errs []string
+	var res []StorageInfo
 	for _, result := range results {
 		if result.Error != nil {
 			errs = append(errs, result.Error.Message)
 		}
 		if result.Results != nil {
-			columns := make([]interface{}, 0)
-			columns = append(columns, "TYPE")
-			columns = append(columns, "NAME")
-			columns = append(columns, "SIZE (KB)")
-			tbl := table.New(columns...)
-
 			for _, row := range result.Results.Rows {
 				type_ := "?"
 				name := row[0].(string)
@@ -316,24 +384,22 @@ func inspectStorage(ctx context.Context, url, token string, detailed bool, locat
 					type_ = t
 				}
 				size := uint64(row[1].(float64))
+				storageInfo := StorageInfo{}
+				storageInfo.Type = type_
+				storageInfo.Name = name
 				if type_ == "index" {
-					storageInfo.SizeIndexes += size
+					storageInfo.SizeIndexes = size
 				} else {
-					storageInfo.SizeTables += size
+					storageInfo.SizeTables = size
 				}
-				tbl.AddRow(type_, name, size/1024.0)
-			}
-			if detailed {
-				fmt.Printf("For location: %s\n", location)
-				tbl.Print()
-				fmt.Println()
+				res = append(res, storageInfo)
 			}
 		}
 	}
 	if len(errs) > 0 {
 		return nil, &SqlError{(strings.Join(errs, "; "))}
 	}
-	return &storageInfo, nil
+	return res, nil
 }
 
 type SqlError struct {

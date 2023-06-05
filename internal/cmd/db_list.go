@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
@@ -70,14 +69,7 @@ var listCmd = &cobra.Command{
 				}
 				instances := <-instancesCh
 				token := <-tokenCh
-				var size string
-				sizeInfo, err := calculateInstancesUsedSize(instances, settings, database, token)
-				if err != nil {
-					size = fmt.Sprintf("fetching size failed: %s", err)
-				} else {
-					size = sizeInfo.PrintTotal()
-				}
-				dbInfo <- []string{database.Name, regions, url, size}
+				dbInfo <- []string{database.Name, regions, url, calculateInstancesUsedSize(instances, settings, database, token)}
 				return nil
 			})
 		}
