@@ -87,6 +87,35 @@ func (c *OrganizationsClient) Delete(slug string) error {
 	}
 }
 
+type OrgTotal struct {
+	RowsRead         uint64 `json:"rows_read,omitempty"`
+	RowsWritten      uint64 `json:"rows_written,omitempty"`
+	StorageBytesUsed uint64 `json:"storage_bytes,omitempty"`
+	Databases        uint64 `json:"databases,omitempty"`
+	Locations        uint64 `json:"locations,omitempty"`
+}
+
+type OrgUsage struct {
+	Databases map[string]DbUsage `json:"databases"`
+	Total     OrgTotal           `json:"total"`
+}
+
+func (c *OrganizationsClient) Usage() (OrgUsage, error) {
+	prefix := "/v1"
+	if c.client.org != "" {
+		prefix = "/v1/organizations/" + c.client.org
+	}
+
+	r, err := c.client.Get(prefix+"/usage", nil)
+	if err != nil {
+		return OrgUsage{}, fmt.Errorf("failed to get database usage: %w", err)
+	}
+	defer r.Body.Close()
+
+	body, err := unmarshal[OrgUsage](r)
+	return body, err
+}
+
 type Member struct {
 	Name string `json:"username,omitempty"`
 	Role string `json:"role,omitempty"`

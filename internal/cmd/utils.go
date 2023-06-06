@@ -83,10 +83,6 @@ func getDatabaseHttpUrl(settings *settings.Settings, db *turso.Database) string 
 	return getUrl(settings, db, nil, "https")
 }
 
-func getInstanceHttpUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "https")
-}
-
 func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string) string {
 	host := db.Hostname
 	if inst != nil {
@@ -303,4 +299,18 @@ func fetchLatestVersion() (string, error) {
 		return "", fmt.Errorf("got empty version for latest release")
 	}
 	return versionResp.Version, nil
+}
+
+func instancesAndUsage(client *turso.Client, database string) (instances []turso.Instance, usage turso.DbUsage, err error) {
+	g := errgroup.Group{}
+	g.Go(func() (err error) {
+		instances, err = client.Instances.List(database)
+		return
+	})
+	g.Go(func() (err error) {
+		usage, err = client.Databases.Usage(database)
+		return
+	})
+	err = g.Wait()
+	return
 }
