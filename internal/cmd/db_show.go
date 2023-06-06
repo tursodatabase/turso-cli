@@ -15,7 +15,6 @@ import (
 func init() {
 	dbCmd.AddCommand(showCmd)
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
-	showCmd.Flags().BoolVar(&showBasicAuthFlag, "basic-auth", false, "Show basic authentication in the URL.")
 	showCmd.Flags().BoolVar(&showInstanceUrlsFlag, "instance-urls", false, "Show URL for the HTTP API of all existing instances")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
@@ -44,7 +43,7 @@ var showCmd = &cobra.Command{
 		}
 
 		if showUrlFlag {
-			fmt.Println(getDatabaseUrl(config, &db, showBasicAuthFlag))
+			fmt.Println(getDatabaseUrl(config, &db))
 			return nil
 		}
 
@@ -88,7 +87,7 @@ var showCmd = &cobra.Command{
 		}
 
 		fmt.Println("Name:          ", db.Name)
-		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
+		fmt.Println("URL:           ", getDatabaseUrl(config, &db))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
 		fmt.Println("Size:          ", humanize.IBytes(usages.Total.StorageBytesUsed))

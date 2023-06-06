@@ -164,7 +164,7 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 func getConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Settings) string {
 	msg := fmt.Sprintf("Connected to %s", nameOrUrl)
 	if db != nil {
-		url := getDatabaseUrl(config, db, false)
+		url := getDatabaseUrl(config, db)
 		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), url)
 	}
 

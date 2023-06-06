@@ -13,7 +13,6 @@ import (
 )
 
 var showUrlFlag bool
-var showBasicAuthFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlsFlag bool
 var showInstanceUrlFlag string
