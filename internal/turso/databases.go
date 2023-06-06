@@ -229,6 +229,30 @@ func (d *DatabasesClient) Update(database string) error {
 	return nil
 }
 
+type Usage struct {
+	RowsRead         uint64 `json:"rows_read,omitempty"`
+	RowsWritten      uint64 `json:"rows_written,omitempty"`
+	StorageBytesUsed uint64 `json:"storage_bytes,omitempty"`
+}
+
+type DbUsage struct {
+	Instances map[string]Usage `json:"instances"`
+	Total     Usage            `json:"total"`
+}
+
+func (d *DatabasesClient) Usage(database string) (DbUsage, error) {
+	url := d.URL(fmt.Sprintf("/%s/usage", database))
+
+	r, err := d.client.Get(url, nil)
+	if err != nil {
+		return DbUsage{}, fmt.Errorf("failed to get database usage: %w", err)
+	}
+	defer r.Body.Close()
+
+	body, err := unmarshal[DbUsage](r)
+	return body, err
+}
+
 func (d *DatabasesClient) URL(suffix string) string {
 	prefix := "/v1"
 	if d.client.org != "" {
