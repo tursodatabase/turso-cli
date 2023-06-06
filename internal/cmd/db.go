@@ -17,7 +17,6 @@ var showBasicAuthFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlsFlag bool
 var showInstanceUrlFlag string
-var passwordFlag string
 var yesFlag bool
 var instanceFlag string
 
