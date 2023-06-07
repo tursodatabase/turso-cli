@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
+	tbl "github.com/charmbracelet/bubbles/table"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -29,26 +31,74 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 	return dbNameArg(cmd, args, toComplete)
 }
 
+func pickLocation(dbName string, locations map[string]string, exclude []string) string {
+	fmt.Printf("Pro-tip! Next time, you can pass the location to the command. Invoke it as %s.\n", internal.Emph(fmt.Sprintf("turso db replicate %s [location]", dbName)))
+	fmt.Printf("But since we're here... where would you like the replica to be?\n")
+
+	excluded := make(map[string]bool)
+	for _, key := range exclude {
+		excluded[key] = true
+	}
+
+	rows := make([]tbl.Row, 0, len(locations))
+	ids := maps.Keys(locations)
+	sort.Strings(ids)
+
+	for _, id := range ids {
+		if excluded[id] {
+			continue
+		}
+		row := tbl.Row{
+			id,
+			locations[id],
+		}
+		rows = append(rows, row)
+	}
+	columns := []tbl.Column{
+		{Title: "ID↓", Width: 4},
+		{Title: "LOCATION", Width: 32},
+	}
+
+	return prompt.Table(columns, rows, 0)
+
+}
+
 var replicateCmd = &cobra.Command{
 	Use:               "replicate database_name location_id",
 	Short:             "Replicate a database.",
-	Args:              cobra.RangeArgs(2, 3),
+	Args:              cobra.RangeArgs(1, 3),
 	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
 		dbName := args[0]
 		if dbName == "" {
 			return fmt.Errorf("you must specify a database name to replicate it")
 		}
-		region := args[1]
+
+		database, err := getDatabase(client, dbName)
+		if err != nil {
+			return err
+		}
+
+		var region string
+		if len(args) > 1 {
+			region = args[1]
+		} else {
+			locations, err := locations(client)
+			if err != nil {
+				return err
+			}
+			region = pickLocation(dbName, locations, database.Regions)
+		}
 		if region == "" {
 			return fmt.Errorf("you must specify a database location ID to replicate it")
 		}
 		cmd.SilenceUsage = true
+
 		config, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
-		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
