@@ -61,11 +61,6 @@ var replicateCmd = &cobra.Command{
 			image = "canary"
 		}
 
-		database, err := getDatabase(client, dbName)
-		if err != nil {
-			return err
-		}
-
 		instanceName := ""
 		if len(args) > 2 {
 			instanceName = args[2]
@@ -94,10 +89,10 @@ var replicateCmd = &cobra.Command{
 		elapsed := end.Sub(start)
 		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(regionText), int(elapsed.Seconds()))
 
-		dbUrl := getDatabaseUrl(config, &database, false)
 		showCmd := fmt.Sprintf("turso db show %s", dbName)
-		fmt.Printf("Client connections using %s that are physically close to %s will now be routed to this replica for lower latency.\n\n", internal.Emph(dbUrl), internal.Emph(region))
-		fmt.Printf("To see information about the database, including a connection URL specific to this location, run:\n\n\t%s\n", internal.Emph(showCmd))
+		urlCmd := fmt.Sprintf("turso db show %s --instance-url %s", dbName, instance.Name)
+		fmt.Printf("To see information about the database %s, run:\n\n\t%s\n\n", internal.Emph(dbName), internal.Emph(showCmd))
+		fmt.Printf("To see a connection URL directly to the new replica, run:\n\n\t%s\n\n", internal.Emph(urlCmd))
 
 		firstTime := config.RegisterUse("db_replicate")
 		if firstTime {
