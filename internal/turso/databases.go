@@ -68,7 +68,6 @@ func (d *DatabasesClient) Delete(database string) error {
 type CreateDatabaseResponse struct {
 	Database Database
 	Username string
-	Password string
 }
 
 func (d *DatabasesClient) Create(name, region, image, extensions string) (*CreateDatabaseResponse, error) {
@@ -125,35 +124,6 @@ func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
 	if res.StatusCode != http.StatusOK {
 		return parseResponseError(res)
 	}
-	return nil
-}
-
-func (d *DatabasesClient) ChangePassword(database string, newPassword string) error {
-	type Body struct{ Password string }
-	body, err := marshal(Body{newPassword})
-	if err != nil {
-		return fmt.Errorf("could not serialize request body: %w", err)
-	}
-	url := d.URL(fmt.Sprintf("/%s/password", database))
-	r, err := d.client.Post(url, body)
-	if err != nil {
-		return fmt.Errorf("failed to change database password: %s", err)
-	}
-	defer r.Body.Close()
-
-	org := d.client.org
-	if isNotMemberErr(r.StatusCode, org) {
-		return notMemberErr(org)
-	}
-
-	if r.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(database), internal.Emph("turso db list"))
-	}
-
-	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to change database password: %s", r.Status)
-	}
-
 	return nil
 }
 

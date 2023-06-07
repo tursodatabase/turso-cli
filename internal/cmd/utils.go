@@ -71,19 +71,19 @@ func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others
 	return primary, result
 }
 
-func getDatabaseUrl(settings *settings.Settings, db *turso.Database, password bool) string {
-	return getUrl(settings, db, nil, "libsql")
+func getDatabaseUrl(db *turso.Database) string {
+	return getUrl(db, nil, "libsql")
 }
 
-func getInstanceUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance) string {
-	return getUrl(settings, db, inst, "libsql")
+func getInstanceUrl(db *turso.Database, inst *turso.Instance) string {
+	return getUrl(db, inst, "libsql")
 }
 
-func getDatabaseHttpUrl(settings *settings.Settings, db *turso.Database) string {
-	return getUrl(settings, db, nil, "https")
+func getDatabaseHttpUrl(db *turso.Database) string {
+	return getUrl(db, nil, "https")
 }
 
-func getUrl(settings *settings.Settings, db *turso.Database, inst *turso.Instance, scheme string) string {
+func getUrl(db *turso.Database, inst *turso.Instance, scheme string) string {
 	host := db.Hostname
 	if inst != nil {
 		host = inst.Hostname

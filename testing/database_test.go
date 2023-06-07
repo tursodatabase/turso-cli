@@ -164,44 +164,6 @@ func TestDbReplication(t *testing.T) {
 	})
 }
 
-func changePassword(c *qt.C, dbName string, configPath *string, newPassword string) {
-	turso(configPath, "db", "passwd", dbName, "-p", newPassword)
-}
-
-func TestChangeDbPassword(t *testing.T) {
-	c := qt.New(t)
-	dbNamePrefix := strconv.FormatInt(time.Now().Unix(), 36)
-	{
-		dir, err := os.MkdirTemp("", "turso-test-settings-*")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.RemoveAll(dir)
-		primaryRegion := "waw"
-		testCreate(c, dbNamePrefix+"1", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
-			replicaName := uuid.NewString()
-			createReplica(c, dbName, configPath, replicaName)
-			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before", replicaName)
-			changePassword(c, dbName, configPath, "new_awesome_password")
-			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_after", replicaName)
-		})
-	}
-	{
-		dir, err := os.MkdirTemp("", "turso-test-settings-*")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.RemoveAll(dir)
-		primaryRegion := "waw"
-		testCreate(c, dbNamePrefix+"2", &primaryRegion, &dir, func(c *qt.C, dbName string, configPath *string) {
-			replicaName := uuid.NewString()
-			changePassword(c, dbName, configPath, "new_awesome_password")
-			createReplica(c, dbName, configPath, replicaName)
-			runSqlOnPrimaryAndReplica(c, dbName, configPath, "change_password_test_table_before", replicaName)
-		})
-	}
-}
-
 func turso(configPath *string, args ...string) (string, error) {
 	var cmd *exec.Cmd
 	if configPath != nil {

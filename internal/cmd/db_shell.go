@@ -7,7 +7,6 @@ import (
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/libsql/libsql-shell-go/pkg/shell"
 	"github.com/libsql/libsql-shell-go/pkg/shell/enums"
@@ -43,11 +42,6 @@ var shellCmd = &cobra.Command{
 			return fmt.Errorf("could not create turso client: %w", err)
 		}
 
-		config, err := settings.ReadSettings()
-		if err != nil {
-			return fmt.Errorf("could not read settings: %w", err)
-		}
-
 		db, err := databaseFromNameOrURL(nameOrUrl, client)
 		if err != nil {
 			return err
@@ -60,11 +54,11 @@ var shellCmd = &cobra.Command{
 
 		dbUrl := nameOrUrl
 		if db != nil {
-			dbUrl = getDatabaseHttpUrl(config, db)
+			dbUrl = getDatabaseHttpUrl(db)
 			dbUrl = addTokenAsQueryParameter(dbUrl, token)
 		}
 
-		connectionInfo := getConnectionInfo(nameOrUrl, db, config)
+		connectionInfo := getConnectionInfo(nameOrUrl, db)
 
 		shellConfig := shell.ShellConfig{
 			DbPath:         dbUrl,
@@ -161,10 +155,10 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 	return client.Databases.Token(db.Name, "1d", false)
 }
 
-func getConnectionInfo(nameOrUrl string, db *turso.Database, config *settings.Settings) string {
+func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
 	msg := fmt.Sprintf("Connected to %s", nameOrUrl)
 	if db != nil {
-		url := getDatabaseUrl(config, db, false)
+		url := getDatabaseUrl(db)
 		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), url)
 	}
 

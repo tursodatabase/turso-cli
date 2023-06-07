@@ -8,14 +8,12 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	dbCmd.AddCommand(showCmd)
 	showCmd.Flags().BoolVar(&showUrlFlag, "url", false, "Show URL for the database HTTP API.")
-	showCmd.Flags().BoolVar(&showBasicAuthFlag, "basic-auth", false, "Show basic authentication in the URL.")
 	showCmd.Flags().BoolVar(&showInstanceUrlsFlag, "instance-urls", false, "Show URL for the HTTP API of all existing instances")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
@@ -38,18 +36,13 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
-		config, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
-
 		if showUrlFlag {
-			fmt.Println(getDatabaseUrl(config, &db, showBasicAuthFlag))
+			fmt.Println(getDatabaseUrl(&db))
 			return nil
 		}
 
 		if showHttpUrlFlag {
-			fmt.Println(getDatabaseHttpUrl(config, &db))
+			fmt.Println(getDatabaseHttpUrl(&db))
 			return nil
 		}
 
@@ -61,7 +54,7 @@ var showCmd = &cobra.Command{
 		if showInstanceUrlFlag != "" {
 			for _, instance := range instances {
 				if instance.Name == showInstanceUrlFlag {
-					fmt.Println(getInstanceUrl(config, &db, &instance))
+					fmt.Println(getInstanceUrl(&db, &instance))
 					return nil
 				}
 			}
@@ -81,14 +74,14 @@ var showCmd = &cobra.Command{
 		for _, instance := range instances {
 			row := []string{instance.Name, instance.Type, instance.Region}
 			if showInstanceUrlsFlag {
-				url := getInstanceUrl(config, &db, &instance)
+				url := getInstanceUrl(&db, &instance)
 				row = append(row, url)
 			}
 			data = append(data, row)
 		}
 
 		fmt.Println("Name:          ", db.Name)
-		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
+		fmt.Println("URL:           ", getDatabaseUrl(&db))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
 		fmt.Println("Size:          ", humanize.IBytes(usages.Total.StorageBytesUsed))

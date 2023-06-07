@@ -38,7 +38,7 @@ var listCmd = &cobra.Command{
 			data = append(data, []string{
 				database.Name,
 				getDatabaseRegions(database),
-				getDatabaseUrl(settings, &database, false)},
+				getDatabaseUrl(&database)},
 			)
 		}
 
