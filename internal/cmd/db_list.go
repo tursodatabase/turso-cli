@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
-	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 	"sort"
-	"time"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -34,59 +31,22 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		g, ctx := errgroup.WithContext(ctx)
-		dbInfo := make(chan []string, len(databases))
-
-		for _, database := range databases {
-			database := database
-			g.Go(func() error {
-				url := getDatabaseUrl(settings, &database, false)
-				regions := getDatabaseRegions(database)
-				g, _ := errgroup.WithContext(ctx)
-				instancesCh := make(chan []turso.Instance, 1)
-				g.Go(func() error {
-					instances, err := client.Instances.List(database.Name)
-					if err != nil {
-						return err
-					}
-					instancesCh <- instances
-					return nil
-				})
-
-				tokenCh := make(chan string, 1)
-				g.Go(func() error {
-					token, err := client.Databases.Token(database.Name, "1d", true)
-					if err != nil {
-						return err
-					}
-					tokenCh <- token
-					return nil
-				})
-				if err := g.Wait(); err != nil {
-					return err
-				}
-				instances := <-instancesCh
-				token := <-tokenCh
-				dbInfo <- []string{database.Name, regions, url, calculateInstancesUsedSize(instances, settings, database, token)}
-				return nil
-			})
-		}
-
-		if err := g.Wait(); err != nil {
-			return err
-		}
+		settings.SetDbNamesCache(extractDatabaseNames(databases))
 
 		var data [][]string
-		for range databases {
-			data = append(data, <-dbInfo)
+		for _, database := range databases {
+			data = append(data, []string{
+				database.Name,
+				getDatabaseRegions(database),
+				getDatabaseUrl(settings, &database, false)},
+			)
 		}
+
 		sort.Slice(data, func(i, j int) bool {
 			return data[i][0] > data[j][0]
 		})
-		printTable([]string{"Name", "Locations", "URL", "Size"}, data)
-		settings.SetDbNamesCache(extractDatabaseNames(databases))
+
+		printTable([]string{"Name", "Locations", "URL"}, data)
 		return nil
 	},
 }

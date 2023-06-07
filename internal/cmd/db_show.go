@@ -1,17 +1,11 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"path"
 	"sort"
 	"strings"
-	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/dustin/go-humanize"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -44,11 +38,6 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := client.Databases.Token(db.Name, "1d", true)
-		if err != nil {
-			return err
-		}
-
 		config, err := settings.ReadSettings()
 		if err != nil {
 			return err
@@ -64,7 +53,7 @@ var showCmd = &cobra.Command{
 			return nil
 		}
 
-		instances, err := client.Instances.List(db.Name)
+		instances, usages, err := instancesAndUsage(client, db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
@@ -83,68 +72,30 @@ var showCmd = &cobra.Command{
 		copy(regions, db.Regions)
 		sort.Strings(regions)
 
-		instancesInfo := getInstancesInfo(client, instances, config, db, token)
+		headers := []string{"Name", "Type", "Location"}
+		if showInstanceUrlsFlag {
+			headers = append(headers, "URL")
+		}
 
 		data := [][]string{}
-		for idx, instance := range instances {
-			version := <-instancesInfo.versions[idx]
+		for _, instance := range instances {
+			row := []string{instance.Name, instance.Type, instance.Region}
 			if showInstanceUrlsFlag {
-				data = append(data, []string{instance.Name, instance.Type, instance.Region, version, instancesInfo.urls[idx]})
-			} else {
-				data = append(data, []string{instance.Name, instance.Type, instance.Region, version})
+				url := getInstanceUrl(config, &db, &instance)
+				row = append(row, url)
 			}
+			data = append(data, row)
 		}
 
 		fmt.Println("Name:          ", db.Name)
 		fmt.Println("URL:           ", getDatabaseUrl(config, &db, false))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
-		fmt.Println("Size:          ", instancesInfo.size)
+		fmt.Println("Size:          ", humanize.IBytes(usages.Total.StorageBytesUsed))
 		fmt.Println()
 		fmt.Print("Database Instances:\n")
-		if showInstanceUrlsFlag {
-			printTable([]string{"Name", "Type", "Location", "Version", "URL"}, data)
-		} else {
-			printTable([]string{"Name", "Type", "Location", "Version"}, data)
-		}
+		printTable(headers, data)
 
 		return nil
 	},
-}
-
-func fetchInstanceVersion(client *turso.Client, config *settings.Settings, db *turso.Database, instance *turso.Instance) string {
-	baseUrl := getInstanceHttpUrl(config, db, instance)
-
-	token, err := tokenFromDb(db, client)
-	if err != nil {
-		return fmt.Sprintf("fetch failed: %s", err)
-	}
-
-	url, err := url.Parse(baseUrl)
-	if err != nil {
-		return fmt.Sprintf("fetch failed: %s", err)
-	}
-	url.Path = path.Join(url.Path, "/version")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
-	if err != nil {
-		return fmt.Sprintf("fetch failed: %s", err)
-	}
-	if token != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Sprintf("fetch failed: %s", err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return "0.3.1-"
-	}
-	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Sprintf("fetch failed: %s", err)
-	}
-	return string(respBody)
 }

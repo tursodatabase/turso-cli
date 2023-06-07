@@ -1,15 +1,10 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"time"
-
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
@@ -22,17 +17,7 @@ var accountShowCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
-
 		client, err := createTursoClientFromAccessToken(true)
-		if err != nil {
-			return err
-		}
-
-		databases, err := client.Databases.List()
 		if err != nil {
 			return err
 		}
@@ -42,58 +27,9 @@ var accountShowCmd = &cobra.Command{
 			return err
 		}
 
-		numDatabases := len(databases)
-		numLocations := 0
-		inspectRet := InspectInfo{}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		// FIXME: this should be done at the server so we can enforce it
-		var dbTokens []string
-		var dbInstances [][]turso.Instance
-		var instanceCount int
-		for _, database := range databases {
-			numLocations += len(database.Regions)
-			instances, err := client.Instances.List(database.Name)
-			if err != nil {
-				return err
-			}
-
-			token, err := client.Databases.Token(database.Name, "1d", true)
-			if err != nil {
-				return err
-			}
-
-			dbTokens = append(dbTokens, token)
-			instanceCount += len(instances)
-			dbInstances = append(dbInstances, instances)
-		}
-		inspectResCh := make(chan *InspectInstanceInfo, instanceCount)
-		g, ctx := errgroup.WithContext(ctx)
-		for idx, database := range databases {
-			idx := idx
-			database := database
-			for _, instance := range dbInstances[idx] {
-				instance := instance
-				g.Go(func() error {
-					url := getInstanceHttpUrl(settings, &database, &instance)
-					ret, err := inspectInstance(ctx, url, dbTokens[idx])
-					if err != nil {
-						return err
-					}
-					ret.Location = instance.Region
-					ret.Name = instance.Name
-					ret.Type = instance.Type
-					inspectResCh <- ret
-					return nil
-				})
-			}
-		}
-		if err := g.Wait(); err != nil {
+		usage, err := client.Organizations.Usage()
+		if err != nil {
 			return err
-		}
-		for i := 0; i < instanceCount; i++ {
-			ret := <-inspectResCh
-			inspectRet.Accumulate(ret)
 		}
 
 		fmt.Printf("You are currently on %s plan.\n", internal.Emph(userInfo.Plan))
@@ -111,10 +47,10 @@ var accountShowCmd = &cobra.Command{
 
 		planInfo := getPlanInfo(PlanType(userInfo.Plan))
 
-		tbl.AddRow("storage", inspectRet.PrintTotalStorage(), planInfo.maxStorage)
-		tbl.AddRow("rows read", inspectRet.TotalRowsReadCount(), fmt.Sprintf("%d", int(1e9)))
-		tbl.AddRow("databases", numDatabases, planInfo.maxDatabases)
-		tbl.AddRow("locations", numLocations, planInfo.maxLocation)
+		tbl.AddRow("storage", humanize.IBytes(usage.Total.StorageBytesUsed), planInfo.maxStorage)
+		tbl.AddRow("rows read", usage.Total.RowsRead, fmt.Sprintf("%d", int(1e9)))
+		tbl.AddRow("databases", usage.Total.Databases, planInfo.maxDatabases)
+		tbl.AddRow("locations", usage.Total.Locations, planInfo.maxLocation)
 		tbl.Print()
 
 		return nil
