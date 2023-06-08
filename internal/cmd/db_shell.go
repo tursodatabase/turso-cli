@@ -61,7 +61,7 @@ var shellCmd = &cobra.Command{
 		connectionInfo := getConnectionInfo(nameOrUrl, db)
 
 		shellConfig := shell.ShellConfig{
-			DbPath:         dbUrl,
+			DbUri:          dbUrl,
 			InF:            cmd.InOrStdin(),
 			OutF:           cmd.OutOrStdout(),
 			ErrF:           cmd.ErrOrStderr(),
@@ -71,6 +71,7 @@ var shellCmd = &cobra.Command{
 			AfterDbConnectionCallback: func() {
 				spinner.Stop()
 			},
+			DisableAutoCompletion: true,
 		}
 
 		if len(args) == 2 {
