@@ -5,10 +5,10 @@ import (
 	"sort"
 	"time"
 
-	tbl "github.com/charmbracelet/bubbles/table"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
 )
@@ -34,33 +34,33 @@ func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]stri
 func pickLocation(dbName string, locations map[string]string, exclude []string) string {
 	fmt.Printf("Pro-tip! Next time, you can pass the location to the command. Invoke it as %s.\n", internal.Emph(fmt.Sprintf("turso db replicate %s [location]", dbName)))
 	fmt.Printf("But since we're here... where would you like the replica to be?\n")
+	fmt.Printf("%s", internal.Emph("Available locations:\n"))
 
 	excluded := make(map[string]bool)
 	for _, key := range exclude {
 		excluded[key] = true
 	}
 
-	rows := make([]tbl.Row, 0, len(locations))
 	ids := maps.Keys(locations)
 	sort.Strings(ids)
+
+	columns := make([]interface{}, 0)
+	columns = append(columns, "ID↓")
+	columns = append(columns, "LOCATION")
+
+	tbl := table.New(columns...)
 
 	for _, id := range ids {
 		if excluded[id] {
 			continue
 		}
-		row := tbl.Row{
-			id,
-			locations[id],
-		}
-		rows = append(rows, row)
+		tbl.AddRow(id, locations[id])
 	}
-	columns := []tbl.Column{
-		{Title: "ID↓", Width: 4},
-		{Title: "LOCATION", Width: 32},
-	}
-
-	return prompt.Table(columns, rows, 0)
-
+	tbl.Print()
+	fmt.Printf("\n%s ", internal.Emph("Your choice:"))
+	var choice string
+	fmt.Scanf("%s", &choice)
+	return choice
 }
 
 var replicateCmd = &cobra.Command{
