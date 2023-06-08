@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/rodaine/table"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
-	"unicode/utf8"
 )
 
 func init() {
@@ -61,11 +59,7 @@ var regionsCmd = &cobra.Command{
 			columns = append(columns, "LOCATION")
 		}
 
-		regex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
-		tbl := table.New(columns...).WithWidthFunc(func(s string) int {
-			plainText := regex.ReplaceAllString(s, "")
-			return utf8.RuneCountInString(plainText)
-		})
+		tbl := turso.LocationsTable(columns)
 
 		for _, location := range ids {
 			description := locations[location]

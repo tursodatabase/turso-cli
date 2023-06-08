@@ -3,7 +3,11 @@ package turso
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
+	"unicode/utf8"
+
+	"github.com/rodaine/table"
 )
 
 type LocationsClient client
@@ -71,4 +75,12 @@ func ProbeLocation(location string) *time.Duration {
 	}
 	dur := time.Since(start)
 	return &dur
+}
+
+func LocationsTable(columns []interface{}) table.Table {
+	regex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	return table.New(columns...).WithWidthFunc(func(s string) int {
+		plainText := regex.ReplaceAllString(s, "")
+		return utf8.RuneCountInString(plainText)
+	})
 }

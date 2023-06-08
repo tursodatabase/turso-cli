@@ -10,10 +10,8 @@ require (
 
 require (
 	github.com/athoscouto/codename v0.0.3
-	github.com/buger/goterm v1.0.4
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.1
-	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/frankban/quicktest v1.14.4
 	github.com/gdamore/tcell v1.4.0
@@ -53,6 +51,7 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
+	github.com/charmbracelet/lipgloss v0.6.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gin-gonic/gin v1.9.0 // indirect
