@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/athoscouto/codename"
-	tbl "github.com/charmbracelet/bubbles/table"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -27,15 +26,6 @@ func init() {
 }
 
 func firstTimeHint(dbName string, image string, client *turso.Client, location string, locations map[string]string) {
-	c := make(chan map[string]int)
-	go func() {
-		latencies, err := latencies(client)
-		if err != nil {
-			latencies = make(map[string]int)
-		}
-		c <- latencies
-	}()
-
 	str := fmt.Sprintf("🎉 Congrats on creating your first database! Shall we make it available on another location?\n(Don't worry! We'll only ask you this the first time.).\n%s", internal.Emph("Let's do it?"))
 	doReplica, err := promptConfirmation(str)
 	fmt.Println("")
@@ -46,56 +36,50 @@ func firstTimeHint(dbName string, image string, client *turso.Client, location s
 	replicaStr := fmt.Sprintf("If you want to create a replica later, you can pick a location with %s, and then:\n\n   %s\n\n",
 		internal.Emph("turso db locations"), internal.Emph(fmt.Sprintf("turso db replicate %s [location]", dbName)))
 
-	latencies := <-c
 	switch doReplica {
 	case true:
 		suggestedLoc, suggestedRegion := suggestedLocation(location, locations)
 
-		rows := make([]tbl.Row, 0, len(locations))
-
 		ids := maps.Keys(locations)
-		sort.Slice(ids, func(i, j int) bool {
-			return latencies[ids[i]] < latencies[ids[j]]
-		})
+		sort.Strings(ids)
 
-		initPos := 0
-		cur := 0 // keep it manually so we can skip the original location
+		columns := make([]interface{}, 0)
+		columns = append(columns, "ID↓")
+		columns = append(columns, "LOCATION")
+
+		tbl := turso.LocationsTable(columns)
+
 		for _, id := range ids {
-			lat, ok := latencies[id]
-			var latency string
-			if ok {
-				latency = fmt.Sprintf("%dms", lat)
-			} else {
-				latency = "???"
-			}
-
 			if id == location {
 				continue
 			}
-			row := tbl.Row{
-				id,
-				locations[id],
-				latency,
-			}
-			rows = append(rows, row)
+			var text string
 			if id == suggestedLoc {
-				initPos = cur
+				text = fmt.Sprintf("%s [suggested]", locations[id])
+				tbl.AddRow(internal.Emph(id), internal.Emph(text))
+			} else {
+				text = locations[id]
+				tbl.AddRow(id, text)
 			}
-			cur = cur + 1
 		}
-		columns := []tbl.Column{
-			{Title: "ID", Width: 4},
-			{Title: "LOCATION", Width: 32},
-			{Title: "LATENCY↓", Width: 8},
-		}
-
 		fmt.Printf("Great!! Where? We suggest %s, since you don't yet have coverage in %s\n", internal.Emph(suggestedLoc), internal.Emph(suggestedRegion))
-		t := prompt.Table(columns, rows, initPos)
-		if t == "" {
+		tbl.Print()
+		fmt.Printf("\n%s ", internal.Emph("Your choice"))
+		var chosen string
+		fmt.Scanf("%s", &chosen)
+		if chosen == "" {
 			fmt.Printf("Ok! %s", replicaStr)
 		} else {
-			replicate(client, dbName, t, locations[t], image)
-			fmt.Printf("Don't forget: %s", replicaStr)
+			if !isValidLocation(client, chosen) {
+				fmt.Printf("invalid location ID. Skipping\n")
+			} else {
+				err = replicate(client, dbName, chosen, locations[chosen], image)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error while creating replica: %v", err)
+				} else {
+					fmt.Printf("Don't forget: %s", replicaStr)
+				}
+			}
 		}
 	case false:
 		fmt.Printf("Ok! %s", replicaStr)
