@@ -149,6 +149,23 @@ var orgSwitchCmd = &cobra.Command{
 			return err
 		}
 
+		current := settings.Organization()
+		if current == "" {
+			for _, o := range orgs {
+				if o.Type == "personal" {
+					current = o.Slug
+					break
+				}
+			}
+		}
+
+		if current == slug {
+			fmt.Printf("Organization %s already selected\n", internal.Emph(slug))
+			return nil
+		}
+
+		prev := fmt.Sprintf("turso org switch %s", current)
+
 		org, err := findOrgWithSlug(orgs, slug)
 		if err != nil {
 			return err
@@ -162,6 +179,7 @@ var orgSwitchCmd = &cobra.Command{
 
 		fmt.Printf("Default organization set to %s.\n", internal.Emph(org.Slug))
 		fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))
+		fmt.Printf("To switch back to your previous organization:\n\n\t%s\n", internal.Emph(prev))
 		return nil
 	},
 }
