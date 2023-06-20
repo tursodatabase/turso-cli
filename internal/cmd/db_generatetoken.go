@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
@@ -36,12 +38,36 @@ var dbGenerateTokenCmd = &cobra.Command{
 		if _, err := getDatabase(client, name); err != nil {
 			return err
 		}
-
-		token, err := client.Databases.Token(name, expFlag.String(), readOnly)
+		expiration := expFlag.String()
+		if err := validateExpiration(expiration); err != nil {
+			return err
+		}
+		token, err := client.Databases.Token(name, expiration, readOnly)
 		if err != nil {
 			return fmt.Errorf("your database does not support token generation")
 		}
 		fmt.Println(token)
 		return nil
 	},
+}
+
+func validateExpiration(expiration string) error {
+	if len(expiration) == 0 {
+		return nil
+	}
+	if expiration == "none" || expiration == "default" || expiration == "never" {
+		return nil
+	}
+	if !strings.HasSuffix(expiration, "d") {
+		return nil
+	}
+	daysStr := strings.TrimSuffix(expiration, "d")
+	days, err := strconv.Atoi(daysStr)
+	if err != nil {
+		return err
+	}
+	if days < 1 {
+		return fmt.Errorf("expiration must be at least 1 day")
+	}
+	return nil
 }
