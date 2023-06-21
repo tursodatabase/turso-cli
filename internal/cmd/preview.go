@@ -6,14 +6,18 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 func init() {
@@ -35,7 +39,7 @@ var orgBillingCmd = &cobra.Command{
 			return err
 		}
 
-		portal, err := client.Organizations.BillingPortal()
+		portal, err := client.Billing.Portal()
 		if err != nil {
 			return err
 		}
@@ -65,7 +69,7 @@ var orgPlanShowCmd = &cobra.Command{
 			return err
 		}
 
-		plan, err := client.Organizations.Plan()
+		plan, err := client.Plans.Get()
 		if err != nil {
 			return err
 		}
@@ -75,7 +79,7 @@ var orgPlanShowCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Current plan: %s\n", internal.Emph(plan.Active))
+		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
 		if plan.Scheduled != "" {
 			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
 		}
@@ -113,7 +117,45 @@ var orgPlanSelectCmd = &cobra.Command{
 			return err
 		}
 
-		plan, err := client.Organizations.SetPlan("starter")
+		plans, plan, hasPaymentMethod, err := getSelectPlanInfo(client)
+		if err != nil {
+			return fmt.Errorf("failed to get plans: %w", err)
+		}
+
+		current := plan.Scheduled
+		if plan.Scheduled == "" {
+			current = plan.Active
+		}
+
+		selected, err := promptPlanSelection(plans, current)
+		if err != nil {
+			return err
+		}
+
+		if selected == current {
+			fmt.Println("You're all set! No changes are needed.")
+			return nil
+		}
+
+		upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
+		if !hasPaymentMethod && upgrade {
+			return paymentMethodHelper(client)
+		}
+
+		if upgrade {
+			fmt.Printf("You're upgrading your plan to paid plan %s.\n", internal.Emph(selected))
+			fmt.Printf("For information about resouce quotas and pricing, access: %s\n", internal.Emph("https://turso.tech/pricing"))
+		} else {
+			fmt.Printf("You're downgrading your plan to %s.\n", internal.Emph(selected))
+			fmt.Printf("Changes will effectively take place at the beginning of next month.\n")
+		}
+
+		if ok, _ := promptConfirmation("Do you want to continue?"); !ok {
+			fmt.Printf("Plan change cancelled. You're still on %s.\n", internal.Emph(current))
+			return nil
+		}
+
+		plan, err = client.Plans.Set(selected)
 		if err != nil && !errors.Is(err, turso.ErrPaymentRequired) {
 			return err
 		}
@@ -121,7 +163,7 @@ var orgPlanSelectCmd = &cobra.Command{
 			return paymentMethodHelper(client)
 		}
 
-		fmt.Printf("Current plan: %s\n", internal.Emph(plan.Active))
+		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
 		if plan.Scheduled != "" {
 			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
 		}
@@ -131,14 +173,14 @@ var orgPlanSelectCmd = &cobra.Command{
 }
 
 func paymentMethodHelper(client *turso.Client) error {
-	fmt.Println("You need to add a payment method before you can change your plan.")
+	fmt.Println("You need to add a payment method before you can upgrade your plan.")
 	ok, _ := promptConfirmation("Want to do it right now?")
 	if !ok {
-		fmt.Printf("When you're reday, you can use %s to manage your payment methods.\n", internal.Emph("turso org billing"))
+		fmt.Printf("When you're ready, you can use %s to add a payment method.\n", internal.Emph("turso org billing"))
 		return nil
 	}
 
-	portal, err := client.Organizations.BillingPortal()
+	portal, err := client.Billing.Portal()
 	if err != nil {
 		return err
 	}
@@ -148,6 +190,70 @@ func paymentMethodHelper(client *turso.Client) error {
 		fmt.Println(portal.URL)
 	}
 
-	fmt.Printf("After you've added a payment method, just run %s once more!\n", internal.Emph("turso org billing"))
+	fmt.Printf("After you've added a payment method, just run %s once more!\n", internal.Emph("turso org plan select"))
 	return nil
+}
+
+func getSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current turso.OrgPlan, hasPaymentMethod bool, err error) {
+	g := errgroup.Group{}
+	g.Go(func() (err error) {
+		plans, err = client.Plans.List()
+		return
+	})
+	g.Go(func() (err error) {
+		current, err = client.Plans.Get()
+		return
+	})
+	g.Go(func() (err error) {
+		hasPaymentMethod, err = client.Billing.HasPaymentMethod()
+		return
+	})
+	err = g.Wait()
+	return
+}
+
+func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
+	planNames := make([]string, 0, len(plans))
+	cur := 0
+	for _, plan := range plans {
+		if plan.Name == current {
+			cur = len(planNames)
+			planNames = append(planNames, fmt.Sprintf("%s (current)", internal.Emph(plan.Name)))
+			continue
+		}
+		planNames = append(planNames, plan.Name)
+	}
+
+	prompt := promptui.Select{
+		CursorPos:    cur,
+		HideHelp:     true,
+		Label:        "Select a plan",
+		Items:        planNames,
+		HideSelected: true,
+	}
+
+	_, result, err := prompt.Run()
+	if strings.HasSuffix(result, "(current)") {
+		result = current
+	}
+	return result, err
+}
+
+func formatPrice(price string) string {
+	return "$" + price
+}
+
+func isUpgrade(current, selected turso.Plan) bool {
+	cp, _ := strconv.Atoi(current.Price)
+	sp, _ := strconv.Atoi(selected.Price)
+	return sp > cp
+}
+
+func getPlan(name string, plans []turso.Plan) turso.Plan {
+	for _, plan := range plans {
+		if plan.Name == name {
+			return plan
+		}
+	}
+	return turso.Plan{}
 }
