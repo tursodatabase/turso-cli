@@ -1,7 +1,6 @@
 package turso
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -115,76 +114,6 @@ func (c *OrganizationsClient) Usage() (OrgUsage, error) {
 
 	body, err := unmarshal[OrgUsage](r)
 	return body, err
-}
-
-type Portal struct {
-	URL string `json:"url"`
-}
-
-func (c *OrganizationsClient) BillingPortal() (Portal, error) {
-	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
-	}
-
-	r, err := c.client.Post(prefix+"/billing/portal", nil)
-	if err != nil {
-		return Portal{}, fmt.Errorf("failed to get database usage: %w", err)
-	}
-	defer r.Body.Close()
-
-	resp, err := unmarshal[struct{ Portal Portal }](r)
-	return resp.Portal, err
-}
-
-type Plan struct {
-	Active    string `json:"active"`
-	Scheduled string `json:"scheduled"`
-}
-
-func (c *OrganizationsClient) Plan() (Plan, error) {
-	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
-	}
-
-	r, err := c.client.Get(prefix+"/plan", nil)
-	if err != nil {
-		return Plan{}, fmt.Errorf("failed to get organization plan: %w", err)
-	}
-	defer r.Body.Close()
-
-	resp, err := unmarshal[struct{ Plan Plan }](r)
-	return resp.Plan, err
-}
-
-var ErrPaymentRequired = errors.New("payment required")
-
-func (c *OrganizationsClient) SetPlan(plan string) (Plan, error) {
-	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
-	}
-
-	body, err := marshal(struct {
-		Plan string `json:"plan"`
-	}{plan})
-	if err != nil {
-		return Plan{}, fmt.Errorf("could not serialize request body: %w", err)
-	}
-
-	r, err := c.client.Post(prefix+"/plan", body)
-	if err != nil {
-		return Plan{}, fmt.Errorf("failed to set organization plan: %w", err)
-	}
-	defer r.Body.Close()
-
-	if r.StatusCode == http.StatusPaymentRequired {
-		return Plan{}, ErrPaymentRequired
-	}
-
-	resp, err := unmarshal[struct{ Plan Plan }](r)
-	return resp.Plan, err
 }
 
 type Member struct {
