@@ -20,6 +20,10 @@ func (c *BillingClient) Portal() (Portal, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode != 200 {
+		return Portal{}, fmt.Errorf("failed to get billing portal with status %s: %v", r.Status, parseResponseError(r))
+	}
+
 	resp, err := unmarshal[struct{ Portal Portal }](r)
 	return resp.Portal, err
 }
@@ -34,6 +38,10 @@ func (c *BillingClient) HasPaymentMethod() (bool, error) {
 		return false, fmt.Errorf("failed to get database usage: %w", err)
 	}
 	defer r.Body.Close()
+
+	if r.StatusCode != 200 {
+		return false, fmt.Errorf("failed to check payment method with status %s: %v", r.Status, parseResponseError(r))
+	}
 
 	resp, err := unmarshal[struct{ Exists bool }](r)
 	return resp.Exists, err

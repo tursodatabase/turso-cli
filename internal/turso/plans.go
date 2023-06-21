@@ -20,6 +20,10 @@ func (c *PlansClient) List() ([]Plan, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to list plans with status %s: %v", r.Status, parseResponseError(r))
+	}
+
 	resp, err := unmarshal[struct{ Plans []Plan }](r)
 	return resp.Plans, err
 }
@@ -40,6 +44,10 @@ func (c *PlansClient) Get() (OrgPlan, error) {
 		return OrgPlan{}, fmt.Errorf("failed to get organization plan: %w", err)
 	}
 	defer r.Body.Close()
+
+	if r.StatusCode != 200 {
+		return OrgPlan{}, fmt.Errorf("failed to get organization plan with status %s: %v", r.Status, parseResponseError(r))
+	}
 
 	resp, err := unmarshal[struct{ Plan OrgPlan }](r)
 	return resp.Plan, err
@@ -68,6 +76,10 @@ func (c *PlansClient) Set(plan string) (OrgPlan, error) {
 
 	if r.StatusCode == http.StatusPaymentRequired {
 		return OrgPlan{}, ErrPaymentRequired
+	}
+
+	if r.StatusCode != 200 {
+		return OrgPlan{}, fmt.Errorf("failed to set organization plan with status %s: %v", r.Status, parseResponseError(r))
 	}
 
 	resp, err := unmarshal[struct{ Plan OrgPlan }](r)
