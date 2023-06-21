@@ -39,7 +39,7 @@ func IsUnderHomebrew() bool {
 
 var updateCmd = &cobra.Command{
 	Use:               "update",
-	Short:             "update the CLI to the latest version",
+	Short:             "Update the CLI to the latest version",
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {

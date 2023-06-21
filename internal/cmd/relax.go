@@ -11,7 +11,7 @@ func init() {
 
 var funCmd = &cobra.Command{
 	Use:               "relax",
-	Short:             "sometimes you feel like you're working too hard... relax!",
+	Short:             "Sometimes you feel like you're working too hard... relax!",
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
