@@ -88,7 +88,8 @@ var orgPlanShowCmd = &cobra.Command{
 		columns := make([]interface{}, 0)
 		columns = append(columns, "RESOURCE")
 		columns = append(columns, "USED")
-		columns = append(columns, "MAX")
+		columns = append(columns, "LIMIT")
+		columns = append(columns, "PERCENTAGE")
 
 		tbl := table.New(columns...)
 
@@ -97,10 +98,23 @@ var orgPlanShowCmd = &cobra.Command{
 
 		planInfo := getPlanInfo(PlanType(plan.Active))
 
-		tbl.AddRow("storage", humanize.IBytes(usage.Total.StorageBytesUsed), planInfo.maxStorage)
-		tbl.AddRow("rows read", usage.Total.RowsRead, fmt.Sprintf("%d", int(1e9)))
-		tbl.AddRow("databases", usage.Total.Databases, planInfo.maxDatabases)
-		tbl.AddRow("locations", usage.Total.Locations, planInfo.maxLocation)
+		maxStorage, err := humanize.ParseBytes(planInfo.maxStorage)
+		if err != nil {
+			return err
+		}
+		maxDatabases, err := strconv.ParseUint(planInfo.maxDatabases, 10, 64)
+		if err != nil {
+			return err
+		}
+		maxLocations, err := strconv.ParseUint(planInfo.maxLocation, 10, 64)
+		if err != nil {
+			return err
+		}
+		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, maxStorage)
+		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, uint64(1e9))
+		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, uint64(25*1e6))
+		addResourceRowCount(tbl, "databases", usage.Total.Databases, maxDatabases)
+		addResourceRowCount(tbl, "locations", usage.Total.Locations, maxLocations)
 		tbl.Print()
 
 		return nil
