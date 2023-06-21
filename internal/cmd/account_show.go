@@ -49,6 +49,7 @@ var accountShowCmd = &cobra.Command{
 
 		tbl.AddRow("storage", humanize.IBytes(usage.Total.StorageBytesUsed), planInfo.maxStorage)
 		tbl.AddRow("rows read", usage.Total.RowsRead, fmt.Sprintf("%d", int(1e9)))
+		tbl.AddRow("rows written", usage.Total.RowsWritten, fmt.Sprintf("%d", int(1e9)))
 		tbl.AddRow("databases", usage.Total.Databases, planInfo.maxDatabases)
 		tbl.AddRow("locations", usage.Total.Locations, planInfo.maxLocation)
 		tbl.Print()
