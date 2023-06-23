@@ -52,6 +52,10 @@ func (c *OrganizationsClient) Create(name string) (Organization, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode == http.StatusConflict {
+		return Organization{}, fmt.Errorf("failed to create organization %s: name already exists", internal.Emph(name))
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return Organization{}, fmt.Errorf("failed to create organization: %s", r.Status)
 	}
