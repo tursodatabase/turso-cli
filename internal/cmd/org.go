@@ -21,6 +21,51 @@ func init() {
 	membersCmd.AddCommand(membersRemoveCmd)
 }
 
+func switchToOrg(client *turso.Client, slug string) error {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return err
+	}
+	orgs, err := client.Organizations.List()
+	if err != nil {
+		return err
+	}
+
+	current := settings.Organization()
+	if current == "" {
+		for _, o := range orgs {
+			if o.Type == "personal" {
+				current = o.Slug
+				break
+			}
+		}
+	}
+
+	if current == slug {
+		fmt.Printf("Organization %s already selected\n", internal.Emph(slug))
+		return nil
+	}
+
+	prev := fmt.Sprintf("turso org switch %s", current)
+
+	org, err := findOrgWithSlug(orgs, slug)
+	if err != nil {
+		return err
+	}
+
+	if org.Type == "personal" {
+		slug = ""
+	}
+
+	settings.SetOrganization(slug)
+
+	fmt.Printf("Current organization set to %s.\n", internal.Emph(org.Slug))
+	fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))
+	fmt.Printf("To switch back to your previous organization:\n\n\t%s\n", internal.Emph(prev))
+
+	return nil
+}
+
 var orgCmd = &cobra.Command{
 	Use:   "org",
 	Short: "Manage your organizations",
@@ -89,7 +134,7 @@ var orgCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Created organization %s.\n", internal.Emph(org.Name))
-		return nil
+		return switchToOrg(client, org.Name)
 	},
 }
 
@@ -134,53 +179,12 @@ var orgSwitchCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 		slug := args[0]
 
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
-
 		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
 
-		orgs, err := client.Organizations.List()
-		if err != nil {
-			return err
-		}
-
-		current := settings.Organization()
-		if current == "" {
-			for _, o := range orgs {
-				if o.Type == "personal" {
-					current = o.Slug
-					break
-				}
-			}
-		}
-
-		if current == slug {
-			fmt.Printf("Organization %s already selected\n", internal.Emph(slug))
-			return nil
-		}
-
-		prev := fmt.Sprintf("turso org switch %s", current)
-
-		org, err := findOrgWithSlug(orgs, slug)
-		if err != nil {
-			return err
-		}
-
-		if org.Type == "personal" {
-			slug = ""
-		}
-
-		settings.SetOrganization(slug)
-
-		fmt.Printf("Default organization set to %s.\n", internal.Emph(org.Slug))
-		fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))
-		fmt.Printf("To switch back to your previous organization:\n\n\t%s\n", internal.Emph(prev))
-		return nil
+		return switchToOrg(client, slug)
 	},
 }
 
