@@ -9,8 +9,15 @@ import (
 type PlansClient client
 
 type Plan struct {
-	Name  string `json:"name"`
-	Price string `json:"price"`
+	Name   string `json:"name"`
+	Price  string `json:"price"`
+	Quotas struct {
+		RowsRead    uint64 `json:"rowsRead"`
+		RowsWritten uint64 `json:"rowsWritten"`
+		Databases   uint64 `json:"databases"`
+		Locations   uint64 `json:"locations"`
+		Storage     uint64 `json:"storage"`
+	}
 }
 
 func (c *PlansClient) List() ([]Plan, error) {
