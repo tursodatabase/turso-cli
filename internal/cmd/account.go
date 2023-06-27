@@ -1,16 +1,15 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
 type PlanInfo struct {
-	maxDatabases uint64
-	maxStorage   uint64
-	maxLocations uint64
+	maxRowsRead    uint64
+	maxRowsWritten uint64
+	maxDatabases   uint64
+	maxStorage     uint64
+	maxLocations   uint64
 }
 
 type PlanType string
@@ -23,19 +22,25 @@ const (
 
 var planInfos = map[PlanType]PlanInfo{
 	STARTER: {
-		maxDatabases: 3,
-		maxLocations: 3,
-		maxStorage:   8,
+		maxRowsRead:    1e9,
+		maxRowsWritten: 25e6,
+		maxDatabases:   3,
+		maxLocations:   3,
+		maxStorage:     8 * 1024 * 1024 * 1024,
 	},
 	SCALER: {
-		maxDatabases: 6,
-		maxLocations: 6,
-		maxStorage:   20,
+		maxRowsRead:    100e9,
+		maxRowsWritten: 100e6,
+		maxDatabases:   6,
+		maxLocations:   6,
+		maxStorage:     20 * 1024 * 1024 * 1024,
 	},
 	ENTERPRISE: {
-		maxDatabases: 0,
-		maxLocations: 0,
-		maxStorage:   0,
+		maxRowsRead:    0,
+		maxRowsWritten: 0,
+		maxDatabases:   0,
+		maxLocations:   0,
+		maxStorage:     0,
 	},
 }
 
@@ -51,28 +56,8 @@ func init() {
 	accountCmd.AddCommand(accountFeedbackCmd)
 }
 
-type FormattedPlanInfo struct {
-	maxDatabases string
-	maxStorage   string
-	maxLocation  string
-}
-
-func getPlanInfo(plan PlanType) FormattedPlanInfo {
+func getPlanInfo(plan PlanType) PlanInfo {
 	planInfo := planInfos[plan]
 
-	maxStorage := "Unlimited"
-	maxDatabases := "Unlimited"
-	maxLocation := "Unlimited"
-
-	if plan != ENTERPRISE {
-		maxStorage = fmt.Sprint(humanize.IBytes(planInfo.maxStorage * 1024 * 1024 * 1024))
-		maxDatabases = fmt.Sprint(planInfo.maxDatabases)
-		maxLocation = fmt.Sprint(planInfo.maxLocations)
-	}
-
-	return FormattedPlanInfo{
-		maxStorage:   maxStorage,
-		maxDatabases: maxDatabases,
-		maxLocation:  maxLocation,
-	}
+	return planInfo
 }

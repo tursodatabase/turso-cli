@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/dustin/go-humanize"
@@ -49,23 +48,11 @@ var accountShowCmd = &cobra.Command{
 
 		planInfo := getPlanInfo(PlanType(userInfo.Plan))
 
-		maxStorage, err := humanize.ParseBytes(planInfo.maxStorage)
-		if err != nil {
-			return err
-		}
-		maxDatabases, err := strconv.ParseUint(planInfo.maxDatabases, 10, 64)
-		if err != nil {
-			return err
-		}
-		maxLocations, err := strconv.ParseUint(planInfo.maxLocation, 10, 64)
-		if err != nil {
-			return err
-		}
-		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, maxStorage)
-		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, uint64(1e9))
-		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, uint64(25*1e6))
-		addResourceRowCount(tbl, "databases", usage.Total.Databases, maxDatabases)
-		addResourceRowCount(tbl, "locations", usage.Total.Locations, maxLocations)
+		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, planInfo.maxStorage)
+		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, planInfo.maxRowsRead)
+		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, planInfo.maxRowsWritten)
+		addResourceRowCount(tbl, "databases", usage.Total.Databases, planInfo.maxDatabases)
+		addResourceRowCount(tbl, "locations", usage.Total.Locations, planInfo.maxLocations)
 		tbl.Print()
 
 		return nil
@@ -73,10 +60,18 @@ var accountShowCmd = &cobra.Command{
 }
 
 func addResourceRowBytes(tbl table.Table, resource string, used, limit uint64) {
+	if limit == 0 {
+		tbl.AddRow(resource, humanize.IBytes(used), "Unlimited", "")
+		return
+	}
 	tbl.AddRow(resource, humanize.IBytes(used), humanize.IBytes(limit), percentage(float64(used), float64(limit)))
 }
 
 func addResourceRowCount(tbl table.Table, resource string, used, limit uint64) {
+	if limit == 0 {
+		tbl.AddRow(resource, used, "Unlimited", "")
+		return
+	}
 	tbl.AddRow(resource, used, limit, percentage(float64(used), float64(limit)))
 }
 
