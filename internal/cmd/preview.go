@@ -11,7 +11,6 @@ import (
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
-	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
@@ -69,12 +68,7 @@ var orgPlanShowCmd = &cobra.Command{
 			return err
 		}
 
-		plan, err := client.Plans.Get()
-		if err != nil {
-			return err
-		}
-
-		usage, err := client.Organizations.Usage()
+		plan, usage, plans, err := orgPlanData(client)
 		if err != nil {
 			return err
 		}
@@ -84,6 +78,8 @@ var orgPlanShowCmd = &cobra.Command{
 			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
 		}
 		fmt.Println()
+
+		current := getPlan(plan.Active, plans)
 
 		columns := make([]interface{}, 0)
 		columns = append(columns, "RESOURCE")
@@ -96,29 +92,35 @@ var orgPlanShowCmd = &cobra.Command{
 		columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
 		tbl.WithFirstColumnFormatter(columnFmt)
 
-		planInfo := getPlanInfo(PlanType(plan.Active))
-
-		maxStorage, err := humanize.ParseBytes(planInfo.maxStorage)
-		if err != nil {
-			return err
-		}
-		maxDatabases, err := strconv.ParseUint(planInfo.maxDatabases, 10, 64)
-		if err != nil {
-			return err
-		}
-		maxLocations, err := strconv.ParseUint(planInfo.maxLocation, 10, 64)
-		if err != nil {
-			return err
-		}
-		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, maxStorage)
-		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, uint64(1e9))
-		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, uint64(25*1e6))
-		addResourceRowCount(tbl, "databases", usage.Total.Databases, maxDatabases)
-		addResourceRowCount(tbl, "locations", usage.Total.Locations, maxLocations)
+		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, current.Quotas.Storage)
+		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, current.Quotas.RowsRead)
+		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, current.Quotas.RowsWritten)
+		addResourceRowCount(tbl, "databases", usage.Total.Databases, current.Quotas.Databases)
+		addResourceRowCount(tbl, "locations", usage.Total.Locations, current.Quotas.Locations)
 		tbl.Print()
 
 		return nil
 	},
+}
+
+func orgPlanData(client *turso.Client) (plan turso.OrgPlan, usage turso.OrgUsage, plans []turso.Plan, err error) {
+	g := errgroup.Group{}
+	g.Go(func() (err error) {
+		plan, err = client.Plans.Get()
+		return
+	})
+
+	g.Go(func() (err error) {
+		usage, err = client.Organizations.Usage()
+		return
+	})
+
+	g.Go(func() (err error) {
+		plans, err = client.Plans.List()
+		return
+	})
+	err = g.Wait()
+	return
 }
 
 var orgPlanSelectCmd = &cobra.Command{
