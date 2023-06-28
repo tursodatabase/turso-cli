@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
@@ -155,7 +157,14 @@ var orgPlanSelectCmd = &cobra.Command{
 
 		upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
 		if !hasPaymentMethod && upgrade {
-			return paymentMethodHelper(client)
+			ok, err := paymentMethodHelper(client)
+			if err != nil {
+				return fmt.Errorf("failed to check payment method: %w", err)
+			}
+			if !ok {
+				return nil
+			}
+			fmt.Println("Payment method added successfully.")
 		}
 
 		if upgrade {
@@ -175,9 +184,6 @@ var orgPlanSelectCmd = &cobra.Command{
 		if err != nil && !errors.Is(err, turso.ErrPaymentRequired) {
 			return err
 		}
-		if errors.Is(err, turso.ErrPaymentRequired) {
-			return paymentMethodHelper(client)
-		}
 
 		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
 		if plan.Scheduled != "" {
@@ -188,26 +194,46 @@ var orgPlanSelectCmd = &cobra.Command{
 	},
 }
 
-func paymentMethodHelper(client *turso.Client) error {
+func paymentMethodHelper(client *turso.Client) (bool, error) {
 	fmt.Println("You need to add a payment method before you can upgrade your plan.")
 	ok, _ := promptConfirmation("Want to do it right now?")
 	if !ok {
 		fmt.Printf("When you're ready, you can use %s to add a payment method.\n", internal.Emph("turso org billing"))
-		return nil
+		return false, nil
 	}
 
 	portal, err := client.Billing.Portal()
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	msg := "Opening your browser at URL:"
 	if err := browser.OpenURL(portal.URL); err != nil {
-		fmt.Println("Access the following URL to manage your payment methods:")
-		fmt.Println(portal.URL)
+		msg = "Access the following URL to manage your payment methods:"
 	}
+	fmt.Println(msg)
+	fmt.Println(portal.URL)
 
-	fmt.Printf("After you've added a payment method, just run %s once more!\n", internal.Emph("turso org plan select"))
-	return nil
+	spinner := prompt.Spinner("Waiting for you to add a payment method")
+	defer spinner.Stop()
+
+	errsInARoW := 0
+	for {
+		hasPaymentMethod, err := client.Billing.HasPaymentMethod()
+		if err != nil {
+			errsInARoW += 1
+		}
+		if errsInARoW > 5 {
+			return false, err
+		}
+		if err == nil {
+			errsInARoW = 0
+		}
+		if hasPaymentMethod {
+			return true, nil
+		}
+		time.Sleep(3 * time.Second)
+	}
 }
 
 func getSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current turso.OrgPlan, hasPaymentMethod bool, err error) {
