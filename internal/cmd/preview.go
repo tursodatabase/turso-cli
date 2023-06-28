@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
@@ -21,14 +23,14 @@ import (
 
 func init() {
 	orgCmd.AddCommand(orgBillingCmd)
-	orgCmd.AddCommand(orgPlanCmd)
-	orgPlanCmd.AddCommand(orgPlanShowCmd)
-	orgPlanCmd.AddCommand(orgPlanSelectCmd)
+	rootCmd.AddCommand(planCmd)
+	planCmd.AddCommand(planShowCmd)
+	planCmd.AddCommand(planSelectCmd)
 }
 
 var orgBillingCmd = &cobra.Command{
 	Use:   "billing",
-	Short: "manange payment methods of the current organization.",
+	Short: "Manange payment methods for the current organization.",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
@@ -38,26 +40,16 @@ var orgBillingCmd = &cobra.Command{
 			return err
 		}
 
-		portal, err := client.Billing.Portal()
-		if err != nil {
-			return err
-		}
-
-		if err := browser.OpenURL(portal.URL); err != nil {
-			fmt.Println("Access the following URL to manage your payment methods:")
-			fmt.Println(portal.URL)
-		}
-
-		return nil
+		return billingPortal(client)
 	},
 }
 
-var orgPlanCmd = &cobra.Command{
+var planCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Manage your organization plan",
 }
 
-var orgPlanShowCmd = &cobra.Command{
+var planShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show your current organization plan",
 	Args:  cobra.ExactArgs(0),
@@ -123,7 +115,7 @@ func orgPlanData(client *turso.Client) (plan turso.OrgPlan, usage turso.OrgUsage
 	return
 }
 
-var orgPlanSelectCmd = &cobra.Command{
+var planSelectCmd = &cobra.Command{
 	Use:   "select",
 	Short: "Change your current organization plan",
 	Args:  cobra.ExactArgs(0),
@@ -155,7 +147,14 @@ var orgPlanSelectCmd = &cobra.Command{
 
 		upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
 		if !hasPaymentMethod && upgrade {
-			return paymentMethodHelper(client)
+			ok, err := paymentMethodHelper(client)
+			if err != nil {
+				return fmt.Errorf("failed to check payment method: %w", err)
+			}
+			if !ok {
+				return nil
+			}
+			fmt.Println("Payment method added successfully.")
 		}
 
 		if upgrade {
@@ -175,39 +174,50 @@ var orgPlanSelectCmd = &cobra.Command{
 		if err != nil && !errors.Is(err, turso.ErrPaymentRequired) {
 			return err
 		}
-		if errors.Is(err, turso.ErrPaymentRequired) {
-			return paymentMethodHelper(client)
-		}
 
-		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
 		if plan.Scheduled != "" {
-			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
+			fmt.Printf("Starting next month, you will be downgraded to the %s plan.\n", internal.Emph(plan.Scheduled))
+			return nil
 		}
 
+		fmt.Printf("You've been upgraded to the %s plan 🎉\n", internal.Emph(plan.Active))
+		fmt.Printf("Use %s to see your new quotas.\n", internal.Emph("turso plan show"))
 		return nil
 	},
 }
 
-func paymentMethodHelper(client *turso.Client) error {
+func paymentMethodHelper(client *turso.Client) (bool, error) {
 	fmt.Println("You need to add a payment method before you can upgrade your plan.")
 	ok, _ := promptConfirmation("Want to do it right now?")
 	if !ok {
 		fmt.Printf("When you're ready, you can use %s to add a payment method.\n", internal.Emph("turso org billing"))
-		return nil
+		return false, nil
 	}
 
-	portal, err := client.Billing.Portal()
-	if err != nil {
-		return err
+	if err := billingPortal(client); err != nil {
+		return false, err
 	}
 
-	if err := browser.OpenURL(portal.URL); err != nil {
-		fmt.Println("Access the following URL to manage your payment methods:")
-		fmt.Println(portal.URL)
-	}
+	spinner := prompt.Spinner("Waiting for you to add a payment method")
+	defer spinner.Stop()
 
-	fmt.Printf("After you've added a payment method, just run %s once more!\n", internal.Emph("turso org plan select"))
-	return nil
+	errsInARoW := 0
+	for {
+		hasPaymentMethod, err := client.Billing.HasPaymentMethod()
+		if err != nil {
+			errsInARoW += 1
+		}
+		if errsInARoW > 5 {
+			return false, err
+		}
+		if err == nil {
+			errsInARoW = 0
+		}
+		if hasPaymentMethod {
+			return true, nil
+		}
+		time.Sleep(3 * time.Second)
+	}
 }
 
 func getSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current turso.OrgPlan, hasPaymentMethod bool, err error) {
@@ -272,4 +282,19 @@ func getPlan(name string, plans []turso.Plan) turso.Plan {
 		}
 	}
 	return turso.Plan{}
+}
+
+func billingPortal(client *turso.Client) error {
+	portal, err := client.Billing.Portal()
+	if err != nil {
+		return err
+	}
+
+	msg := "Opening your browser at URL:"
+	if err := browser.OpenURL(portal.URL); err != nil {
+		msg = "Access the following URL to manage your payment methods:"
+	}
+	fmt.Println(msg)
+	fmt.Println(portal.URL)
+	return nil
 }
