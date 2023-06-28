@@ -145,6 +145,37 @@ var planSelectCmd = &cobra.Command{
 	},
 }
 
+var planUpgradeCmd = &cobra.Command{
+	Use:   "upgrade",
+	Short: "Upgrade your current organization plan",
+	Args:  cobra.ExactArgs(0),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		plans, plan, hasPaymentMethod, err := getSelectPlanInfo(client)
+		if err != nil {
+			return fmt.Errorf("failed to get plans: %w", err)
+		}
+
+		current := plan.Scheduled
+		if plan.Scheduled == "" {
+			current = plan.Active
+		}
+
+		if current == "scaler" {
+			fmt.Printf("You've already upgraded to %s! 🎉\n", internal.Emph(current))
+			fmt.Println("If you need a more powerful plan, we're happy to help.")
+			fmt.Printf("You can find us at %s or at Discord (%s)\n", internal.Emph("sales@turso.tech"), internal.Emph("https://discord.com/invite/4B5D7hYwub"))
+			return nil
+		}
+
+		return changePlan(client, plans, plan, hasPaymentMethod, "scaler")
+	},
+}
+
 func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, hasPaymentMethod bool, selected string) error {
 	current := plan.Scheduled
 	if plan.Scheduled == "" {
