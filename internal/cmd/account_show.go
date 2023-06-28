@@ -94,5 +94,5 @@ func addResourceRowCount(tbl table.Table, resource string, used, limit uint64) {
 }
 
 func percentage(used, limit float64) string {
-	return fmt.Sprintf("%.0f %%", used/limit*100)
+	return fmt.Sprintf("%.0f%%", used/limit*100)
 }
