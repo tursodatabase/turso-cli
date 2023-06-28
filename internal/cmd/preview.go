@@ -23,9 +23,9 @@ import (
 
 func init() {
 	orgCmd.AddCommand(orgBillingCmd)
-	orgCmd.AddCommand(orgPlanCmd)
-	orgPlanCmd.AddCommand(orgPlanShowCmd)
-	orgPlanCmd.AddCommand(orgPlanSelectCmd)
+	rootCmd.AddCommand(planCmd)
+	planCmd.AddCommand(planShowCmd)
+	planCmd.AddCommand(planSelectCmd)
 }
 
 var orgBillingCmd = &cobra.Command{
@@ -54,12 +54,12 @@ var orgBillingCmd = &cobra.Command{
 	},
 }
 
-var orgPlanCmd = &cobra.Command{
+var planCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Manage your organization plan",
 }
 
-var orgPlanShowCmd = &cobra.Command{
+var planShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show your current organization plan",
 	Args:  cobra.ExactArgs(0),
@@ -125,7 +125,7 @@ func orgPlanData(client *turso.Client) (plan turso.OrgPlan, usage turso.OrgUsage
 	return
 }
 
-var orgPlanSelectCmd = &cobra.Command{
+var planSelectCmd = &cobra.Command{
 	Use:   "select",
 	Short: "Change your current organization plan",
 	Args:  cobra.ExactArgs(0),
