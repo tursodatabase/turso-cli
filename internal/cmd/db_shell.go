@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
@@ -79,6 +81,15 @@ var shellCmd = &cobra.Command{
 				return fmt.Errorf("no SQL command to execute")
 			}
 			return shell.RunShellLine(shellConfig, args[1])
+		}
+
+		if pipeOrRedirect() {
+			// TODO: read chunks when iteractive transactions are available
+			b, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("error reading from stdin: %w", err)
+			}
+			return shell.RunShellLine(shellConfig, string(b))
 		}
 
 		return shell.RunShell(shellConfig)
@@ -171,4 +182,9 @@ func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
 
 func addTokenAsQueryParameter(dbUrl string, token string) string {
 	return fmt.Sprintf("%s?jwt=%s", dbUrl, token)
+}
+
+func pipeOrRedirect() bool {
+	stat, err := os.Stdin.Stat()
+	return err == nil && (stat.Mode()&os.ModeCharDevice) == 0
 }
