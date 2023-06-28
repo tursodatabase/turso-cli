@@ -30,7 +30,7 @@ func init() {
 
 var orgBillingCmd = &cobra.Command{
 	Use:   "billing",
-	Short: "manange payment methods of the current organization.",
+	Short: "Manange payment methods for the current organization.",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
