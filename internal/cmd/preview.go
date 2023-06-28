@@ -28,7 +28,7 @@ func init() {
 
 var orgBillingCmd = &cobra.Command{
 	Use:   "billing",
-	Short: "manange payment methods of the current organization.",
+	Short: "Manage payment methods for the current organization",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
@@ -43,12 +43,10 @@ var orgBillingCmd = &cobra.Command{
 			return err
 		}
 
-		if err := browser.OpenURL(portal.URL); err != nil {
-			fmt.Println("Access the following URL to manage your payment methods:")
-			fmt.Println(portal.URL)
-		}
+		fmt.Println("Opened the following URL in your browser to manage your payment methods:")
+		fmt.Println(portal.URL)
 
-		return nil
+		return browser.OpenURL(portal.URL)
 	},
 }
 
