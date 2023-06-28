@@ -112,3 +112,19 @@ func (s *Settings) TokenValidCache(token string) bool {
 	ok, err := getCache[bool](key)
 	return err == nil && ok
 }
+
+const DATABASE_TOKEN_KEY_PREFIX = "database_token."
+
+func (s *Settings) SetDbTokenCache(dbID, token string, exp int64) {
+	key := DATABASE_TOKEN_KEY_PREFIX + dbID
+	setCacheWithExp(key, exp, token)
+}
+
+func (s *Settings) DbTokenCache(dbID string) string {
+	key := DATABASE_TOKEN_KEY_PREFIX + dbID
+	token, err := getCache[string](key)
+	if err != nil {
+		return ""
+	}
+	return token
+}
