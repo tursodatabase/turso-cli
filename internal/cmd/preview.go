@@ -26,6 +26,7 @@ func init() {
 	rootCmd.AddCommand(planCmd)
 	planCmd.AddCommand(planShowCmd)
 	planCmd.AddCommand(planSelectCmd)
+	planCmd.AddCommand(planUpgradeCmd)
 }
 
 var orgBillingCmd = &cobra.Command{
@@ -140,50 +141,59 @@ var planSelectCmd = &cobra.Command{
 			return err
 		}
 
-		if selected == current {
-			fmt.Println("You're all set! No changes are needed.")
-			return nil
-		}
-
-		upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
-		if !hasPaymentMethod && upgrade {
-			ok, err := paymentMethodHelper(client)
-			if err != nil {
-				return fmt.Errorf("failed to check payment method: %w", err)
-			}
-			if !ok {
-				return nil
-			}
-			fmt.Println("Payment method added successfully.")
-		}
-
-		if upgrade {
-			fmt.Printf("You're upgrading your plan to paid plan %s.\n", internal.Emph(selected))
-			fmt.Printf("For information about resouce quotas and pricing, access: %s\n", internal.Emph("https://turso.tech/pricing"))
-		} else {
-			fmt.Printf("You're downgrading your plan to %s.\n", internal.Emph(selected))
-			fmt.Printf("Changes will effectively take place at the beginning of next month.\n")
-		}
-
-		if ok, _ := promptConfirmation("Do you want to continue?"); !ok {
-			fmt.Printf("Plan change cancelled. You're still on %s.\n", internal.Emph(current))
-			return nil
-		}
-
-		plan, err = client.Plans.Set(selected)
-		if err != nil && !errors.Is(err, turso.ErrPaymentRequired) {
-			return err
-		}
-
-		if plan.Scheduled != "" {
-			fmt.Printf("Starting next month, you will be downgraded to the %s plan.\n", internal.Emph(plan.Scheduled))
-			return nil
-		}
-
-		fmt.Printf("You've been upgraded to the %s plan 🎉\n", internal.Emph(plan.Active))
-		fmt.Printf("Use %s to see your new quotas.\n", internal.Emph("turso plan show"))
-		return nil
+		return changePlan(client, plans, plan, hasPaymentMethod, selected)
 	},
+}
+
+func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, hasPaymentMethod bool, selected string) error {
+	current := plan.Scheduled
+	if plan.Scheduled == "" {
+		current = plan.Active
+	}
+
+	if selected == current {
+		fmt.Println("You're all set! No changes are needed.")
+		return nil
+	}
+
+	upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
+	if !hasPaymentMethod && upgrade {
+		ok, err := paymentMethodHelper(client)
+		if err != nil {
+			return fmt.Errorf("failed to check payment method: %w", err)
+		}
+		if !ok {
+			return nil
+		}
+		fmt.Println("Payment method added successfully.")
+	}
+
+	if upgrade {
+		fmt.Printf("You're upgrading to paid plan %s.\n", internal.Emph(selected))
+		fmt.Printf("For information about resource quotas and pricing, access: %s\n", internal.Emph("https://turso.tech/pricing"))
+	} else {
+		fmt.Printf("You're downgrading your plan to %s.\n", internal.Emph(selected))
+		fmt.Printf("Changes will effectively take place at the beginning of next month.\n")
+	}
+
+	if ok, _ := promptConfirmation("Do you want to continue?"); !ok {
+		fmt.Printf("Plan change cancelled. You're still on %s.\n", internal.Emph(current))
+		return nil
+	}
+
+	plan, err := client.Plans.Set(selected)
+	if err != nil && !errors.Is(err, turso.ErrPaymentRequired) {
+		return err
+	}
+
+	if plan.Scheduled != "" {
+		fmt.Printf("Starting next month, you will be downgraded to the %s plan.\n", internal.Emph(plan.Scheduled))
+		return nil
+	}
+
+	fmt.Printf("You've been upgraded to the %s plan 🎉\n", internal.Emph(plan.Active))
+	fmt.Printf("Use %s to see your new quotas.\n", internal.Emph("turso plan show"))
+	return nil
 }
 
 func paymentMethodHelper(client *turso.Client) (bool, error) {
