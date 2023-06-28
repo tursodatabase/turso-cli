@@ -185,11 +185,13 @@ var orgPlanSelectCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
 		if plan.Scheduled != "" {
-			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
+			fmt.Printf("Starting next month, you will be downgraded to the %s plan.\n", internal.Emph(plan.Scheduled))
+			return nil
 		}
 
+		fmt.Printf("You've been upgraded to the %s plan 🎉\n", internal.Emph(plan.Active))
+		fmt.Printf("Use %s to see your new quotas.\n", internal.Emph("turso plan show"))
 		return nil
 	},
 }
