@@ -66,6 +66,9 @@ var planShowCmd = &cobra.Command{
 			return err
 		}
 
+		if client.Org != "" {
+			fmt.Printf("Organization: %s\n", internal.Emph(client.Org))
+		}
 		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
 		if plan.Scheduled != "" {
 			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
