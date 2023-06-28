@@ -223,7 +223,7 @@ func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, ha
 	}
 
 	fmt.Printf("You've been upgraded to the %s plan 🎉\n", internal.Emph(plan.Active))
-	fmt.Printf("Use %s to see your new quotas.\n", internal.Emph("turso plan show"))
+	fmt.Printf("To see your new quotas, use %s.\n", internal.Emph("turso plan show"))
 	return nil
 }
 
