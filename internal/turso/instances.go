@@ -23,7 +23,7 @@ func (i *InstancesClient) List(db string) ([]Instance, error) {
 	}
 	defer r.Body.Close()
 
-	org := i.client.org
+	org := i.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return nil, notMemberErr(org)
 	}
@@ -49,7 +49,7 @@ func (i *InstancesClient) Delete(db, instance string) error {
 	}
 	defer r.Body.Close()
 
-	org := i.client.org
+	org := i.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return notMemberErr(org)
 	}
@@ -88,7 +88,7 @@ func (d *InstancesClient) Create(dbName, instanceName, region, image string) (*I
 	}
 	defer res.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(res.StatusCode, org) {
 		return nil, notMemberErr(org)
 	}
@@ -113,7 +113,7 @@ func (i *InstancesClient) Wait(db, instance string) error {
 	}
 	defer r.Body.Close()
 
-	org := i.client.org
+	org := i.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return notMemberErr(org)
 	}
@@ -137,8 +137,8 @@ func (i *InstancesClient) Wait(db, instance string) error {
 
 func (d *InstancesClient) URL(database, suffix string) string {
 	prefix := "/v1"
-	if d.client.org != "" {
-		prefix = "/v1/organizations/" + d.client.org
+	if d.client.Org != "" {
+		prefix = "/v1/organizations/" + d.client.Org
 	}
 	return fmt.Sprintf("%s/databases/%s/instances%s", prefix, database, suffix)
 }

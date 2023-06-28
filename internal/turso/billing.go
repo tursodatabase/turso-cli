@@ -10,8 +10,8 @@ type Portal struct {
 
 func (c *BillingClient) Portal() (Portal, error) {
 	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
+	if c.client.Org != "" {
+		prefix = "/v1/organizations/" + c.client.Org
 	}
 
 	r, err := c.client.Post(prefix+"/billing/portal", nil)
@@ -30,8 +30,8 @@ func (c *BillingClient) Portal() (Portal, error) {
 
 func (c *BillingClient) HasPaymentMethod() (bool, error) {
 	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
+	if c.client.Org != "" {
+		prefix = "/v1/organizations/" + c.client.Org
 	}
 	r, err := c.client.Get(prefix+"/billing/payment-methods", nil)
 	if err != nil {
