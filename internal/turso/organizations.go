@@ -106,8 +106,8 @@ type OrgUsage struct {
 
 func (c *OrganizationsClient) Usage() (OrgUsage, error) {
 	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
+	if c.client.Org != "" {
+		prefix = "/v1/organizations/" + c.client.Org
 	}
 
 	r, err := c.client.Get(prefix+"/usage", nil)
@@ -205,10 +205,10 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 }
 
 func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
-	if c.client.org == "" {
+	if c.client.Org == "" {
 		return "", fmt.Errorf("the currently active organization %s does not allow members. You can use %s to change active organization", internal.Emph("personal"), internal.Emph("turso org switch"))
 	}
-	return "/v1/organizations/" + c.client.org + "/members" + suffix, nil
+	return "/v1/organizations/" + c.client.Org + "/members" + suffix, nil
 }
 
 func unsetOrganization() error {

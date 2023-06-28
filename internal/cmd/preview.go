@@ -66,6 +66,9 @@ var planShowCmd = &cobra.Command{
 			return err
 		}
 
+		if client.Org != "" {
+			fmt.Printf("Organization: %s\n", internal.Emph(client.Org))
+		}
 		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
 		if plan.Scheduled != "" {
 			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
@@ -86,8 +89,8 @@ var planShowCmd = &cobra.Command{
 		tbl.WithFirstColumnFormatter(columnFmt)
 
 		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, current.Quotas.Storage)
-		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, current.Quotas.RowsRead)
-		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, current.Quotas.RowsWritten)
+		addResourceRowMillions(tbl, "rows read", usage.Total.RowsRead, current.Quotas.RowsRead)
+		addResourceRowMillions(tbl, "rows written", usage.Total.RowsWritten, current.Quotas.RowsWritten)
 		addResourceRowCount(tbl, "databases", usage.Total.Databases, current.Quotas.Databases)
 		addResourceRowCount(tbl, "locations", usage.Total.Locations, current.Quotas.Locations)
 		tbl.Print()

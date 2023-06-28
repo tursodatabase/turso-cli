@@ -42,8 +42,8 @@ type OrgPlan struct {
 
 func (c *PlansClient) Get() (OrgPlan, error) {
 	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
+	if c.client.Org != "" {
+		prefix = "/v1/organizations/" + c.client.Org
 	}
 
 	r, err := c.client.Get(prefix+"/plan", nil)
@@ -64,8 +64,8 @@ var ErrPaymentRequired = errors.New("payment required")
 
 func (c *PlansClient) Set(plan string) (OrgPlan, error) {
 	prefix := "/v1"
-	if c.client.org != "" {
-		prefix = "/v1/organizations/" + c.client.org
+	if c.client.Org != "" {
+		prefix = "/v1/organizations/" + c.client.Org
 	}
 
 	body, err := marshal(struct {

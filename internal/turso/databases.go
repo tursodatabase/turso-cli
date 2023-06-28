@@ -25,7 +25,7 @@ func (d *DatabasesClient) List() ([]Database, error) {
 	}
 	defer r.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return nil, notMemberErr(org)
 	}
@@ -49,7 +49,7 @@ func (d *DatabasesClient) Delete(database string) error {
 	}
 	defer r.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return notMemberErr(org)
 	}
@@ -83,7 +83,7 @@ func (d *DatabasesClient) Create(name, region, image, extensions string) (*Creat
 	}
 	defer res.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(res.StatusCode, org) {
 		return nil, notMemberErr(org)
 	}
@@ -112,7 +112,7 @@ func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
 	}
 	defer res.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(res.StatusCode, org) {
 		return notMemberErr(org)
 	}
@@ -139,7 +139,7 @@ func (d *DatabasesClient) Token(database string, expiration string, readOnly boo
 	}
 	defer r.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return "", notMemberErr(org)
 	}
@@ -165,7 +165,7 @@ func (d *DatabasesClient) Rotate(database string) error {
 	}
 	defer r.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return notMemberErr(org)
 	}
@@ -186,7 +186,7 @@ func (d *DatabasesClient) Update(database string) error {
 	}
 	defer r.Body.Close()
 
-	org := d.client.org
+	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
 		return notMemberErr(org)
 	}
@@ -225,8 +225,8 @@ func (d *DatabasesClient) Usage(database string) (DbUsage, error) {
 
 func (d *DatabasesClient) URL(suffix string) string {
 	prefix := "/v1"
-	if d.client.org != "" {
-		prefix = "/v1/organizations/" + d.client.org
+	if d.client.Org != "" {
+		prefix = "/v1/organizations/" + d.client.Org
 	}
 	return prefix + "/databases" + suffix
 }
