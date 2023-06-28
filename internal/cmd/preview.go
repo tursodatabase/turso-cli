@@ -40,17 +40,7 @@ var orgBillingCmd = &cobra.Command{
 			return err
 		}
 
-		portal, err := client.Billing.Portal()
-		if err != nil {
-			return err
-		}
-
-		if err := browser.OpenURL(portal.URL); err != nil {
-			fmt.Println("Access the following URL to manage your payment methods:")
-			fmt.Println(portal.URL)
-		}
-
-		return nil
+		return billingPortal(client)
 	},
 }
 
@@ -204,17 +194,9 @@ func paymentMethodHelper(client *turso.Client) (bool, error) {
 		return false, nil
 	}
 
-	portal, err := client.Billing.Portal()
-	if err != nil {
+	if err := billingPortal(client); err != nil {
 		return false, err
 	}
-
-	msg := "Opening your browser at URL:"
-	if err := browser.OpenURL(portal.URL); err != nil {
-		msg = "Access the following URL to manage your payment methods:"
-	}
-	fmt.Println(msg)
-	fmt.Println(portal.URL)
 
 	spinner := prompt.Spinner("Waiting for you to add a payment method")
 	defer spinner.Stop()
@@ -300,4 +282,19 @@ func getPlan(name string, plans []turso.Plan) turso.Plan {
 		}
 	}
 	return turso.Plan{}
+}
+
+func billingPortal(client *turso.Client) error {
+	portal, err := client.Billing.Portal()
+	if err != nil {
+		return err
+	}
+
+	msg := "Opening your browser at URL:"
+	if err := browser.OpenURL(portal.URL); err != nil {
+		msg = "Access the following URL to manage your payment methods:"
+	}
+	fmt.Println(msg)
+	fmt.Println(portal.URL)
+	return nil
 }
