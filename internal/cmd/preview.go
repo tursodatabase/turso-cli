@@ -86,8 +86,8 @@ var planShowCmd = &cobra.Command{
 		tbl.WithFirstColumnFormatter(columnFmt)
 
 		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, current.Quotas.Storage)
-		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, current.Quotas.RowsRead)
-		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, current.Quotas.RowsWritten)
+		addResourceRowMillions(tbl, "rows read", usage.Total.RowsRead, current.Quotas.RowsRead)
+		addResourceRowMillions(tbl, "rows written", usage.Total.RowsWritten, current.Quotas.RowsWritten)
 		addResourceRowCount(tbl, "databases", usage.Total.Databases, current.Quotas.Databases)
 		addResourceRowCount(tbl, "locations", usage.Total.Locations, current.Quotas.Locations)
 		tbl.Print()

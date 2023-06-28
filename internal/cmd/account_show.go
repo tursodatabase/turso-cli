@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/dustin/go-humanize"
@@ -49,8 +50,8 @@ var accountShowCmd = &cobra.Command{
 		planInfo := getPlanInfo(PlanType(userInfo.Plan))
 
 		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, planInfo.maxStorage)
-		addResourceRowCount(tbl, "rows read", usage.Total.RowsRead, planInfo.maxRowsRead)
-		addResourceRowCount(tbl, "rows written", usage.Total.RowsWritten, planInfo.maxRowsWritten)
+		addResourceRowMillions(tbl, "rows read", usage.Total.RowsRead, planInfo.maxRowsRead)
+		addResourceRowMillions(tbl, "rows written", usage.Total.RowsWritten, planInfo.maxRowsWritten)
 		addResourceRowCount(tbl, "databases", usage.Total.Databases, planInfo.maxDatabases)
 		addResourceRowCount(tbl, "locations", usage.Total.Locations, planInfo.maxLocations)
 		tbl.Print()
@@ -65,6 +66,23 @@ func addResourceRowBytes(tbl table.Table, resource string, used, limit uint64) {
 		return
 	}
 	tbl.AddRow(resource, humanize.IBytes(used), humanize.IBytes(limit), percentage(float64(used), float64(limit)))
+}
+
+func addResourceRowMillions(tbl table.Table, resource string, used, limit uint64) {
+	if limit == 0 {
+		tbl.AddRow(resource, used, "Unlimited", "")
+		return
+	}
+	tbl.AddRow(resource, toM(used), toM(limit), percentage(float64(used), float64(limit)))
+}
+
+func toM(v uint64) string {
+	str := fmt.Sprintf("%.1f", float64(v)/1_000_000.0)
+	str = strings.TrimSuffix(str, ".0")
+	if str == "0" && v != 0 {
+		str = "<0.1"
+	}
+	return str + "M"
 }
 
 func addResourceRowCount(tbl table.Table, resource string, used, limit uint64) {
