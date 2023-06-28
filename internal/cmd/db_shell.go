@@ -6,9 +6,11 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/libsql/libsql-shell-go/pkg/shell"
 	"github.com/libsql/libsql-shell-go/pkg/shell/enums"
@@ -164,7 +166,20 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 		return "", nil
 	}
 
-	return client.Databases.Token(db.Name, "1d", false)
+	settings, _ := settings.ReadSettings()
+	if token := settings.DbTokenCache(db.ID); token != "" {
+		return token, nil
+	}
+
+	token, err := client.Databases.Token(db.Name, "1d", false)
+	if err != nil {
+		return "", err
+	}
+
+	exp := time.Now().Add(time.Hour * 23).Unix()
+	settings.SetDbTokenCache(db.ID, token, exp)
+
+	return token, nil
 }
 
 func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
