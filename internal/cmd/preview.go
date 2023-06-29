@@ -192,7 +192,7 @@ func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, ha
 
 	upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
 	if !hasPaymentMethod && upgrade {
-		ok, err := paymentMethodHelper(client)
+		ok, err := paymentMethodHelper(client, selected)
 		if err != nil {
 			return fmt.Errorf("failed to check payment method: %w", err)
 		}
@@ -200,14 +200,18 @@ func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, ha
 			return nil
 		}
 		fmt.Println("Payment method added successfully.")
+		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
 	}
 
 	if upgrade {
-		fmt.Printf("You're upgrading to paid plan %s.\n", internal.Emph(selected))
-		fmt.Printf("For information about resource quotas and pricing, access: %s\n", internal.Emph("https://turso.tech/pricing"))
+		fmt.Printf("You're upgrading to the %s plan.\n", internal.Emph(selected))
 	} else {
 		fmt.Printf("You're downgrading your plan to %s.\n", internal.Emph(selected))
 		fmt.Printf("Changes will effectively take place at the beginning of next month.\n")
+	}
+
+	if upgrade && hasPaymentMethod {
+		printPricingInfoDisclaimer()
 	}
 
 	if ok, _ := promptConfirmation("Do you want to continue?"); !ok {
@@ -220,6 +224,8 @@ func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, ha
 		return err
 	}
 
+	fmt.Println()
+
 	if plan.Scheduled != "" {
 		fmt.Printf("Starting next month, you will be downgraded to the %s plan.\n", internal.Emph(plan.Scheduled))
 		return nil
@@ -230,17 +236,21 @@ func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, ha
 	return nil
 }
 
-func paymentMethodHelper(client *turso.Client) (bool, error) {
-	fmt.Println("You need to add a payment method before you can upgrade your plan.")
-	ok, _ := promptConfirmation("Want to do it right now?")
+func paymentMethodHelper(client *turso.Client, selected string) (bool, error) {
+	fmt.Printf("You need to add a payment method before you can upgrade to the %s plan.\n", internal.Emph(selected))
+	printPricingInfoDisclaimer()
+
+	ok, _ := promptConfirmation("Want to add a payment method right now?")
 	if !ok {
-		fmt.Printf("When you're ready, you can use %s to add a payment method.\n", internal.Emph("turso org billing"))
+		fmt.Printf("When you're ready, you can use %s to manage your payment methods.\n", internal.Emph("turso org billing"))
 		return false, nil
 	}
 
+	fmt.Println()
 	if err := billingPortal(client); err != nil {
 		return false, err
 	}
+	fmt.Println()
 
 	spinner := prompt.Spinner("Waiting for you to add a payment method")
 	defer spinner.Stop()
@@ -260,7 +270,7 @@ func paymentMethodHelper(client *turso.Client) (bool, error) {
 		if hasPaymentMethod {
 			return true, nil
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -334,11 +344,15 @@ func billingPortal(client *turso.Client) error {
 		return err
 	}
 
-	msg := "Opening your browser at URL:"
+	msg := "Opening your browser at:"
 	if err := browser.OpenURL(portal.URL); err != nil {
 		msg = "Access the following URL to manage your payment methods:"
 	}
 	fmt.Println(msg)
 	fmt.Println(portal.URL)
 	return nil
+}
+
+func printPricingInfoDisclaimer() {
+	fmt.Printf("For information about Turso plans pricing and features, access: %s\n\n", internal.Emph("https://turso.tech/pricing"))
 }
