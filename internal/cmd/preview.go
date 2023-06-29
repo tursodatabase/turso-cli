@@ -270,7 +270,7 @@ func paymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 		if hasPaymentMethod {
 			return true, nil
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
