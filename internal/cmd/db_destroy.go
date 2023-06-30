@@ -11,7 +11,7 @@ func init() {
 	dbCmd.AddCommand(destroyCmd)
 	destroyCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the destruction of all locations of the database.")
 	addLocationFlag(destroyCmd, "Pick a database location to destroy.")
-	destroyCmd.Flags().StringVar(&instanceFlag, "instance", "", "Pick a specific database instance to destroy.")
+	addInstanceFlag(destroyCmd, "Pick a specific database instance to destroy.")
 	destroyCmd.RegisterFlagCompletionFunc("instance", completeInstanceName)
 }
 
