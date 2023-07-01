@@ -108,30 +108,22 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 	c.Assert(output, qt.Contains, "Locations:      ams, waw")
 	c.Assert(output, qt.Contains, "primary     waw")
 	c.Assert(output, qt.Contains, "replica     ams")
-	primaryPattern := "primary     waw"
-	start := strings.Index(output, primaryPattern) + len(primaryPattern)
-	start = start + strings.Index(output[start:], "libsql://")
-	end := start + strings.Index(output[start:], " ")
-	primaryUrl := output[start:end]
-	output, err = turso(configPath, "db", "show", dbName, "--instance-url", replicaName)
-	c.Assert(err, qt.IsNil, qt.Commentf(output))
-	replicaUrl := strings.TrimSpace(output)
 
 	// Create table test on primary
-	output, err = turso(configPath, "db", "shell", primaryUrl, fmt.Sprintf("create table %s1(a int, b text)", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "waw", fmt.Sprintf("create table %s1(a int, b text)", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	// Insert row to test on primary
-	output, err = turso(configPath, "db", "shell", primaryUrl, fmt.Sprintf("insert into %s1 values(123, 'foobar')", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "waw", fmt.Sprintf("insert into %s1 values(123, 'foobar')", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 
 	// Create table test2 on replica (forwarded to primary)
-	output, err = turso(configPath, "db", "shell", replicaUrl, fmt.Sprintf("create table %s2(a int, b text)", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "ams", fmt.Sprintf("create table %s2(a int, b text)", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	// Insert row to test2 on replica (forwarded to primary)
-	output, err = turso(configPath, "db", "shell", replicaUrl, fmt.Sprintf("insert into %s2 values(123, 'foobar')", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "ams", fmt.Sprintf("insert into %s2 values(123, 'foobar')", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	// Select row from test2 on primary
-	output, err = turso(configPath, "db", "shell", primaryUrl, fmt.Sprintf("select * from %s2", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "waw", fmt.Sprintf("select * from %s2", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 
@@ -139,16 +131,16 @@ func runSqlOnPrimaryAndReplica(c *qt.C, dbName string, configPath *string, table
 	time.Sleep(5 * time.Second)
 
 	// Select row from test on replica
-	output, err = turso(configPath, "db", "shell", replicaUrl, fmt.Sprintf("select * from %s1", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "ams", fmt.Sprintf("select * from %s1", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 	// Select row from test on primary
-	output, err = turso(configPath, "db", "shell", primaryUrl, fmt.Sprintf("select * from %s1", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "waw", fmt.Sprintf("select * from %s1", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 
 	// Select row from test2 on replica
-	output, err = turso(configPath, "db", "shell", replicaUrl, fmt.Sprintf("select * from %s2", tablePrefix))
+	output, err = turso(configPath, "db", "shell", dbName, "--location", "ams", fmt.Sprintf("select * from %s2", tablePrefix))
 	c.Assert(err, qt.IsNil, qt.Commentf(output))
 	c.Assert(output, qt.Equals, "A       B      \n123     foobar     \n")
 }

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
@@ -19,13 +18,41 @@ import (
 
 func init() {
 	dbCmd.AddCommand(shellCmd)
+	addInstanceFlag(shellCmd, "Connect to the database at the specified instance.")
+	addLocationFlag(shellCmd, "Connect to the database at the specified location.")
+}
+
+func getURL(db *turso.Database, client *turso.Client) (string, error) {
+	if instanceFlag != "" || locationFlag != "" {
+		instances, err := client.Instances.List(db.Name)
+		if err != nil {
+			return "", err
+		}
+		for _, instance := range instances {
+			if instance.Region == locationFlag {
+				return getInstanceHttpUrl(db, &instance), nil
+			}
+			if instance.Name == instanceFlag {
+				return getInstanceHttpUrl(db, &instance), nil
+			}
+		}
+		if locationFlag != "" {
+			return "", fmt.Errorf("location %s for db %s not found", locationFlag, db.Name)
+		}
+		if instanceFlag != "" {
+			return "", fmt.Errorf("instance %s for db %s not found", instanceFlag, db.Name)
+		}
+		return "", fmt.Errorf("impossible")
+	} else {
+		return getDatabaseHttpUrl(db), nil
+	}
 }
 
 var shellCmd = &cobra.Command{
 	Use:               "shell {database_name | replica_url} [sql]",
 	Short:             "Start a SQL shell.",
-	Long:              "Start a SQL shell.\nWhen database_name is provided, the shell will connect to the closest replica of the specified database.\nWhen a url of a particular replica is provided, the shell will connect to that replica directly.",
-	Example:           "turso db shell name-of-my-amazing-db\nturso db shell libsql://<replica-url>\nturso db shell libsql://e784400f26d083-my-amazing-db-replica-url.turso.io\nturso db shell name-of-my-amazing-db \"select * from users;\"",
+	Long:              "Start a SQL shell.\nWhen database_name is provided, the shell will connect the closest replica of the specified database.\nWhen the --instance flag is provided with a specific instance name, the shell will connect to that instance directly.",
+	Example:           "  turso db shell http://127.0.0.1:8080\n  turso db shell name-of-my-amazing-db\n  turso db shell name-of-my-amazing-db --location yyz\n  turso db shell name-of-my-amazing-db --instance a-specific-instance\n  turso db shell name-of-my-amazing-db \"select * from users;\"",
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -41,28 +68,36 @@ var shellCmd = &cobra.Command{
 			defer spinner.Stop()
 		}
 
-		client, err := createTursoClientFromAccessToken(true)
-		if err != nil {
-			return fmt.Errorf("could not create turso client: %w", err)
-		}
-
-		db, err := databaseFromNameOrURL(nameOrUrl, client)
-		if err != nil {
-			return err
-		}
-
-		token, err := tokenFromDb(db, client)
-		if err != nil {
-			return err
-		}
-
 		dbUrl := nameOrUrl
-		if db != nil {
-			dbUrl = getDatabaseHttpUrl(db)
+		urlString := nameOrUrl
+		var db *turso.Database = nil
+		// Makes sure localhost URL or self-hosted will work even if not authenticated
+		// to turso. The token code will check for auth
+		if !isURL(nameOrUrl) {
+			client, err := createTursoClientFromAccessToken(true)
+			if err != nil {
+				return fmt.Errorf("could not create turso client: %w", err)
+			}
+
+			db, err = databaseFromName(nameOrUrl, client)
+			if err != nil {
+				return err
+			}
+
+			token, err := tokenFromDb(db, client)
+			if err != nil {
+				return err
+			}
+
+			dbUrl, err = getURL(db, client)
+			if err != nil {
+				return err
+			}
+			urlString = dbUrl
 			dbUrl = addTokenAsQueryParameter(dbUrl, token)
 		}
 
-		connectionInfo := getConnectionInfo(nameOrUrl, db)
+		connectionInfo := getConnectionInfo(urlString, db)
 
 		shellConfig := shell.ShellConfig{
 			DbUri:          dbUrl,
@@ -122,11 +157,7 @@ type ErrorResponse struct {
 	Message string `json:"error"`
 }
 
-func databaseFromNameOrURL(str string, client *turso.Client) (*turso.Database, error) {
-	if isURL(str) {
-		return databaseFromURL(str, client)
-	}
-
+func databaseFromName(str string, client *turso.Client) (*turso.Database, error) {
 	name := str
 	db, err := getDatabase(client, name)
 	if err != nil {
@@ -139,26 +170,6 @@ func databaseFromNameOrURL(str string, client *turso.Client) (*turso.Database, e
 func isURL(s string) bool {
 	_, err := url.ParseRequestURI(s)
 	return err == nil
-}
-
-func databaseFromURL(dbURL string, client *turso.Client) (*turso.Database, error) {
-	parsed, err := url.ParseRequestURI(dbURL)
-	if err != nil {
-		return nil, err
-	}
-
-	dbs, err := client.Databases.List()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, db := range dbs {
-		if strings.HasSuffix(parsed.Hostname(), db.Hostname) {
-			return &db, nil
-		}
-	}
-
-	return nil, nil
 }
 
 func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
@@ -183,10 +194,9 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 }
 
 func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
-	msg := fmt.Sprintf("Connected to %s", nameOrUrl)
-	if db != nil {
-		url := getDatabaseUrl(db)
-		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), url)
+	msg := fmt.Sprintf("Connected to %s", internal.Emph(nameOrUrl))
+	if db != nil && nameOrUrl != "" {
+		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), internal.Emph(nameOrUrl))
 	}
 
 	msg += "\n\n"
