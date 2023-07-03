@@ -66,14 +66,6 @@ func convertInternalDbToCachedDb(databases []turso.Database) []settings.Database
 	return dbs
 }
 
-func fetchDatabaseNames(client *turso.Client) []string {
-	databases, err := client.Databases.List()
-	if err != nil {
-		return []string{}
-	}
-	return extractDatabaseNames(databases)
-}
-
 func getDatabase(client *turso.Client, name string) (turso.Database, error) {
 	databases, err := client.Databases.List()
 	if err != nil {
