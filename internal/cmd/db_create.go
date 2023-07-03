@@ -230,7 +230,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("To see information about the database, including a connection URL, run:\n\n")
 		fmt.Printf("   turso db show %s\n\n", name)
 
-		config.InvalidateDbNamesCache()
+		config.InvalidateDatabasesCache()
 
 		return nil
 	},

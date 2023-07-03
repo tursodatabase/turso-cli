@@ -3,7 +3,6 @@ package cmd
 import (
 	"sort"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 )
 
@@ -18,20 +17,14 @@ var listCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
 		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
-		databases, err := client.Databases.List()
+		databases, err := getDatabasesCacheOrAPI(client)
 		if err != nil {
 			return err
 		}
-
-		settings.SetDbNamesCache(extractDatabaseNames(databases))
 
 		var data [][]string
 		for _, database := range databases {

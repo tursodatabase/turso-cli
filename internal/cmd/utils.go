@@ -141,7 +141,7 @@ func destroyDatabase(client *turso.Client, name string) error {
 	fmt.Printf("Destroyed database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
 	settings, err := settings.ReadSettings()
 	if err == nil {
-		settings.InvalidateDbNamesCache()
+		settings.InvalidateDatabasesCache()
 	}
 
 	return nil

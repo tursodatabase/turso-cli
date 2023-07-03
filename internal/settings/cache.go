@@ -52,23 +52,33 @@ func invalidateCache[T any](key string) error {
 	return setCacheWithExp[T](key, 0, *new(T))
 }
 
-const DB_NAMES_CACHE_KEY = "database_names"
-const DB_NAMES_CACHE_TTL_SECONDS = 30 * 60
+const DB_CACHE_KEY = "database_names"
+const DB_CACHE_TTL_SECONDS = 30 * 60
 
-func (s *Settings) SetDbNamesCache(dbNames []string) {
-	setCache(DB_NAMES_CACHE_KEY, DB_NAMES_CACHE_TTL_SECONDS, dbNames)
+// Database is exact same struct as turso.Database, but recreated to
+// avoid cyclic dependency.
+type Database struct {
+	ID            string
+	Name          string
+	Regions       []string
+	PrimaryRegion string
+	Hostname      string
 }
 
-func (s *Settings) GetDbNamesCache() []string {
-	data, err := getCache[[]string](DB_NAMES_CACHE_KEY)
+func (s *Settings) SetDatabasesCache(dbNames []Database) {
+	setCache(DB_CACHE_KEY, DB_CACHE_TTL_SECONDS, dbNames)
+}
+
+func (s *Settings) GetDatabasesCache() []Database {
+	data, err := getCache[[]Database](DB_CACHE_KEY)
 	if err != nil {
 		return nil
 	}
 	return data
 }
 
-func (s *Settings) InvalidateDbNamesCache() {
-	invalidateCache[[]string](DB_NAMES_CACHE_KEY)
+func (s *Settings) InvalidateDatabasesCache() {
+	invalidateCache[[]Database](DB_CACHE_KEY)
 }
 
 const REGIONS_CACHE_KEY = "locations"
