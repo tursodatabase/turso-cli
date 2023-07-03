@@ -232,7 +232,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("To get an authentication token for the database, run:\n\n")
 		fmt.Printf("   turso db tokens create %s\n\n", name)
 
-		config.InvalidateDbNamesCache()
+		config.InvalidateDatabasesCache()
 
 		return nil
 	},

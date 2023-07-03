@@ -38,12 +38,32 @@ func extractDatabaseNames(databases []turso.Database) []string {
 	return names
 }
 
-func fetchDatabaseNames(client *turso.Client) []string {
-	databases, err := client.Databases.List()
-	if err != nil {
-		return []string{}
+func convertCachedDbToInternalDb(databases []settings.Database) []turso.Database {
+	dbs := make([]turso.Database, 0)
+	for _, database := range databases {
+		dbs = append(dbs, turso.Database{
+			ID:            database.ID,
+			Name:          database.Name,
+			Regions:       database.Regions,
+			PrimaryRegion: database.PrimaryRegion,
+			Hostname:      database.Hostname,
+		})
 	}
-	return extractDatabaseNames(databases)
+	return dbs
+}
+
+func convertInternalDbToCachedDb(databases []turso.Database) []settings.Database {
+	dbs := make([]settings.Database, 0)
+	for _, database := range databases {
+		dbs = append(dbs, settings.Database{
+			ID:            database.ID,
+			Name:          database.Name,
+			Regions:       database.Regions,
+			PrimaryRegion: database.PrimaryRegion,
+			Hostname:      database.Hostname,
+		})
+	}
+	return dbs
 }
 
 func getDatabase(client *turso.Client, name string) (turso.Database, error) {
@@ -61,18 +81,28 @@ func getDatabase(client *turso.Client, name string) (turso.Database, error) {
 	return turso.Database{}, fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(name), internal.Emph("turso db list"))
 }
 
-func getDatabaseNames(client *turso.Client) []string {
+func getDatabasesCacheOrAPI(client *turso.Client) ([]turso.Database, error) {
 	settings, err := settings.ReadSettings()
 	if err != nil {
-		return fetchDatabaseNames(client)
+		return nil, err
 	}
-	cached_names := settings.GetDbNamesCache()
-	if cached_names != nil {
-		return cached_names
+	if cachedNames := settings.GetDatabasesCache(); cachedNames != nil {
+		return convertCachedDbToInternalDb(cachedNames), nil
 	}
-	names := fetchDatabaseNames(client)
-	settings.SetDbNamesCache(names)
-	return names
+	databases, err := client.Databases.List()
+	if err != nil {
+		return nil, err
+	}
+	settings.SetDatabasesCache(convertInternalDbToCachedDb(databases))
+	return databases, nil
+}
+
+func getDatabaseNames(client *turso.Client) []string {
+	databases, err := getDatabasesCacheOrAPI(client)
+	if err != nil {
+		return []string{}
+	}
+	return extractDatabaseNames(databases)
 }
 
 func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
