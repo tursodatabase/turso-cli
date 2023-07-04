@@ -29,6 +29,7 @@ type Client struct {
 	Tokens        *TokensClient
 	Users         *UsersClient
 	Plans         *PlansClient
+	Subscriptions *SubscriptionClient
 	Billing       *BillingClient
 }
 
@@ -50,6 +51,7 @@ func New(base *url.URL, token string, cliVersion string, org string) *Client {
 	c.Tokens = (*TokensClient)(c.base)
 	c.Users = (*UsersClient)(c.base)
 	c.Plans = (*PlansClient)(c.base)
+	c.Subscriptions = (*SubscriptionClient)(c.base)
 	c.Billing = (*BillingClient)(c.base)
 	return c
 }
