@@ -86,12 +86,7 @@ func (t *Client) do(method, path string, body io.Reader) (*http.Response, error)
 		return nil, err
 	}
 	if flags.Debug() {
-		dump, err := httputil.DumpRequestOut(req, true)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println(string(dump))
-		}
+		dumpRequest(req)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -99,6 +94,15 @@ func (t *Client) do(method, path string, body io.Reader) (*http.Response, error)
 		return nil, err
 	}
 	return resp, nil
+}
+
+func dumpRequest(req *http.Request) {
+	dump, err := httputil.DumpRequestOut(req, true)
+	if err != nil {
+		fmt.Printf("Failed to dump the HTTP request, you can either remove the debug flag or ignore this error: %s", err.Error())
+		return
+	}
+	fmt.Println(string(dump))
 }
 
 func (t *Client) Get(path string, body io.Reader) (*http.Response, error) {
