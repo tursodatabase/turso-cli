@@ -50,7 +50,7 @@ var updateCmd = &cobra.Command{
 			return fmt.Errorf("failed to get version information: %w", err)
 		}
 
-		fmt.Println(version, latest)
+		fmt.Printf("Current version: %s, latest version: %s\n", version, latest)
 		if version == "dev" {
 			fmt.Println("You're compiling from source. How much more up2date do you want to be?")
 			return nil
