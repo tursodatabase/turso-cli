@@ -1,6 +1,3 @@
-//go:build preview
-// +build preview
-
 package cmd
 
 import (
@@ -21,27 +18,10 @@ import (
 )
 
 func init() {
-	orgCmd.AddCommand(orgBillingCmd)
 	rootCmd.AddCommand(planCmd)
 	planCmd.AddCommand(planShowCmd)
 	planCmd.AddCommand(planSelectCmd)
 	planCmd.AddCommand(planUpgradeCmd)
-}
-
-var orgBillingCmd = &cobra.Command{
-	Use:   "billing",
-	Short: "Manange payment methods for the current organization.",
-	Args:  cobra.ExactArgs(0),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cmd.SilenceUsage = true
-
-		client, err := createTursoClientFromAccessToken(true)
-		if err != nil {
-			return err
-		}
-
-		return billingPortal(client)
-	},
 }
 
 var planCmd = &cobra.Command{

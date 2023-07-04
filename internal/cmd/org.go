@@ -19,6 +19,7 @@ func init() {
 	membersCmd.AddCommand(membersListCmd)
 	membersCmd.AddCommand(membersAddCmd)
 	membersCmd.AddCommand(membersRemoveCmd)
+	orgCmd.AddCommand(orgBillingCmd)
 }
 
 func switchToOrg(client *turso.Client, slug string) error {
@@ -314,5 +315,21 @@ var membersRemoveCmd = &cobra.Command{
 
 		fmt.Printf("User %s removed from organization %s.\n", internal.Emph(username), internal.Emph(org))
 		return nil
+	},
+}
+
+var orgBillingCmd = &cobra.Command{
+	Use:   "billing",
+	Short: "Manange payment methods for the current organization.",
+	Args:  cobra.ExactArgs(0),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		return billingPortal(client)
 	},
 }
