@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -69,13 +68,10 @@ var planShowCmd = &cobra.Command{
 		if client.Org != "" {
 			fmt.Printf("Organization: %s\n", internal.Emph(client.Org))
 		}
-		fmt.Printf("Active plan: %s\n", internal.Emph(plan.Active))
-		if plan.Scheduled != "" {
-			fmt.Printf("Starting next month: %s\n", internal.Emph(plan.Scheduled))
-		}
+		fmt.Printf("Plan: %s\n", internal.Emph(plan))
 		fmt.Println()
 
-		current := getPlan(plan.Active, plans)
+		current := getPlan(plan, plans)
 
 		columns := make([]interface{}, 0)
 		columns = append(columns, "RESOURCE")
@@ -99,10 +95,10 @@ var planShowCmd = &cobra.Command{
 	},
 }
 
-func orgPlanData(client *turso.Client) (plan turso.OrgPlan, usage turso.OrgUsage, plans []turso.Plan, err error) {
+func orgPlanData(client *turso.Client) (sub string, usage turso.OrgUsage, plans []turso.Plan, err error) {
 	g := errgroup.Group{}
 	g.Go(func() (err error) {
-		plan, err = client.Plans.Get()
+		sub, err = client.Subscriptions.Get()
 		return
 	})
 
@@ -129,14 +125,9 @@ var planSelectCmd = &cobra.Command{
 			return err
 		}
 
-		plans, plan, hasPaymentMethod, err := getSelectPlanInfo(client)
+		plans, current, hasPaymentMethod, err := getSelectPlanInfo(client)
 		if err != nil {
 			return fmt.Errorf("failed to get plans: %w", err)
-		}
-
-		current := plan.Scheduled
-		if plan.Scheduled == "" {
-			current = plan.Active
 		}
 
 		selected, err := promptPlanSelection(plans, current)
@@ -144,7 +135,7 @@ var planSelectCmd = &cobra.Command{
 			return err
 		}
 
-		return changePlan(client, plans, plan, hasPaymentMethod, selected)
+		return changePlan(client, plans, current, hasPaymentMethod, selected)
 	},
 }
 
@@ -158,33 +149,24 @@ var planUpgradeCmd = &cobra.Command{
 			return err
 		}
 
-		plans, plan, hasPaymentMethod, err := getSelectPlanInfo(client)
+		plans, current, hasPaymentMethod, err := getSelectPlanInfo(client)
 		if err != nil {
 			return fmt.Errorf("failed to get plans: %w", err)
 		}
 
-		current := plan.Scheduled
-		if plan.Scheduled == "" {
-			current = plan.Active
-		}
-
 		if current == "scaler" {
 			fmt.Printf("You've already upgraded to %s! 🎉\n", internal.Emph(current))
-			fmt.Println("If you need a more powerful plan, we're happy to help.")
+			fmt.Println()
+			fmt.Println("If you need more resources, we're happy to help.")
 			fmt.Printf("You can find us at %s or at Discord (%s)\n", internal.Emph("sales@turso.tech"), internal.Emph("https://discord.com/invite/4B5D7hYwub"))
 			return nil
 		}
 
-		return changePlan(client, plans, plan, hasPaymentMethod, "scaler")
+		return changePlan(client, plans, current, hasPaymentMethod, "scaler")
 	},
 }
 
-func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, hasPaymentMethod bool, selected string) error {
-	current := plan.Scheduled
-	if plan.Scheduled == "" {
-		current = plan.Active
-	}
-
+func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected string) error {
 	if selected == current {
 		fmt.Println("You're all set! No changes are needed.")
 		return nil
@@ -203,12 +185,11 @@ func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, ha
 		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
 	}
 
+	change := "downgrading"
 	if upgrade {
-		fmt.Printf("You're upgrading to the %s plan.\n", internal.Emph(selected))
-	} else {
-		fmt.Printf("You're downgrading your plan to %s.\n", internal.Emph(selected))
-		fmt.Printf("Changes will effectively take place at the beginning of next month.\n")
+		change = "upgrading"
 	}
+	fmt.Printf("You're %s to the %s plan.\n", change, internal.Emph(selected))
 
 	if upgrade && hasPaymentMethod {
 		printPricingInfoDisclaimer()
@@ -219,19 +200,17 @@ func changePlan(client *turso.Client, plans []turso.Plan, plan turso.OrgPlan, ha
 		return nil
 	}
 
-	plan, err := client.Plans.Set(selected)
-	if err != nil && !errors.Is(err, turso.ErrPaymentRequired) {
+	if err := client.Subscriptions.Set(selected); err != nil {
 		return err
 	}
 
 	fmt.Println()
 
-	if plan.Scheduled != "" {
-		fmt.Printf("Starting next month, you will be downgraded to the %s plan.\n", internal.Emph(plan.Scheduled))
-		return nil
+	change = "downgraded"
+	if upgrade {
+		change = "upgraded"
 	}
-
-	fmt.Printf("You've been upgraded to the %s plan 🎉\n", internal.Emph(plan.Active))
+	fmt.Printf("You've been %s to plan %s.\n", change, internal.Emph(selected))
 	fmt.Printf("To see your new quotas, use %s.\n", internal.Emph("turso plan show"))
 	return nil
 }
@@ -274,14 +253,14 @@ func paymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	}
 }
 
-func getSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current turso.OrgPlan, hasPaymentMethod bool, err error) {
+func getSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string, hasPaymentMethod bool, err error) {
 	g := errgroup.Group{}
 	g.Go(func() (err error) {
 		plans, err = client.Plans.List()
 		return
 	})
 	g.Go(func() (err error) {
-		current, err = client.Plans.Get()
+		current, err = client.Subscriptions.Get()
 		return
 	})
 	g.Go(func() (err error) {
