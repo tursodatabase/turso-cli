@@ -6,8 +6,11 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
+
+	"github.com/chiselstrike/iku-turso-cli/internal/flags"
 )
 
 // Collection of all turso clients
@@ -79,6 +82,13 @@ func (t *Client) newRequest(method, urlPath string, body io.Reader) (*http.Reque
 
 func (t *Client) do(method, path string, body io.Reader) (*http.Response, error) {
 	req, err := t.newRequest(method, path, body)
+	if flags.Debug() {
+		dump, err := httputil.DumpRequestOut(req, true)
+		fmt.Printf("%s", string(dump))
+		if err != nil {
+			return nil, err
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
