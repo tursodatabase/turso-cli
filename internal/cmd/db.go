@@ -148,14 +148,6 @@ func getAccessToken(warnMultipleAccessTokenSources bool) (string, error) {
 	return settingsToken, nil
 }
 
-func getHost() string {
-	host := os.Getenv("TURSO_API_BASEURL")
-	if host == "" {
-		host = "https://api.turso.io"
-	}
-	return host
-}
-
 type latMap struct {
 	id  string
 	lat int

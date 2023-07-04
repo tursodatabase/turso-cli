@@ -215,7 +215,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 }
 
 func beginAuth(port int, headless bool, path string) (string, error) {
-	authUrl, err := url.Parse(fmt.Sprintf("%s%s", getHost(), path))
+	authUrl, err := url.Parse(fmt.Sprintf("%s%s", getTursoUrl(), path))
 	if err != nil {
 		return "", fmt.Errorf("error parsing auth URL: %w", err)
 	}
