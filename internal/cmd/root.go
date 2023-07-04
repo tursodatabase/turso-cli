@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/chiselstrike/iku-turso-cli/internal/flags"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,4 +36,6 @@ func init() {
 		settings.PersistChanges()
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
+
+	flags.AddDebugFlag(rootCmd)
 }
