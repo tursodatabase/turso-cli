@@ -76,6 +76,7 @@ func (t *Client) newRequest(method, urlPath string, body io.Reader) (*http.Reque
 		req.Header.Add("Authorization", fmt.Sprint("Bearer ", t.token))
 	}
 	req.Header.Add("TursoCliVersion", t.cliVersion)
+	req.Header.Add("User-Agent", fmt.Sprintf("Turso CLI - version %s", t.cliVersion))
 	req.Header.Add("Content-Type", "application/json")
 	return req, nil
 }
