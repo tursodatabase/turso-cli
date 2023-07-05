@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	dbCmd.AddCommand(dbTransferCmd)
+	orgCmd.AddCommand(dbTransferCmd)
 }
 
 var dbTransferCmd = &cobra.Command{
@@ -32,7 +32,7 @@ var dbTransferCmd = &cobra.Command{
 			return err
 		}
 
-		ok, err := promptConfirmation(fmt.Sprintf("Are you sure you want to transfer database %s to %s?", dbName, orgName))
+		ok, err := promptConfirmation(fmt.Sprintf("Are you sure you want to transfer database %s to organization %s?", internal.Emph(dbName), internal.Emph(orgName)))
 		if err != nil {
 			return fmt.Errorf("could not get prompt confirmed by user: %w", err)
 		}
@@ -48,23 +48,22 @@ var dbTransferCmd = &cobra.Command{
 
 func transfer(client *turso.Client, dbName, orgName string) error {
 	config, err := settings.ReadSettings()
+	config.InvalidateDatabasesCache()
 
 	if err != nil {
 		return err
 	}
 
-	msg := fmt.Sprintf("Transfering database %s to org %s", internal.Emph(dbName), internal.Emph(orgName))
+	msg := fmt.Sprintf("Transferring database %s to organization %s", internal.Emph(dbName), internal.Emph(orgName))
 	s := prompt.Spinner(msg)
 	defer s.Stop()
 
 	if err := client.Databases.Transfer(dbName, orgName); err != nil {
-		return fmt.Errorf("error transfering database")
+		return fmt.Errorf("error transferring database")
 	}
 
 	s.Stop()
-	fmt.Printf("✔  Success! Database %s transferred successfully to org %s\n", internal.Emph(dbName), internal.Emph(orgName))
-
-	config.InvalidateDatabasesCache()
+	fmt.Printf("✔  Success! Database %s transferred successfully to organization %s\n", internal.Emph(dbName), internal.Emph(orgName))
 
 	return nil
 }
