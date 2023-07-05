@@ -227,11 +227,11 @@ func (d *DatabasesClient) Transfer(database, org string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("user is not an owner of the organizations involved in the transfer.")
+		return fmt.Errorf("user is not an owner of the organizations involved in the transfer")
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to transfer database to org %s.", org)
+		return fmt.Errorf("failed to transfer database to org %s", org)
 	}
 
 	return nil
