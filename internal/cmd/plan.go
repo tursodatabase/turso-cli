@@ -279,10 +279,6 @@ func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
 	return result, err
 }
 
-func formatPrice(price string) string {
-	return "$" + price
-}
-
 func isUpgrade(current, selected turso.Plan) bool {
 	cp, _ := strconv.Atoi(current.Price)
 	sp, _ := strconv.Atoi(selected.Price)
