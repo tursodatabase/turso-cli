@@ -1,6 +1,3 @@
-//go:build preview
-// +build preview
-
 package cmd
 
 import (
@@ -12,6 +9,7 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
@@ -21,27 +19,10 @@ import (
 )
 
 func init() {
-	orgCmd.AddCommand(orgBillingCmd)
 	rootCmd.AddCommand(planCmd)
 	planCmd.AddCommand(planShowCmd)
 	planCmd.AddCommand(planSelectCmd)
 	planCmd.AddCommand(planUpgradeCmd)
-}
-
-var orgBillingCmd = &cobra.Command{
-	Use:   "billing",
-	Short: "Manange payment methods for the current organization.",
-	Args:  cobra.ExactArgs(0),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cmd.SilenceUsage = true
-
-		client, err := createTursoClientFromAccessToken(true)
-		if err != nil {
-			return err
-		}
-
-		return billingPortal(client)
-	},
 }
 
 var planCmd = &cobra.Command{
@@ -298,10 +279,6 @@ func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
 	return result, err
 }
 
-func formatPrice(price string) string {
-	return "$" + price
-}
-
 func isUpgrade(current, selected turso.Plan) bool {
 	cp, _ := strconv.Atoi(current.Price)
 	sp, _ := strconv.Atoi(selected.Price)
@@ -334,4 +311,41 @@ func billingPortal(client *turso.Client) error {
 
 func printPricingInfoDisclaimer() {
 	fmt.Printf("For information about Turso plans pricing and features, access: %s\n\n", internal.Emph("https://turso.tech/pricing"))
+}
+
+func addResourceRowBytes(tbl table.Table, resource string, used, limit uint64) {
+	if limit == 0 {
+		tbl.AddRow(resource, humanize.IBytes(used), "Unlimited", "")
+		return
+	}
+	tbl.AddRow(resource, humanize.IBytes(used), humanize.IBytes(limit), percentage(float64(used), float64(limit)))
+}
+
+func addResourceRowMillions(tbl table.Table, resource string, used, limit uint64) {
+	if limit == 0 {
+		tbl.AddRow(resource, used, "Unlimited", "")
+		return
+	}
+	tbl.AddRow(resource, toM(used), toM(limit), percentage(float64(used), float64(limit)))
+}
+
+func toM(v uint64) string {
+	str := fmt.Sprintf("%.1f", float64(v)/1_000_000.0)
+	str = strings.TrimSuffix(str, ".0")
+	if str == "0" && v != 0 {
+		str = "<0.1"
+	}
+	return str + "M"
+}
+
+func addResourceRowCount(tbl table.Table, resource string, used, limit uint64) {
+	if limit == 0 {
+		tbl.AddRow(resource, used, "Unlimited", "")
+		return
+	}
+	tbl.AddRow(resource, used, limit, percentage(float64(used), float64(limit)))
+}
+
+func percentage(used, limit float64) string {
+	return fmt.Sprintf("%.0f%%", used/limit*100)
 }
