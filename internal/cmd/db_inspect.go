@@ -70,7 +70,7 @@ func (curr *InspectInfo) totalIndexesSize() uint64 {
 }
 
 func (curr *InspectInfo) PrintTotalStorage() string {
-	return humanize.IBytes(curr.totalTablesSize() + curr.totalIndexesSize())
+	return humanize.Bytes(curr.totalTablesSize() + curr.totalIndexesSize())
 }
 
 func (curr *InspectInfo) TotalRowsReadCount() uint64 {
@@ -109,7 +109,7 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Total space used: %s\n", humanize.IBytes(usages.Total.StorageBytesUsed))
+		fmt.Printf("Total space used: %s\n", humanize.Bytes(usages.Total.StorageBytesUsed))
 		fmt.Printf("Number of rows read: %d\n", usages.Total.RowsRead)
 		fmt.Printf("Number of rows written: %d\n", usages.Total.RowsWritten)
 
@@ -124,7 +124,7 @@ var dbInspectCmd = &cobra.Command{
 				tbl.AddRow(instance.Region, instance.Type, instance.Name, "-", "-", "-")
 				continue
 			}
-			tbl.AddRow(instance.Region, instance.Type, instance.Name, usg.RowsRead, usg.RowsWritten, humanize.IBytes(usg.StorageBytesUsed))
+			tbl.AddRow(instance.Region, instance.Type, instance.Name, usg.RowsRead, usg.RowsWritten, humanize.Bytes(usg.StorageBytesUsed))
 		}
 
 		fmt.Println()

@@ -315,10 +315,10 @@ func printPricingInfoDisclaimer() {
 
 func addResourceRowBytes(tbl table.Table, resource string, used, limit uint64) {
 	if limit == 0 {
-		tbl.AddRow(resource, humanize.IBytes(used), "Unlimited", "")
+		tbl.AddRow(resource, humanize.Bytes(used), "Unlimited", "")
 		return
 	}
-	tbl.AddRow(resource, humanize.IBytes(used), humanize.IBytes(limit), percentage(float64(used), float64(limit)))
+	tbl.AddRow(resource, humanize.Bytes(used), humanize.Bytes(limit), percentage(float64(used), float64(limit)))
 }
 
 func addResourceRowMillions(tbl table.Table, resource string, used, limit uint64) {
