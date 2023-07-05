@@ -18,7 +18,7 @@ var dbTransferCmd = &cobra.Command{
 	Use:               "transfer database_name org_name",
 	Short:             "Transfers database to another organization",
 	Args:              cobra.ExactArgs(2),
-	ValidArgsFunction: dbNameArg,
+	ValidArgsFunction: dbNameAndOrgArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client, err := createTursoClientFromAccessToken(true)
