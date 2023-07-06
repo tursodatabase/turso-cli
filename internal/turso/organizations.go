@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/chiselstrike/turso-cli/internal"
-	"github.com/chiselstrike/turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 )
 
 type OrganizationsClient client

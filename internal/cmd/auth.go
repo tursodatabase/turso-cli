@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/chiselstrike/turso-cli/internal"
-	"github.com/chiselstrike/turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )

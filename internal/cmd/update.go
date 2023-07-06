@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chiselstrike/turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal"
 )
 
 func init() {

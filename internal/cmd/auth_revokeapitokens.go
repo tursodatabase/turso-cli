@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/chiselstrike/turso-cli/internal"
-	"github.com/chiselstrike/turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/spf13/cobra"
 )
 

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chiselstrike/turso-cli/internal"
-	"github.com/chiselstrike/turso-cli/internal/prompt"
-	"github.com/chiselstrike/turso-cli/internal/turso"
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"

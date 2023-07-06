@@ -6,9 +6,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/chiselstrike/turso-cli/internal"
-	"github.com/chiselstrike/turso-cli/internal/settings"
-	"github.com/chiselstrike/turso-cli/internal/turso"
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
