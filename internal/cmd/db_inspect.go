@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/rodaine/table"
-
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
 
@@ -104,22 +104,23 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		instances, usages, err := instancesAndUsage(client, db.Name)
+		instances, dbUsage, err := instancesAndUsage(client, db.Name)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Total space used: %s\n", humanize.Bytes(usages.Total.StorageBytesUsed))
-		fmt.Printf("Number of rows read: %d\n", usages.Total.RowsRead)
-		fmt.Printf("Number of rows written: %d\n", usages.Total.RowsWritten)
+		fmt.Printf("Total space used: %s\n", humanize.Bytes(dbUsage.Usage.Total.StorageBytesUsed))
+		fmt.Printf("Number of rows read: %d\n", dbUsage.Usage.Total.RowsRead)
+		fmt.Printf("Number of rows written: %d\n", dbUsage.Usage.Total.RowsWritten)
 
 		if !verboseFlag {
 			return nil
 		}
 
+		instancesUsage := getInstanceUsageMap(dbUsage.Usage.Instances)
 		tbl := table.New("LOCATION", "TYPE", "INSTANCE NAME", "ROWS READ", "ROWS WRITTEN", "TOTAL STORAGE")
 		for _, instance := range instances {
-			usg, ok := usages.Instances[instance.Uuid]
+			usg, ok := instancesUsage[instance.Uuid]
 			if !ok {
 				tbl.AddRow(instance.Region, instance.Type, instance.Name, "-", "-", "-")
 				continue
@@ -133,4 +134,12 @@ var dbInspectCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func getInstanceUsageMap(usages []turso.Usage) map[string]turso.Usage {
+	m := make(map[string]turso.Usage)
+	for _, usg := range usages {
+		m[usg.UUID] = usg
+	}
+	return m
 }
