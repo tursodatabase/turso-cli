@@ -59,7 +59,7 @@ func transfer(client *turso.Client, dbName, orgName string) error {
 	defer s.Stop()
 
 	if err := client.Databases.Transfer(dbName, orgName); err != nil {
-		return fmt.Errorf("error transferring database")
+		return fmt.Errorf("error transferring database: %w", err)
 	}
 
 	s.Stop()
