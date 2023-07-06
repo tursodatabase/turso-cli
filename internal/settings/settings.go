@@ -1,6 +1,8 @@
 package settings
 
 import (
+	"sync"
+
 	"github.com/kirsle/configdir"
 	"github.com/spf13/viper"
 )
@@ -10,11 +12,16 @@ type Settings struct {
 }
 
 var settings *Settings
+var mu sync.Mutex
 
 func ReadSettings() (*Settings, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if settings != nil {
 		return settings, nil
 	}
+	settings = &Settings{}
 
 	configPath := configdir.LocalConfig("turso")
 	configPathFlag := viper.GetString("config-path")
@@ -41,7 +48,6 @@ func ReadSettings() (*Settings, error) {
 		}
 	}
 
-	settings = &Settings{}
 	return settings, nil
 }
 
