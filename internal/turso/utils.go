@@ -16,6 +16,9 @@ func unmarshal[T any](r *http.Response) (T, error) {
 	if err != nil {
 		return *t, err
 	}
+
+	fmt.Printf("\ndata: %s\n\n", d)
+
 	err = json.Unmarshal(d, &t)
 	return *t, err
 }
