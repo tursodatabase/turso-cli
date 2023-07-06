@@ -10,10 +10,10 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/athoscouto/codename"
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/chiselstrike/turso-cli/internal"
+	"github.com/chiselstrike/turso-cli/internal/prompt"
 	"github.com/manifoldco/promptui"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"

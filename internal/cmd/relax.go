@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/chiselstrike/iku-turso-cli/internal/tetris"
+	"github.com/chiselstrike/turso-cli/internal/tetris"
 	"github.com/spf13/cobra"
 )
 

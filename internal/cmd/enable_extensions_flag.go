@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/turso-cli/internal"
 	"github.com/spf13/cobra"
 )
 

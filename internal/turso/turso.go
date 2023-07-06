@@ -11,7 +11,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/flags"
+	"github.com/chiselstrike/turso-cli/internal/flags"
 )
 
 // Collection of all turso clients

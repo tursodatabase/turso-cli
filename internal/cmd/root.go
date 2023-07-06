@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/flags"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/turso-cli/internal/flags"
+	"github.com/chiselstrike/turso-cli/internal/settings"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

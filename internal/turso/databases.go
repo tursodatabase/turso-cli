@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/turso-cli/internal"
 )
 
 type Database struct {
