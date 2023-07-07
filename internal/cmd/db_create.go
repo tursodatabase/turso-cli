@@ -181,7 +181,7 @@ var createCmd = &cobra.Command{
 		_, err = client.Databases.Create(name, locationId, image, extensions)
 		if err != nil && err.Error() == "location error" {
 			spinner.Stop()
-			fmt.Printf("Region %s is currently experiencing issues. Please pick another one or try again later\n", internal.Emph(locationId))
+			fmt.Printf("Region %s is currently experiencing issues. Please pick another from the 3 closest locations to %s or try again later\n", internal.Emph(locationId), internal.Emph(locationId))
 
 			location, _ := client.Locations.GetLocation(locationId)
 
