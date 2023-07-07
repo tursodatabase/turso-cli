@@ -71,37 +71,44 @@ type CreateDatabaseResponse struct {
 }
 
 func (d *DatabasesClient) Create(name, region, image, extensions string) (*CreateDatabaseResponse, error) {
-	type Body struct{ Name, Region, Image, Extensions string }
-	body, err := marshal(Body{name, region, image, extensions})
-	if err != nil {
-		return nil, fmt.Errorf("could not serialize request body: %w", err)
-	}
+	return nil, fmt.Errorf("region error")
+	// type Body struct{ Name, Region, Image, Extensions string }
+	// body, err := marshal(Body{name, region, image, extensions})
+	// if err != nil {
+	// 	return nil, fmt.Errorf("could not serialize request body: %w", err)
+	// }
 
-	res, err := d.client.Post(d.URL(""), body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create database: %s", err)
-	}
-	defer res.Body.Close()
+	// res, err := d.client.Post(d.URL(""), body)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to create database: %s", err)
+	// }
+	// defer res.Body.Close()
 
-	org := d.client.Org
-	if isNotMemberErr(res.StatusCode, org) {
-		return nil, notMemberErr(org)
-	}
+	// org := d.client.Org
+	// if isNotMemberErr(res.StatusCode, org) {
+	// 	return nil, notMemberErr(org)
+	// }
 
-	if res.StatusCode == http.StatusUnprocessableEntity {
-		return nil, fmt.Errorf("database name '%s' is not available", name)
-	}
+	// if res.StatusCode == http.StatusUnprocessableEntity {
+	// 	return nil, fmt.Errorf("database name '%s' is not available", name)
+	// }
 
-	if res.StatusCode != http.StatusOK {
-		return nil, parseResponseError(res)
-	}
+	// if res.StatusCode == http.StatusInternalServerError || res.StatusCode == http.StatusServiceUnavailable {
+	// 	return nil, fmt.Errorf("region error")
+	// }
 
-	data, err := unmarshal[*CreateDatabaseResponse](res)
-	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize response: %w", err)
-	}
+	// if res.StatusCode != http.StatusOK {
+	// 	return nil, parseResponseError(res)
+	// }
 
-	return data, nil
+	// data, err := unmarshal[*CreateDatabaseResponse](res)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to deserialize response: %w", err)
+	// }
+
+	// fmt.Println("")
+
+	// return data, nil
 }
 
 func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {

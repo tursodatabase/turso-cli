@@ -2,16 +2,18 @@ package cmd
 
 import (
 	"fmt"
-	"golang.org/x/exp/maps"
 	"os"
 	"sort"
 	"time"
+
+	"golang.org/x/exp/maps"
 
 	"github.com/athoscouto/codename"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/manifoldco/promptui"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
@@ -176,8 +178,38 @@ var createCmd = &cobra.Command{
 		description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
+		_, err = client.Databases.Create(name, region, image, extensions)
+		if err.Error() == "region error" {
+			fmt.Println(region)
+			spinner.Stop()
+			fmt.Printf("Region %s is currently experiencing issues. Please pick another one or try again later.", internal.Emph(region))
 
-		if _, err := client.Databases.Create(name, region, image, extensions); err != nil {
+			closest, err := client.Locations.GetClosestTo(region)
+
+			promptSelect := promptui.Select{
+				HideHelp:     true,
+				Label:        "Select a location or select exit",
+				Items:        closest,
+				HideSelected: true,
+			}
+
+			_, newRegion, err := promptSelect.Run()
+			if err != nil {
+				fmt.Printf("Prompt failed %v\n", err)
+				return nil
+			}
+
+			regionText := fmt.Sprintf("%s (%s)", locationDescription(client, newRegion), newRegion)
+
+			description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
+			spinner := prompt.Spinner(description)
+			defer spinner.Stop()
+			_, err = client.Databases.Create(name, newRegion, image, extensions)
+			if err != nil {
+				return fmt.Errorf("could not create database %s: %w", name, err)
+			}
+		}
+		if err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
