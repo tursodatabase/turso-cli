@@ -8,6 +8,7 @@ import (
 	"path"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/flags"
 	"github.com/kirsle/configdir"
 	"github.com/spf13/viper"
 )
@@ -55,9 +56,14 @@ func ReadSettings() (*Settings, error) {
 				return nil, err
 			}
 		case viper.ConfigParseError:
+			if flags.OverrideConfig() {
+				viper.WriteConfig()
+				break
+			}
 			warning := internal.Warn("Warning")
+			flag := internal.Emph("--override-config")
 			fmt.Printf("%s: could not parse JSON config from file %s\n", warning, internal.Emph(configFile))
-			fmt.Println("Fix the syntax errors on the config file, or just delete it.")
+			fmt.Printf("Fix the syntax errors on the file, or use the %s flag to replace it with a fresh one.\n", flag)
 			return nil, err
 		default:
 			return nil, err

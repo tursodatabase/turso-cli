@@ -38,4 +38,5 @@ func init() {
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 
 	flags.AddDebugFlag(rootCmd)
+	flags.AddOverrideConfigFlag(rootCmd)
 }
