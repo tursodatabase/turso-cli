@@ -165,7 +165,7 @@ var orgDestroyCmd = &cobra.Command{
 		if err = client.Organizations.Delete(slug); err != nil {
 			return err
 		}
-
+		invalidateDatabasesCache()
 		fmt.Printf("Destroyed organization %s.\n", internal.Emph(slug))
 		return nil
 	},
