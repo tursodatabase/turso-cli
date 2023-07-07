@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -20,7 +19,6 @@ func getDatabasesCache() []turso.Database {
 	if err != nil {
 		return nil
 	}
-	fmt.Printf("cache hit: %v\n", data)
 	return data
 }
 
