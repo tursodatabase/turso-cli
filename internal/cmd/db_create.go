@@ -40,7 +40,7 @@ func firstTimeHint(dbName string, image string, client *turso.Client, location s
 
 	switch doReplica {
 	case true:
-		suggestedLoc, suggestedRegion := suggestedLocation(location, locations)
+		suggestedLoc, suggestedLocationName := suggestedLocation(location, locations)
 
 		ids := maps.Keys(locations)
 		sort.Strings(ids)
@@ -64,7 +64,7 @@ func firstTimeHint(dbName string, image string, client *turso.Client, location s
 				tbl.AddRow(id, text)
 			}
 		}
-		fmt.Printf("Great!! Where? We suggest %s, since you don't yet have coverage in %s\n", internal.Emph(suggestedLoc), internal.Emph(suggestedRegion))
+		fmt.Printf("Great!! Where? We suggest %s, since you don't yet have coverage in %s\n", internal.Emph(suggestedLoc), internal.Emph(suggestedLocationName))
 		tbl.Print()
 		fmt.Printf("\n%s ", internal.Emph("Your choice"))
 		var chosen string
@@ -140,12 +140,12 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		region := locationFlag
-		if region == "" {
-			region, _ = closestLocation(client)
+		locationId := locationFlag
+		if locationId == "" {
+			locationId, _ = closestLocation(client)
 		}
-		if !isValidLocation(client, region) {
-			return fmt.Errorf("location '%s' is not a valid one", region)
+		if !isValidLocation(client, locationId) {
+			return fmt.Errorf("location '%s' is not a valid one", locationId)
 		}
 
 		locations, err := locations(client)
@@ -172,39 +172,44 @@ var createCmd = &cobra.Command{
 		if fromFileFlag != "" {
 			dbText = fmt.Sprintf(" from file %s", internal.Emph(fromFileFlag))
 		}
-		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
+		locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
 
 		start := time.Now()
-		description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
+		description := fmt.Sprintf("Creating database %s%s in %s", internal.Emph(name), dbText, internal.Emph(locationText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
-		_, err = client.Databases.Create(name, region, image, extensions)
-		if err.Error() == "region error" {
-			fmt.Println(region)
+		_, err = client.Databases.CreateDelete(name, locationId, image, extensions)
+		if err.Error() == "location error" {
 			spinner.Stop()
-			fmt.Printf("Region %s is currently experiencing issues. Please pick another one or try again later.", internal.Emph(region))
+			fmt.Printf("Region %s is currently experiencing issues. Please pick another one or try again later\n", internal.Emph(locationId))
 
-			closest, err := client.Locations.GetClosestTo(region)
+			location, _ := client.Locations.GetLocation(locationId)
 
+			closestLocationCodes := make([]string, 0)
+			for _, location := range location.Closest {
+				code := location.Code
+				closestLocationCodes = append(closestLocationCodes, code)
+			}
 			promptSelect := promptui.Select{
 				HideHelp:     true,
-				Label:        "Select a location or select exit",
-				Items:        closest,
+				Label:        "Select a location",
+				Items:        closestLocationCodes,
 				HideSelected: true,
 			}
 
-			_, newRegion, err := promptSelect.Run()
+			_, locationId, err = promptSelect.Run()
 			if err != nil {
 				fmt.Printf("Prompt failed %v\n", err)
 				return nil
 			}
 
-			regionText := fmt.Sprintf("%s (%s)", locationDescription(client, newRegion), newRegion)
+			locationText = fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
 
-			description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
-			spinner := prompt.Spinner(description)
+			description = fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
+			spinner = prompt.Spinner(description)
 			defer spinner.Stop()
-			_, err = client.Databases.Create(name, newRegion, image, extensions)
+			_, err = client.Databases.Create(name, locationId, image, extensions)
+
 			if err != nil {
 				return fmt.Errorf("could not create database %s: %w", name, err)
 			}
@@ -224,11 +229,11 @@ var createCmd = &cobra.Command{
 				return fmt.Errorf("could not create database %s: %w", name, err)
 			}
 
-			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
+			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
 			spinner.Text(description)
 		}
 
-		instance, err := client.Instances.Create(name, "", region, image)
+		instance, err := client.Instances.Create(name, "", locationId, image)
 		if err != nil {
 			return err
 		}
@@ -243,7 +248,7 @@ var createCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(locationText), int(elapsed.Seconds()))
 
 		firstTime := config.RegisterUse("db_create")
 		isInteractive := isatty.IsTerminal(os.Stdin.Fd())
@@ -254,7 +259,7 @@ var createCmd = &cobra.Command{
 		}
 
 		if firstTime && isInteractive && isOnlyDatabase {
-			firstTimeHint(name, image, client, region, locations)
+			firstTimeHint(name, image, client, locationId, locations)
 		}
 
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
