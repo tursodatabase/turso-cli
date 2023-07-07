@@ -83,7 +83,7 @@ func (c *OrganizationsClient) Delete(slug string) error {
 	case http.StatusOK:
 		return nil
 	case http.StatusBadRequest:
-		return fmt.Errorf("cannot delete personal organization %s", slug)
+		return parseResponseError(r)
 	case http.StatusForbidden:
 		return fmt.Errorf("you do not have permission to delete organization %s", slug)
 	default:
