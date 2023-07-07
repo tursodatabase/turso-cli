@@ -58,7 +58,7 @@ var planShowCmd = &cobra.Command{
 		columns = append(columns, "RESOURCE")
 		columns = append(columns, "USED")
 		columns = append(columns, "LIMIT")
-		columns = append(columns, "PERCENTAGE")
+		columns = append(columns, "USED %")
 
 		tbl := table.New(columns...)
 
