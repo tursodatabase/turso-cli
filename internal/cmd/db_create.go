@@ -211,7 +211,7 @@ var createCmd = &cobra.Command{
 			_, err = client.Databases.Create(name, locationId, image, extensions)
 
 			if err != nil {
-				return fmt.Errorf("could not create database %s: %w", name, err)
+				return fmt.Errorf("Please retry later, location %s is also experiencing issues: %w", locationId, err)
 			}
 		}
 		if err != nil {
