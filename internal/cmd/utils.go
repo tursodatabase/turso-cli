@@ -148,7 +148,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 		return fmt.Errorf("location '%s' is not a valid one", region)
 	}
 
-	s := prompt.Spinner(fmt.Sprintf("Destroying region %s of database %s... ", internal.Emph(region), internal.Emph(database)))
+	s := prompt.Spinner(fmt.Sprintf("Destroying location %s of database %s... ", internal.Emph(region), internal.Emph(database)))
 	defer s.Stop()
 
 	db, err := getDatabase(client, database)
