@@ -150,7 +150,7 @@ var replicateCmd = &cobra.Command{
 			fmt.Printf("🗓   Book a call with us! You can do it with:\n\n\t%s\n", internal.Emph("turso account bookmeeting"))
 			fmt.Printf("🎤   Or just send us your feedback:\n\n\t%s\n", internal.Emph("turso account feedback"))
 		}
-
+		invalidateDatabasesCache()
 		return nil
 	},
 }
