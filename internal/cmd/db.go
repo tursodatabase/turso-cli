@@ -38,34 +38,6 @@ func extractDatabaseNames(databases []turso.Database) []string {
 	return names
 }
 
-func convertCachedDbToInternalDb(databases []settings.Database) []turso.Database {
-	dbs := make([]turso.Database, 0)
-	for _, database := range databases {
-		dbs = append(dbs, turso.Database{
-			ID:            database.ID,
-			Name:          database.Name,
-			Regions:       database.Regions,
-			PrimaryRegion: database.PrimaryRegion,
-			Hostname:      database.Hostname,
-		})
-	}
-	return dbs
-}
-
-func convertInternalDbToCachedDb(databases []turso.Database) []settings.Database {
-	dbs := make([]settings.Database, 0)
-	for _, database := range databases {
-		dbs = append(dbs, settings.Database{
-			ID:            database.ID,
-			Name:          database.Name,
-			Regions:       database.Regions,
-			PrimaryRegion: database.PrimaryRegion,
-			Hostname:      database.Hostname,
-		})
-	}
-	return dbs
-}
-
 func getDatabase(client *turso.Client, name string) (turso.Database, error) {
 	databases, err := client.Databases.List()
 	if err != nil {
@@ -82,18 +54,14 @@ func getDatabase(client *turso.Client, name string) (turso.Database, error) {
 }
 
 func getDatabasesCacheOrAPI(client *turso.Client) ([]turso.Database, error) {
-	settings, err := settings.ReadSettings()
-	if err != nil {
-		return nil, err
-	}
-	if cachedNames := settings.GetDatabasesCache(); cachedNames != nil {
-		return convertCachedDbToInternalDb(cachedNames), nil
+	if cachedNames := getDatabasesCache(); cachedNames != nil {
+		return cachedNames, nil
 	}
 	databases, err := client.Databases.List()
 	if err != nil {
 		return nil, err
 	}
-	settings.SetDatabasesCache(convertInternalDbToCachedDb(databases))
+	setDatabasesCache(databases)
 	return databases, nil
 }
 
@@ -198,7 +166,7 @@ func latencies(client *turso.Client) (map[string]int, error) {
 }
 
 func readLocations(settings *settings.Settings, client *turso.Client) (map[string]string, error) {
-	if locations := settings.LocationsCache(); locations != nil {
+	if locations := locationsCache(); locations != nil {
 		return locations, nil
 	}
 
@@ -207,13 +175,12 @@ func readLocations(settings *settings.Settings, client *turso.Client) (map[strin
 		return nil, err
 	}
 
-	settings.SetLocationsCache(locations)
+	setLocationsCache(locations)
 	return locations, nil
 }
 
 func closestLocation(client *turso.Client) (string, error) {
-	settings, _ := settings.ReadSettings()
-	if closest := settings.ClosestLocationCache(); closest != "" {
+	if closest := closestLocationCache(); closest != "" {
 		return closest, nil
 	}
 
@@ -223,7 +190,7 @@ func closestLocation(client *turso.Client) (string, error) {
 		return "ams", err
 	}
 
-	settings.SetClosestLocationCache(closest)
+	setClosestLocationCache(closest)
 	return closest, nil
 }
 

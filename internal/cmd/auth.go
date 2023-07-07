@@ -102,8 +102,7 @@ func isJwtTokenValid(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	settings, _ := settings.ReadSettings()
-	if settings.TokenValidCache(token) {
+	if tokenValidCache(token) {
 		return true
 	}
 	client, err := tursoClient(token)
@@ -114,7 +113,7 @@ func isJwtTokenValid(token string) bool {
 	if err != nil {
 		return false
 	}
-	settings.SetTokenValidCache(token, exp)
+	setTokenValidCache(token, exp)
 	return true
 }
 
