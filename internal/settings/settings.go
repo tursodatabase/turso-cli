@@ -56,12 +56,12 @@ func ReadSettings() (*Settings, error) {
 				return nil, err
 			}
 		case viper.ConfigParseError:
-			if flags.OverrideConfig() {
+			if flags.ResetConfig() {
 				viper.WriteConfig()
 				break
 			}
 			warning := internal.Warn("Warning")
-			flag := internal.Emph("--override-config")
+			flag := internal.Emph("--reset-config")
 			fmt.Printf("%s: could not parse JSON config from file %s\n", warning, internal.Emph(configFile))
 			fmt.Printf("Fix the syntax errors on the file, or use the %s flag to replace it with a fresh one.\n", flag)
 			return nil, err
