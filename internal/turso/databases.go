@@ -9,7 +9,7 @@ import (
 )
 
 type Database struct {
-	ID            string `json:"dbId"`
+	ID            string `json:"dbId" mapstructure:"dbId"`
 	Name          string
 	Regions       []string
 	PrimaryRegion string
