@@ -125,4 +125,4 @@ The `turso` program keeps settings in your local machine in the following base d
 | OS    | Config directory |
 | ----- | -----------------|
 | Linux | `$XDG_CONFIG_HOME` or `$HOME/.config` |
-| macOS | `$HOME/Library/Application Support`  |
+| macOS | `$HOME/Library/Application Support/turso`  |
