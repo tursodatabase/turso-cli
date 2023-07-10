@@ -229,11 +229,11 @@ var createCmd = &cobra.Command{
 			spinner = prompt.Spinner(description)
 			defer spinner.Stop()
 			if _, err = client.Databases.Create(name, locationId, image, extensions); err != nil {
-				return fmt.Errorf("We couldn't create your database. Please try again later")
+				return fmt.Errorf("we couldn't create your database. Please try again later")
 			}
 
 			if instance, err = client.Instances.Create(name, "", locationId, image); err != nil {
-				return fmt.Errorf("We couldn't create your database. Please try again later")
+				return fmt.Errorf("we couldn't create your database. Please try again later")
 			}
 		}
 
