@@ -26,6 +26,9 @@ func SetCache[T any](key string, ttl int64, value T) error {
 }
 
 func SetCacheWithExp[T any](key string, exp int64, value T) error {
+	if _, err := ReadSettings(); err != nil {
+		return err
+	}
 	entry := Entry[T]{Data: value, Expiration: exp}
 	viper.Set(cacheKey(key), entry)
 	settings.changed = true
@@ -34,6 +37,9 @@ func SetCacheWithExp[T any](key string, exp int64, value T) error {
 
 func GetCache[T any](key string) (T, error) {
 	entry := Entry[T]{}
+	if _, err := ReadSettings(); err != nil {
+		return entry.Data, err
+	}
 	value := viper.Get(cacheKey(key))
 	if err := mapstructure.Decode(value, &entry); err != nil {
 		return entry.Data, fmt.Errorf("failed to get cache data for %s", key)
