@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -178,10 +179,29 @@ var createCmd = &cobra.Command{
 		description := fmt.Sprintf("Creating database %s%s in %s", internal.Emph(name), dbText, internal.Emph(locationText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
-		_, err = client.Databases.Create(name, locationId, image, extensions)
-		if err != nil && err.Error() == "location error" {
+		if _, err = client.Databases.Create(name, locationId, image, extensions); err != nil {
+			return fmt.Errorf("could not create database %s: %w", name, err)
+		}
+
+		if dbFile != nil {
+			defer dbFile.Close()
+			description = fmt.Sprintf("Uploading database file %s", internal.Emph(fromFileFlag))
+			spinner.Text(description)
+
+			err := client.Databases.Seed(name, dbFile)
+			if err != nil {
+				client.Databases.Delete(name)
+				return fmt.Errorf("could not create database %s: %w", name, err)
+			}
+
+			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
+			spinner.Text(description)
+		}
+		var instance *turso.Instance
+		instance, err = client.Instances.Create(name, "", locationId, image)
+		if err != nil && errors.Is(err, &turso.CreateInstanceLocationError{}) {
 			spinner.Stop()
-			fmt.Printf("Location %s is currently experiencing issues. Please pick another from the 3 closest locations to %s or try again later\n", internal.Emph(locationId), internal.Emph(locationId))
+			fmt.Printf("We couldn't create your database\n Here are 3 locations nearby to %s where you can create your database or try again later\n", internal.Emph(locationId))
 
 			location, _ := client.Locations.GetLocation(locationId)
 
@@ -208,34 +228,13 @@ var createCmd = &cobra.Command{
 			description = fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
 			spinner = prompt.Spinner(description)
 			defer spinner.Stop()
-			_, err = client.Databases.Create(name, locationId, image, extensions)
-
-			if err != nil {
-				return fmt.Errorf("please retry later, location %s is also experiencing issues: %w", locationId, err)
-			}
-		}
-		if err != nil {
-			return fmt.Errorf("could not create database %s: %w", name, err)
-		}
-
-		if dbFile != nil {
-			defer dbFile.Close()
-			description = fmt.Sprintf("Uploading database file %s", internal.Emph(fromFileFlag))
-			spinner.Text(description)
-
-			err := client.Databases.Seed(name, dbFile)
-			if err != nil {
-				client.Databases.Delete(name)
-				return fmt.Errorf("could not create database %s: %w", name, err)
+			if _, err = client.Databases.Create(name, locationId, image, extensions); err != nil {
+				return fmt.Errorf("We couldn't create your database. Please try again later")
 			}
 
-			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
-			spinner.Text(description)
-		}
-
-		instance, err := client.Instances.Create(name, "", locationId, image)
-		if err != nil {
-			return err
+			if instance, err = client.Instances.Create(name, "", locationId, image); err != nil {
+				return fmt.Errorf("We couldn't create your database. Please try again later")
+			}
 		}
 
 		if waitFlag || dbFile != nil {

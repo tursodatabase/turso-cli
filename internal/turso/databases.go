@@ -18,6 +18,14 @@ type Database struct {
 
 type DatabasesClient client
 
+type CreateInstanceLocationError struct {
+	err string
+}
+
+func (e *CreateInstanceLocationError) Error() string {
+	return fmt.Sprint(e.err)
+}
+
 func (d *DatabasesClient) List() ([]Database, error) {
 	r, err := d.client.Get(d.URL(""), nil)
 	if err != nil {
@@ -90,10 +98,6 @@ func (d *DatabasesClient) Create(name, region, image, extensions string) (*Creat
 
 	if res.StatusCode == http.StatusUnprocessableEntity {
 		return nil, fmt.Errorf("database name '%s' is not available", name)
-	}
-
-	if res.StatusCode == http.StatusInternalServerError || res.StatusCode == http.StatusServiceUnavailable {
-		return nil, fmt.Errorf("location error")
 	}
 
 	if res.StatusCode != http.StatusOK {
