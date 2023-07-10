@@ -21,11 +21,11 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		databases, err := getDatabasesCacheOrAPI(client)
+		databases, err := client.Databases.List()
 		if err != nil {
 			return err
 		}
-
+		setDatabasesCache(databases)
 		var data [][]string
 		for _, database := range databases {
 			data = append(data, []string{
