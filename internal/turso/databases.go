@@ -226,8 +226,6 @@ func (d *DatabasesClient) Usage(database string) (DbUsage, error) {
 	defer r.Body.Close()
 
 	body, err := unmarshal[DbUsage](r)
-
-	fmt.Printf("\nbody: %v\n", body)
 	return body, err
 }
 

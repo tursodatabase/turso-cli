@@ -120,7 +120,6 @@ var dbInspectCmd = &cobra.Command{
 		instancesUsage := getInstanceUsageMap(dbUsage.Usage.Instances)
 		tbl := table.New("LOCATION", "TYPE", "INSTANCE NAME", "ROWS READ", "ROWS WRITTEN", "TOTAL STORAGE")
 		for _, instance := range instances {
-			fmt.Printf("Instance: %s\n", instance.Uuid)
 			usg, ok := instancesUsage[instance.Uuid]
 			if !ok {
 				tbl.AddRow(instance.Region, instance.Type, instance.Name, "-", "-", "-")
