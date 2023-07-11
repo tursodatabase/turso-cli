@@ -205,6 +205,7 @@ var createCmd = &cobra.Command{
 			spinner.Stop()
 			instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
 			if err != nil {
+				client.Databases.Delete(name)
 				return err
 			}
 			spinner = prompt.Spinner(description)
