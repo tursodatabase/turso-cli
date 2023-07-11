@@ -94,7 +94,7 @@ func (d *InstancesClient) Create(dbName, instanceName, region, image string) (*I
 	}
 
 	if res.StatusCode >= http.StatusInternalServerError {
-		return nil, &CreateInstanceLocationError{fmt.Sprintf("failed to create database: %s", res.Status)}
+		return nil, fmt.Errorf("failed to create database: %w", CreateInstanceLocationError{"location error"})
 	}
 
 	if res.StatusCode != http.StatusOK {
