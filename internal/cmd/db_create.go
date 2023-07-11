@@ -205,6 +205,7 @@ var createCmd = &cobra.Command{
 			spinner.Stop()
 			instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
 			if err != nil {
+				client.Databases.Delete(name)
 				return err
 			}
 			spinner = prompt.Spinner(description)
@@ -307,6 +308,7 @@ func handleInstanceCreationError(client *turso.Client, name, locationId string, 
 
 	_, locationId, err := promptSelect.Run()
 	if err != nil {
+		client.Databases.Delete(name)
 		return nil, "", fmt.Errorf("prompt failed %v", err)
 	}
 
