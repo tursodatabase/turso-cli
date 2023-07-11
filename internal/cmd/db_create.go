@@ -202,6 +202,9 @@ var createCmd = &cobra.Command{
 		if errors.Is(err, &turso.CreateInstanceLocationError{}) {
 			spinner.Stop()
 			instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
+			if err != nil {
+				return err
+			}
 			spinner = prompt.Spinner(description)
 			defer spinner.Stop()
 		}
@@ -304,7 +307,7 @@ func handleInstanceCreationError(client *turso.Client, name, locationId string, 
 
 	_, locationId, err := promptSelect.Run()
 	if err != nil {
-		return nil, "", fmt.Errorf("Prompt failed %v\n", err)
+		return nil, "", fmt.Errorf("prompt failed %v", err)
 	}
 
 	locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
