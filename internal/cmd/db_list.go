@@ -29,11 +29,12 @@ var listCmd = &cobra.Command{
 		}
 		setDatabasesCache(databases)
 		var data [][]string
+		var helps []string
 		for _, database := range databases {
 			row := []string{database.Name, getDatabaseRegions(database), getDatabaseUrl(&database)}
 			if len(database.Regions) == 0 {
 				help := fmt.Sprintf("🛠 Run %s to finish your database creation!", internal.Emph("turso db replicate "+database.Name))
-				row = append(row, help)
+				helps = append(helps, help)
 			}
 			data = append(data, row)
 		}
@@ -43,6 +44,13 @@ var listCmd = &cobra.Command{
 		})
 
 		printTable([]string{"Name", "Locations", "URL"}, data)
+
+		if len(helps) > 0 {
+			fmt.Println()
+			for _, help := range helps {
+				fmt.Println(help)
+			}
+		}
 		return nil
 	},
 }

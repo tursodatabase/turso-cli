@@ -80,16 +80,18 @@ var showCmd = &cobra.Command{
 			data = append(data, row)
 		}
 
-		if len(instances) == 0 {
-			fmt.Printf("🛠 Run %s to finish your database creation!\n\n", internal.Emph("turso db replicate "+db.Name))
-		}
-
 		fmt.Println("Name:          ", db.Name)
 		fmt.Println("URL:           ", getDatabaseUrl(&db))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
 		fmt.Println("Size:          ", humanize.Bytes(usages.Total.StorageBytesUsed))
 		fmt.Println()
+
+		if len(instances) == 0 {
+			fmt.Printf("🛠 Run %s to finish your database creation!\n", internal.Emph("turso db replicate "+db.Name))
+			return nil
+		}
+
 		fmt.Print("Database Instances:\n")
 		printTable(headers, data)
 
