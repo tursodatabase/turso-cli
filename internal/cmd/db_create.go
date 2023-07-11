@@ -199,7 +199,9 @@ var createCmd = &cobra.Command{
 		}
 		var instance *turso.Instance
 		instance, err = client.Instances.Create(name, "", locationId, image)
-		if errors.Is(err, &turso.CreateInstanceLocationError{}) {
+
+		var createInstanceLocationError *turso.CreateInstanceLocationError
+		if errors.As(err, &createInstanceLocationError) {
 			spinner.Stop()
 			instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
 			if err != nil {
