@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/rodaine/table"
 
 	"github.com/dustin/go-humanize"
@@ -112,6 +113,11 @@ var dbInspectCmd = &cobra.Command{
 		fmt.Printf("Total space used: %s\n", humanize.Bytes(usages.Total.StorageBytesUsed))
 		fmt.Printf("Number of rows read: %d\n", usages.Total.RowsRead)
 		fmt.Printf("Number of rows written: %d\n", usages.Total.RowsWritten)
+
+		if len(instances) == 0 {
+			fmt.Printf("\n🛠 Run %s to finish your database creation!\n", internal.Emph("turso db replicate "+db.Name))
+			return nil
+		}
 
 		if !verboseFlag {
 			return nil
