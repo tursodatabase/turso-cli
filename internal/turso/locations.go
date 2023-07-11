@@ -58,11 +58,9 @@ func (c *LocationsClient) GetLocation(location string) (LocationResponse, error)
 		return LocationResponse{}, fmt.Errorf("failed to get location %s: %s", location, r.Status)
 	}
 
-	type dataResponse struct {
+	data, err := unmarshal[struct {
 		Location LocationResponse `json:"location"`
-	}
-
-	data, err := unmarshal[dataResponse](r)
+	}](r)
 
 	if err != nil {
 		return LocationResponse{}, fmt.Errorf("failed to deserialize location response: %w", err)

@@ -199,42 +199,11 @@ var createCmd = &cobra.Command{
 		}
 		var instance *turso.Instance
 		instance, err = client.Instances.Create(name, "", locationId, image)
-		if err != nil && errors.Is(err, &turso.CreateInstanceLocationError{}) {
+		if errors.Is(err, &turso.CreateInstanceLocationError{}) {
 			spinner.Stop()
-			fmt.Printf("We couldn't create your database\n Here are 3 locations nearby to %s where you can create your database or try again later\n", internal.Emph(locationId))
-
-			location, _ := client.Locations.GetLocation(locationId)
-
-			closestLocationCodes := make([]string, 0)
-			for _, location := range location.Closest {
-				code := location.Code
-				closestLocationCodes = append(closestLocationCodes, code)
-			}
-			promptSelect := promptui.Select{
-				HideHelp:     true,
-				Label:        "Select a location",
-				Items:        closestLocationCodes,
-				HideSelected: true,
-			}
-
-			_, locationId, err = promptSelect.Run()
-			if err != nil {
-				fmt.Printf("Prompt failed %v\n", err)
-				return nil
-			}
-
-			locationText = fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
-
-			description = fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
+			instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
 			spinner = prompt.Spinner(description)
 			defer spinner.Stop()
-			if _, err = client.Databases.Create(name, locationId, image, extensions); err != nil {
-				return fmt.Errorf("we couldn't create your database. Please try again later")
-			}
-
-			if instance, err = client.Instances.Create(name, "", locationId, image); err != nil {
-				return fmt.Errorf("we couldn't create your database. Please try again later")
-			}
 		}
 
 		if waitFlag || dbFile != nil {
@@ -314,4 +283,37 @@ func getDatabaseName(args []string) (string, error) {
 		return "", err
 	}
 	return codename.Generate(rng, 0), nil
+}
+
+func handleInstanceCreationError(client *turso.Client, name, locationId string, dbText string, image string) (*turso.Instance, string, error) {
+	fmt.Printf("We couldn't create your database at %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you\n", internal.Emph(locationId))
+
+	location, _ := client.Locations.GetLocation(locationId)
+
+	closestLocationCodes := make([]string, 0)
+	for _, location := range location.Closest {
+		code := location.Code
+		closestLocationCodes = append(closestLocationCodes, code)
+	}
+	promptSelect := promptui.Select{
+		HideHelp:     true,
+		Label:        "Select a location",
+		Items:        closestLocationCodes,
+		HideSelected: true,
+	}
+
+	_, locationId, err := promptSelect.Run()
+	if err != nil {
+		return nil, "", fmt.Errorf("Prompt failed %v\n", err)
+	}
+
+	locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
+
+	description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
+	var instance *turso.Instance
+	if instance, err = client.Instances.Create(name, "", locationId, image); err != nil {
+		return nil, "", fmt.Errorf("we couldn't create your database. Please try again later")
+	}
+
+	return instance, description, nil
 }

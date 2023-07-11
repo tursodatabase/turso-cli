@@ -23,7 +23,7 @@ type CreateInstanceLocationError struct {
 }
 
 func (e *CreateInstanceLocationError) Error() string {
-	return fmt.Sprint(e.err)
+	return e.err
 }
 
 func (d *DatabasesClient) List() ([]Database, error) {
