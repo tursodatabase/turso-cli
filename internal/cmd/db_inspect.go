@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/rodaine/table"
 
 	"github.com/dustin/go-humanize"
@@ -107,6 +108,10 @@ var dbInspectCmd = &cobra.Command{
 		instances, usages, err := instancesAndUsage(client, db.Name)
 		if err != nil {
 			return err
+		}
+
+		if len(instances) == 0 {
+			fmt.Printf("🛠 Run %s to finish your database creation!\n\n", internal.Emph("turso db replicate "+db.Name))
 		}
 
 		fmt.Printf("Total space used: %s\n", humanize.Bytes(usages.Total.StorageBytesUsed))
