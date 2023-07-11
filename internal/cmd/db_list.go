@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"sort"
 
+	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
 )
 
@@ -28,11 +30,12 @@ var listCmd = &cobra.Command{
 		setDatabasesCache(databases)
 		var data [][]string
 		for _, database := range databases {
-			data = append(data, []string{
-				database.Name,
-				getDatabaseRegions(database),
-				getDatabaseUrl(&database)},
-			)
+			row := []string{database.Name, getDatabaseRegions(database), getDatabaseUrl(&database)}
+			if len(database.Regions) == 0 {
+				help := fmt.Sprintf("🛠 Run %s to finish your database creation!", internal.Emph("turso db replicate "+database.Name))
+				row = append(row, help)
+			}
+			data = append(data, row)
 		}
 
 		sort.Slice(data, func(i, j int) bool {
