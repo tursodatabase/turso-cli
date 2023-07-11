@@ -19,11 +19,11 @@ type Database struct {
 type DatabasesClient client
 
 type CreateInstanceLocationError struct {
-	msg string
+	err string
 }
 
-func (e CreateInstanceLocationError) Error() string {
-	return e.msg
+func (e *CreateInstanceLocationError) Error() string {
+	return e.err
 }
 
 func (d *DatabasesClient) List() ([]Database, error) {
