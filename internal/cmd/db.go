@@ -170,7 +170,7 @@ func readLocations(settings *settings.Settings, client *turso.Client) (map[strin
 		return locations, nil
 	}
 
-	locations, err := client.Locations.Get()
+	locations, err := client.Locations.List()
 	if err != nil {
 		return nil, err
 	}
