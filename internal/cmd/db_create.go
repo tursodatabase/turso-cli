@@ -291,11 +291,11 @@ func getDatabaseName(args []string) (string, error) {
 }
 
 func handleInstanceCreationError(client *turso.Client, name, locationId string, dbText string, image string) (*turso.Instance, string, error) {
-	fmt.Printf("We couldn't create your database at %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you\n", internal.Emph(locationId))
+	fmt.Printf("We couldn't create your database at %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you.\n", internal.Emph(locationId))
 
-	location, _ := client.Locations.GetLocation(locationId)
+	location, _ := client.Locations.Get(locationId)
 
-	closestLocationCodes := make([]string, 0)
+	closestLocationCodes := make([]string, 0, len(location.Closest))
 	for _, location := range location.Closest {
 		code := location.Code
 		closestLocationCodes = append(closestLocationCodes, code)

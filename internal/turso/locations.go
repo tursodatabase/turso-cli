@@ -47,7 +47,7 @@ func (c *LocationsClient) List() (map[string]string, error) {
 	return data.Locations, nil
 }
 
-func (c *LocationsClient) GetLocation(location string) (LocationResponse, error) {
+func (c *LocationsClient) Get(location string) (LocationResponse, error) {
 	r, err := c.client.Get("/v1/locations/"+location, nil)
 	if err != nil {
 		return LocationResponse{}, fmt.Errorf("failed to request location %s: %w", location, err)
