@@ -206,14 +206,19 @@ type Usage struct {
 	StorageBytesUsed uint64 `json:"storage_bytes,omitempty"`
 }
 
-type InstancesUsage struct {
-	Instances []Usage `json:"instances"`
-	Total     Usage   `json:"total"`
+type InstanceUsage struct {
+	UUID  string `json:"uuid,omitempty"`
+	Usage Usage  `json:"usage"`
 }
 
 type DbUsage struct {
-	UUID  string         `json:"uuid,omitempty"`
-	Usage InstancesUsage `json:"usage"`
+	UUID      string          `json:"uuid,omitempty"`
+	Instances []InstanceUsage `json:"instances"`
+	Usage     Usage           `json:"usage"`
+}
+
+type DbUsageResponse struct {
+	DbUsage DbUsage `json:"database"`
 }
 
 func (d *DatabasesClient) Usage(database string) (DbUsage, error) {
@@ -225,8 +230,11 @@ func (d *DatabasesClient) Usage(database string) (DbUsage, error) {
 	}
 	defer r.Body.Close()
 
-	body, err := unmarshal[DbUsage](r)
-	return body, err
+	body, err := unmarshal[DbUsageResponse](r)
+	if err != nil {
+		return DbUsage{}, err
+	}
+	return body.DbUsage, nil
 }
 
 func (d *DatabasesClient) URL(suffix string) string {

@@ -100,8 +100,13 @@ type OrgTotal struct {
 }
 
 type OrgUsage struct {
-	Databases map[string]DbUsage `json:"databases"`
-	Total     OrgTotal           `json:"total"`
+	UUID      string    `json:"uuid,omitempty"`
+	Usage     OrgTotal  `json:"usage"`
+	Databases []DbUsage `json:"databases"`
+}
+
+type OrgUsageResponse struct {
+	OrgUsage OrgUsage `json:"organization"`
 }
 
 func (c *OrganizationsClient) Usage() (OrgUsage, error) {
@@ -116,8 +121,11 @@ func (c *OrganizationsClient) Usage() (OrgUsage, error) {
 	}
 	defer r.Body.Close()
 
-	body, err := unmarshal[OrgUsage](r)
-	return body, err
+	body, err := unmarshal[OrgUsageResponse](r)
+	if err != nil {
+		return OrgUsage{}, err
+	}
+	return body.OrgUsage, nil
 }
 
 type Member struct {

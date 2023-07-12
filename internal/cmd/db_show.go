@@ -84,7 +84,7 @@ var showCmd = &cobra.Command{
 		fmt.Println("URL:           ", getDatabaseUrl(&db))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
-		fmt.Println("Size:          ", humanize.Bytes(dbUsage.Usage.Total.StorageBytesUsed))
+		fmt.Println("Size:          ", humanize.Bytes(dbUsage.Usage.StorageBytesUsed))
 		fmt.Println()
 		fmt.Print("Database Instances:\n")
 		printTable(headers, data)

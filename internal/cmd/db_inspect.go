@@ -109,15 +109,15 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Total space used: %s\n", humanize.Bytes(dbUsage.Usage.Total.StorageBytesUsed))
-		fmt.Printf("Number of rows read: %d\n", dbUsage.Usage.Total.RowsRead)
-		fmt.Printf("Number of rows written: %d\n", dbUsage.Usage.Total.RowsWritten)
+		fmt.Printf("Total space used: %s\n", humanize.Bytes(dbUsage.Usage.StorageBytesUsed))
+		fmt.Printf("Number of rows read: %d\n", dbUsage.Usage.RowsRead)
+		fmt.Printf("Number of rows written: %d\n", dbUsage.Usage.RowsWritten)
 
 		if !verboseFlag {
 			return nil
 		}
 
-		instancesUsage := getInstanceUsageMap(dbUsage.Usage.Instances)
+		instancesUsage := getInstanceUsageMap(dbUsage.Instances)
 		tbl := table.New("LOCATION", "TYPE", "INSTANCE NAME", "ROWS READ", "ROWS WRITTEN", "TOTAL STORAGE")
 		for _, instance := range instances {
 			usg, ok := instancesUsage[instance.Uuid]
@@ -136,10 +136,10 @@ var dbInspectCmd = &cobra.Command{
 	},
 }
 
-func getInstanceUsageMap(usages []turso.Usage) map[string]turso.Usage {
+func getInstanceUsageMap(usages []turso.InstanceUsage) map[string]turso.Usage {
 	m := make(map[string]turso.Usage)
 	for _, usg := range usages {
-		m[usg.UUID] = usg
+		m[usg.UUID] = usg.Usage
 	}
 	return m
 }
