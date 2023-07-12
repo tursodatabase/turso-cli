@@ -71,7 +71,7 @@ var planShowCmd = &cobra.Command{
 		addResourceRowCount(tbl, "databases", usage.Total.Databases, current.Quotas.Databases)
 		addResourceRowCount(tbl, "locations", usage.Total.Locations, current.Quotas.Locations)
 		tbl.Print()
-
+		fmt.Printf("\nQuota will reset on %s\n", getFirstDayOfNextMonth().Local().Format(time.RFC1123))
 		return nil
 	},
 }
@@ -348,4 +348,13 @@ func addResourceRowCount(tbl table.Table, resource string, used, limit uint64) {
 
 func percentage(used, limit float64) string {
 	return fmt.Sprintf("%.0f%%", used/limit*100)
+}
+
+func getFirstDayOfNextMonth() time.Time {
+	now := time.Now().UTC()
+	nextMonth := now.AddDate(0, 1, 0)
+	year := nextMonth.Year()
+	month := nextMonth.Month()
+	firstDay := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	return firstDay
 }
