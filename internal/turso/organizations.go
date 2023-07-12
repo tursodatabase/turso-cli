@@ -121,6 +121,11 @@ func (c *OrganizationsClient) Usage() (OrgUsage, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return OrgUsage{}, fmt.Errorf("failed to get database usage: %d %s", r.StatusCode, err)
+	}
+
 	body, err := unmarshal[OrgUsageResponse](r)
 	if err != nil {
 		return OrgUsage{}, err

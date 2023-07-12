@@ -237,6 +237,11 @@ func (d *DatabasesClient) Usage(database string) (DbUsage, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return DbUsage{}, fmt.Errorf("failed to get database usage: %d %s", r.StatusCode, err)
+	}
+
 	body, err := unmarshal[DbUsageResponse](r)
 	if err != nil {
 		return DbUsage{}, err
