@@ -9,7 +9,6 @@ import (
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/libsql/libsql-shell-go/pkg/shell"
 	"github.com/libsql/libsql-shell-go/pkg/shell/enums"
@@ -177,8 +176,7 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 		return "", nil
 	}
 
-	settings, _ := settings.ReadSettings()
-	if token := settings.DbTokenCache(db.ID); token != "" {
+	if token := dbTokenCache(db.ID); token != "" {
 		return token, nil
 	}
 
@@ -188,7 +186,7 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 	}
 
 	exp := time.Now().Add(time.Hour * 23).Unix()
-	settings.SetDbTokenCache(db.ID, token, exp)
+	setDbTokenCache(db.ID, token, exp)
 
 	return token, nil
 }

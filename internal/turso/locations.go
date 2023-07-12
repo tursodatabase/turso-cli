@@ -16,7 +16,18 @@ type LocationsResponse struct {
 	Locations map[string]string
 }
 
-func (c *LocationsClient) Get() (map[string]string, error) {
+type Location struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
+type LocationResponse struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+	Closest     []Location
+}
+
+func (c *LocationsClient) List() (map[string]string, error) {
 	r, err := c.client.Get("/v1/locations", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request locations: %s", err)
@@ -34,6 +45,28 @@ func (c *LocationsClient) Get() (map[string]string, error) {
 	}
 
 	return data.Locations, nil
+}
+
+func (c *LocationsClient) Get(location string) (LocationResponse, error) {
+	r, err := c.client.Get("/v1/locations/"+location, nil)
+	if err != nil {
+		return LocationResponse{}, fmt.Errorf("failed to request location %s: %w", location, err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return LocationResponse{}, fmt.Errorf("failed to get location %s: %s", location, r.Status)
+	}
+
+	data, err := unmarshal[struct {
+		Location LocationResponse `json:"location"`
+	}](r)
+
+	if err != nil {
+		return LocationResponse{}, fmt.Errorf("failed to deserialize location response: %w", err)
+	}
+
+	return data.Location, nil
 }
 
 type ClosestLocationResponse struct {

@@ -9,7 +9,7 @@ import (
 )
 
 type Database struct {
-	ID            string `json:"dbId"`
+	ID            string `json:"dbId" mapstructure:"dbId"`
 	Name          string
 	Regions       []string
 	PrimaryRegion string
@@ -17,6 +17,14 @@ type Database struct {
 }
 
 type DatabasesClient client
+
+type CreateInstanceLocationError struct {
+	err string
+}
+
+func (e *CreateInstanceLocationError) Error() string {
+	return e.err
+}
 
 func (d *DatabasesClient) List() ([]Database, error) {
 	r, err := d.client.Get(d.URL(""), nil)

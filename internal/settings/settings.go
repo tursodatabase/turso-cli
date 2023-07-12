@@ -1,6 +1,14 @@
 package settings
 
 import (
+	"path/filepath"
+	"sync"
+
+	"fmt"
+	"path"
+
+	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/flags"
 	"github.com/kirsle/configdir"
 	"github.com/spf13/viper"
 )
@@ -10,11 +18,16 @@ type Settings struct {
 }
 
 var settings *Settings
+var mu sync.Mutex
 
 func ReadSettings() (*Settings, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if settings != nil {
 		return settings, nil
 	}
+	settings = &Settings{}
 
 	configPath := configdir.LocalConfig("turso")
 	configPathFlag := viper.GetString("config-path")
@@ -30,18 +43,33 @@ func ReadSettings() (*Settings, error) {
 	viper.SetConfigName("settings")
 	viper.SetConfigType("json")
 	viper.AddConfigPath(configPath)
+	configFile := path.Join(configPath, "settings.json")
+	if abs, err := filepath.Abs(configFile); err == nil {
+		configFile = abs
+	}
+
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		switch err.(type) {
+		case viper.ConfigFileNotFoundError:
 			// Force config creation
 			if err := viper.SafeWriteConfig(); err != nil {
 				return nil, err
 			}
-		} else {
+		case viper.ConfigParseError:
+			if flags.ResetConfig() {
+				viper.WriteConfig()
+				break
+			}
+			warning := internal.Warn("Warning")
+			flag := internal.Emph("--reset-config")
+			fmt.Printf("%s: could not parse JSON config from file %s\n", warning, internal.Emph(configFile))
+			fmt.Printf("Fix the syntax errors on the file, or use the %s flag to replace it with a fresh one.\n", flag)
+			return nil, err
+		default:
 			return nil, err
 		}
 	}
 
-	settings = &Settings{}
 	return settings, nil
 }
 

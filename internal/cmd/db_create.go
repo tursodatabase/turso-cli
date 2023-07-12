@@ -1,17 +1,20 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"golang.org/x/exp/maps"
 	"os"
 	"sort"
 	"time"
+
+	"golang.org/x/exp/maps"
 
 	"github.com/athoscouto/codename"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/manifoldco/promptui"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +41,7 @@ func firstTimeHint(dbName string, image string, client *turso.Client, location s
 
 	switch doReplica {
 	case true:
-		suggestedLoc, suggestedRegion := suggestedLocation(location, locations)
+		suggestedLoc, suggestedLocationName := suggestedLocation(location, locations)
 
 		ids := maps.Keys(locations)
 		sort.Strings(ids)
@@ -62,7 +65,7 @@ func firstTimeHint(dbName string, image string, client *turso.Client, location s
 				tbl.AddRow(id, text)
 			}
 		}
-		fmt.Printf("Great!! Where? We suggest %s, since you don't yet have coverage in %s\n", internal.Emph(suggestedLoc), internal.Emph(suggestedRegion))
+		fmt.Printf("Great!! Where? We suggest %s, since you don't yet have coverage in %s\n", internal.Emph(suggestedLoc), internal.Emph(suggestedLocationName))
 		tbl.Print()
 		fmt.Printf("\n%s ", internal.Emph("Your choice"))
 		var chosen string
@@ -138,12 +141,12 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		region := locationFlag
-		if region == "" {
-			region, _ = closestLocation(client)
+		locationId := locationFlag
+		if locationId == "" {
+			locationId, _ = closestLocation(client)
 		}
-		if !isValidLocation(client, region) {
-			return fmt.Errorf("location '%s' is not a valid one", region)
+		if !isValidLocation(client, locationId) {
+			return fmt.Errorf("location '%s' is not a valid one", locationId)
 		}
 
 		locations, err := locations(client)
@@ -170,14 +173,13 @@ var createCmd = &cobra.Command{
 		if fromFileFlag != "" {
 			dbText = fmt.Sprintf(" from file %s", internal.Emph(fromFileFlag))
 		}
-		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
+		locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
 
 		start := time.Now()
-		description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
+		description := fmt.Sprintf("Creating database %s%s in %s", internal.Emph(name), dbText, internal.Emph(locationText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
-
-		if _, err := client.Databases.Create(name, region, image, extensions); err != nil {
+		if _, err = client.Databases.Create(name, locationId, image, extensions); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
@@ -192,13 +194,22 @@ var createCmd = &cobra.Command{
 				return fmt.Errorf("could not create database %s: %w", name, err)
 			}
 
-			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(regionText))
+			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
 			spinner.Text(description)
 		}
+		var instance *turso.Instance
+		instance, err = client.Instances.Create(name, "", locationId, image)
 
-		instance, err := client.Instances.Create(name, "", region, image)
-		if err != nil {
-			return err
+		var createInstanceLocationError *turso.CreateInstanceLocationError
+		if errors.As(err, &createInstanceLocationError) {
+			spinner.Stop()
+			instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
+			if err != nil {
+				client.Databases.Delete(name)
+				return err
+			}
+			spinner = prompt.Spinner(description)
+			defer spinner.Stop()
 		}
 
 		if waitFlag || dbFile != nil {
@@ -211,7 +222,7 @@ var createCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(locationText), int(elapsed.Seconds()))
 
 		firstTime := config.RegisterUse("db_create")
 		isInteractive := isatty.IsTerminal(os.Stdin.Fd())
@@ -222,7 +233,7 @@ var createCmd = &cobra.Command{
 		}
 
 		if firstTime && isInteractive && isOnlyDatabase {
-			firstTimeHint(name, image, client, region, locations)
+			firstTimeHint(name, image, client, locationId, locations)
 		}
 
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
@@ -231,9 +242,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("   turso db show %s\n\n", name)
 		fmt.Printf("To get an authentication token for the database, run:\n\n")
 		fmt.Printf("   turso db tokens create %s\n\n", name)
-
-		config.InvalidateDatabasesCache()
-
+		invalidateDatabasesCache()
 		return nil
 	},
 }
@@ -278,4 +287,37 @@ func getDatabaseName(args []string) (string, error) {
 		return "", err
 	}
 	return codename.Generate(rng, 0), nil
+}
+
+func handleInstanceCreationError(client *turso.Client, name, locationId string, dbText string, image string) (*turso.Instance, string, error) {
+	fmt.Printf("We couldn't create your database at %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you.\n", internal.Emph(locationId))
+
+	location, _ := client.Locations.Get(locationId)
+
+	closestLocationCodes := make([]string, 0, len(location.Closest))
+	for _, location := range location.Closest {
+		code := location.Code
+		closestLocationCodes = append(closestLocationCodes, code)
+	}
+	promptSelect := promptui.Select{
+		HideHelp:     true,
+		Label:        "Select a location",
+		Items:        closestLocationCodes,
+		HideSelected: true,
+	}
+
+	_, locationId, err := promptSelect.Run()
+	if err != nil {
+		return nil, "", fmt.Errorf("prompt failed %v", err)
+	}
+
+	locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
+
+	description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
+	var instance *turso.Instance
+	if instance, err = client.Instances.Create(name, "", locationId, image); err != nil {
+		return nil, "", fmt.Errorf("we couldn't create your database. Please try again later")
+	}
+
+	return instance, description, nil
 }
