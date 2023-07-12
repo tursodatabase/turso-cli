@@ -200,7 +200,6 @@ func (d *DatabasesClient) Update(database string) error {
 }
 
 type Usage struct {
-	UUID             string `json:"uuid,omitempty"`
 	RowsRead         uint64 `json:"rows_read,omitempty"`
 	RowsWritten      uint64 `json:"rows_written,omitempty"`
 	StorageBytesUsed uint64 `json:"storage_bytes,omitempty"`
