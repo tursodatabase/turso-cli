@@ -16,6 +16,14 @@ type Instance struct {
 
 type InstancesClient client
 
+type CreateInstanceLocationError struct {
+	err string
+}
+
+func (e *CreateInstanceLocationError) Error() string {
+	return e.err
+}
+
 func (i *InstancesClient) List(db string) ([]Instance, error) {
 	r, err := i.client.Get(i.URL(db, ""), nil)
 	if err != nil {
@@ -94,7 +102,7 @@ func (d *InstancesClient) Create(dbName, instanceName, region, image string) (*I
 	}
 
 	if res.StatusCode >= http.StatusInternalServerError {
-		return nil, &CreateInstanceLocationError{fmt.Sprintf("failed to create database: %s", res.Status)}
+		return nil, &CreateInstanceLocationError{fmt.Sprintf("failed to create new instance: %s", res.Status)}
 	}
 
 	if res.StatusCode != http.StatusOK {

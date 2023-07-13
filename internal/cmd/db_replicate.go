@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -8,6 +9,8 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/manifoldco/promptui"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
@@ -83,17 +86,17 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 
-		var region string
+		var locationId string
 		if len(args) > 1 {
-			region = args[1]
+			locationId = args[1]
 		} else {
 			locations, err := locations(client)
 			if err != nil {
 				return err
 			}
-			region = pickLocation(dbName, locations, database.Regions)
+			locationId = pickLocation(dbName, locations, database.Regions)
 		}
-		if region == "" {
+		if locationId == "" {
 			return fmt.Errorf("you must specify a database location ID to replicate it")
 		}
 		cmd.SilenceUsage = true
@@ -102,7 +105,7 @@ var replicateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if !isValidLocation(client, region) {
+		if !isValidLocation(client, locationId) {
 			return fmt.Errorf("invalid location ID. Run %s to see a list of valid location IDs", internal.Emph("turso db locations"))
 		}
 
@@ -116,18 +119,29 @@ var replicateCmd = &cobra.Command{
 			instanceName = args[2]
 		}
 
-		regionText := fmt.Sprintf("%s (%s)", locationDescription(client, region), region)
-		s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(regionText)))
+		locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
+		description := fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(locationText))
+		s := prompt.Spinner(description)
 		defer s.Stop()
 
 		start := time.Now()
-		instance, err := client.Instances.Create(dbName, instanceName, region, image)
+		instance, err := client.Instances.Create(dbName, instanceName, locationId, image)
+		var createInstanceLocationError *turso.CreateInstanceLocationError
+		if errors.As(err, &createInstanceLocationError) {
+			s.Stop()
+			instance, description, err = handleDatabaseReplicationError(client, dbName, locationId, image)
+			if err != nil {
+				return err
+			}
+			s = prompt.Spinner(description)
+			defer s.Stop()
+		}
 		if err != nil {
-			return fmt.Errorf("failed to create database: %s", err)
+			return fmt.Errorf("failed to replicate database: %s", err)
 		}
 
 		if waitFlag {
-			description := fmt.Sprintf("Waiting for replica of %s in %s to be ready", internal.Emph(dbName), internal.Emph(regionText))
+			description := fmt.Sprintf("Waiting for replica of %s in %s to be ready", internal.Emph(dbName), internal.Emph(locationText))
 			s.Text(description)
 			if err = client.Instances.Wait(dbName, instance.Name); err != nil {
 				return err
@@ -137,7 +151,7 @@ var replicateCmd = &cobra.Command{
 		s.Stop()
 		end := time.Now()
 		elapsed := end.Sub(start)
-		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(regionText), int(elapsed.Seconds()))
+		fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(locationText), int(elapsed.Seconds()))
 
 		showCmd := fmt.Sprintf("turso db show %s", dbName)
 		urlCmd := fmt.Sprintf("turso db show %s --instance-url %s", dbName, instance.Name)
@@ -153,4 +167,36 @@ var replicateCmd = &cobra.Command{
 		invalidateDatabasesCache()
 		return nil
 	},
+}
+
+func handleDatabaseReplicationError(client *turso.Client, name, locationId string, image string) (*turso.Instance, string, error) {
+	fmt.Printf("We couldn't replicate your database at location %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you.\n", internal.Emph(locationId))
+
+	location, _ := client.Locations.Get(locationId)
+
+	closestLocationCodes := make([]string, 0, len(location.Closest))
+	for _, location := range location.Closest {
+		code := location.Code
+		closestLocationCodes = append(closestLocationCodes, code)
+	}
+	promptSelect := promptui.Select{
+		HideHelp:     true,
+		Label:        "Select a location",
+		Items:        closestLocationCodes,
+		HideSelected: true,
+	}
+
+	_, locationId, err := promptSelect.Run()
+	if err != nil {
+		return nil, "", fmt.Errorf("prompt failed %v", err)
+	}
+
+	var instance *turso.Instance
+	if instance, err = client.Instances.Create(name, "", locationId, image); err != nil {
+		return nil, "", fmt.Errorf("we couldn't replicate your database. Please try again later")
+	}
+
+	locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
+	description := fmt.Sprintf("Replicating database %s to %s ", internal.Emph(name), internal.Emph(locationText))
+	return instance, description, nil
 }
