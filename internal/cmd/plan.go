@@ -41,7 +41,7 @@ var planShowCmd = &cobra.Command{
 			return err
 		}
 
-		plan, usage, plans, err := orgPlanData(client)
+		plan, orgUsage, plans, err := orgPlanData(client)
 		if err != nil {
 			return err
 		}
@@ -65,11 +65,11 @@ var planShowCmd = &cobra.Command{
 		columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
 		tbl.WithFirstColumnFormatter(columnFmt)
 
-		addResourceRowBytes(tbl, "storage", usage.Total.StorageBytesUsed, current.Quotas.Storage)
-		addResourceRowMillions(tbl, "rows read", usage.Total.RowsRead, current.Quotas.RowsRead)
-		addResourceRowMillions(tbl, "rows written", usage.Total.RowsWritten, current.Quotas.RowsWritten)
-		addResourceRowCount(tbl, "databases", usage.Total.Databases, current.Quotas.Databases)
-		addResourceRowCount(tbl, "locations", usage.Total.Locations, current.Quotas.Locations)
+		addResourceRowBytes(tbl, "storage", orgUsage.Usage.StorageBytesUsed, current.Quotas.Storage)
+		addResourceRowMillions(tbl, "rows read", orgUsage.Usage.RowsRead, current.Quotas.RowsRead)
+		addResourceRowMillions(tbl, "rows written", orgUsage.Usage.RowsWritten, current.Quotas.RowsWritten)
+		addResourceRowCount(tbl, "databases", orgUsage.Usage.Databases, current.Quotas.Databases)
+		addResourceRowCount(tbl, "locations", orgUsage.Usage.Locations, current.Quotas.Locations)
 		tbl.Print()
 		fmt.Printf("\nQuota will reset on %s\n", getFirstDayOfNextMonth().Local().Format(time.RFC1123))
 		return nil

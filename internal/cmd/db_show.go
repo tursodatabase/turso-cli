@@ -46,7 +46,7 @@ var showCmd = &cobra.Command{
 			return nil
 		}
 
-		instances, usages, err := instancesAndUsage(client, db.Name)
+		instances, dbUsage, err := instancesAndUsage(client, db.Name)
 		if err != nil {
 			return fmt.Errorf("could not get instances of database %s: %w", db.Name, err)
 		}
@@ -84,7 +84,7 @@ var showCmd = &cobra.Command{
 		fmt.Println("URL:           ", getDatabaseUrl(&db))
 		fmt.Println("ID:            ", db.ID)
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
-		fmt.Println("Size:          ", humanize.Bytes(usages.Total.StorageBytesUsed))
+		fmt.Println("Size:          ", humanize.Bytes(dbUsage.Usage.StorageBytesUsed))
 		fmt.Println()
 
 		if len(instances) == 0 {
