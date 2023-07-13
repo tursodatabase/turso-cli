@@ -170,7 +170,7 @@ var replicateCmd = &cobra.Command{
 }
 
 func handleDatabaseReplicationError(client *turso.Client, name, locationId string, image string) (*turso.Instance, string, error) {
-	fmt.Printf("We couldn't replicate your database at location %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you.\n", internal.Emph(locationId))
+	fmt.Printf("We couldn't replicate your database to location %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you.\n", internal.Emph(locationId))
 
 	location, _ := client.Locations.Get(locationId)
 
