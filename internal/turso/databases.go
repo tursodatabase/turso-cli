@@ -1,6 +1,8 @@
 package turso
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -194,6 +196,34 @@ func (d *DatabasesClient) Update(database string) error {
 	if r.StatusCode != http.StatusOK {
 		err, _ := unmarshal[string](r)
 		return fmt.Errorf("failed to update database: %d %s", r.StatusCode, err)
+	}
+
+	return nil
+}
+
+type Body struct {
+	Org string `json:"org"`
+}
+
+func (d *DatabasesClient) Transfer(database, org string) error {
+	url := d.URL(fmt.Sprintf("/%s/transfer", database))
+	body, err := json.Marshal(Body{Org: org})
+	bodyReader := bytes.NewReader(body)
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+	r, err := d.client.Post(url, bodyReader)
+	if err != nil {
+		return fmt.Errorf("failed to transfer database")
+	}
+	defer r.Body.Close()
+	if r.StatusCode == http.StatusForbidden {
+		err = parseResponseError(r)
+		return fmt.Errorf("%v", err)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to transfer database to org %s", org)
 	}
 
 	return nil

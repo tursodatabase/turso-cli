@@ -257,6 +257,18 @@ func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
 }
 
+func dbNameAndOrgArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClientFromAccessToken(false)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+	if len(args) == 1 {
+		orgs, _ := client.Organizations.List()
+		return extractOrgNames(orgs), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+	return dbNameArg(cmd, args, toComplete)
+}
+
 func isSQLiteFile(file *os.File) (bool, error) {
 	defer file.Seek(0, io.SeekStart)
 	header := make([]byte, 16)

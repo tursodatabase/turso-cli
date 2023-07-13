@@ -205,6 +205,14 @@ func isCurrentOrg(org turso.Organization, currentSlug string) bool {
 	return org.Slug == currentSlug
 }
 
+func extractOrgNames(orgs []turso.Organization) []string {
+	names := make([]string, 0)
+	for _, org := range orgs {
+		names = append(names, org.Name)
+	}
+	return names
+}
+
 func formatCurrent(org turso.Organization) turso.Organization {
 	org.Name = internal.Emph(org.Name)
 	org.Slug = fmt.Sprintf("%s (current)", internal.Emph(org.Slug))
