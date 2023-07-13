@@ -113,7 +113,7 @@ func dumpRequest(req *http.Request) {
 func dumpResponse(req *http.Response) {
 	dump, err := httputil.DumpResponse(req, true)
 	if err != nil {
-		fmt.Printf("Failed to dump the HTTP request, you can either remove the debug flag or ignore this error: %s", err.Error())
+		fmt.Printf("Failed to dump the HTTP response, you can either remove the debug flag or ignore this error: %s", err.Error())
 		return
 	}
 	fmt.Println(string(dump))
