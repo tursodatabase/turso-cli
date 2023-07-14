@@ -59,8 +59,14 @@ jobs:
       run: go test -v ./...
 
     - name: Build Turso binary
-      run:  go build -o turso cmd/turso/main.go && cp turso cmd/turso
-
+      run:  go build -o turso cmd/turso/main.go
+    - name: Integration tests checkout
+      uses: actions/checkout@v3
+      with:
+        repository: chiselstrike/tursotest
+        ref: 'main'
+        path: 'tests'
+        token: ${{ secrets.ACCESS_TOKEN_TO_TESTS }}
     - name: Integration Test
-      run:  go test -v -count=1 -tags=integration ./testing
+      run:  cd tests && export TURSO_BINARY=../cli/turso && go run cmd/tursotest/main.go -test.v -test.count=1 run integrationtests
 
