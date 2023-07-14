@@ -8,6 +8,7 @@ import (
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
@@ -41,14 +42,22 @@ var planShowCmd = &cobra.Command{
 			return err
 		}
 
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return fmt.Errorf("could not retrieve local config: %w", err)
+		}
+
 		plan, orgUsage, plans, err := orgPlanData(client)
 		if err != nil {
 			return err
 		}
-
-		if client.Org != "" {
-			fmt.Printf("Organization: %s\n", internal.Emph(client.Org))
+		var organizationName string
+		if organizationName = client.Org; organizationName == "" {
+			organizationName = settings.GetUsername()
 		}
+
+		fmt.Printf("Organization: %s\n", internal.Emph(organizationName))
+
 		fmt.Printf("Plan: %s\n", internal.Emph(plan))
 		fmt.Println()
 
