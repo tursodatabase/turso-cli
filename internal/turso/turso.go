@@ -87,16 +87,14 @@ func (t *Client) do(method, path string, body io.Reader) (*http.Response, error)
 	if err != nil {
 		return nil, err
 	}
-	if flags.Debug() {
-		dumpRequest(req)
-	}
-
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	if flags.Debug() {
+		dumpRequest(req)
 		dumpResponse(resp)
+		fmt.Println()
 	}
 	return resp, nil
 }
