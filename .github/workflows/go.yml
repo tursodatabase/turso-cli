@@ -68,5 +68,5 @@ jobs:
         path: 'tests'
         token: ${{ secrets.ACCESS_TOKEN_TO_TESTS }}
     - name: Integration Test
-      run:  cd tests && export TURSO_BINARY=../cli/turso && go run cmd/tursotest/main.go -test.v -test.count=1 run integrationtests
+      run:  cd tests && export TURSO_BINARY=../turso && go run cmd/tursotest/main.go -test.v -test.count=1 run integrationtests
 
