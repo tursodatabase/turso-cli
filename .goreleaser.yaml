@@ -55,7 +55,7 @@ brews:
   - name: turso
     homepage: https://github.com/tursodatabase/homebrew-tap
     tap:
-      owner: chiselstrike
+      owner: tursodatabase
       name: homebrew-tap
     install: |
       bin.install "turso"
