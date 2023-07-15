@@ -28,6 +28,14 @@ jobs:
           args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_TO_TAP }}
+      - name: Run GoReleaser to legacy tap
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --config .goreleaser-legacy-tap.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_TO_LEGACY_TAP }}
       - name: Get version
         id: get_version
         run: echo ::set-output name=VERSION::$(echo "{ \"Version\":\"$GITHUB_REF_NAME\"}")
