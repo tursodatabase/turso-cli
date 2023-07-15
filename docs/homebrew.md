@@ -15,7 +15,7 @@ git push --tags
 Turso Homebrew Tap is stored in [homebrew-tap](https://github.com/tursodatabase/homebrew-tap) repository.
 
 There's a `ACCESS_TOKEN_TO_TAP` GitHub personal access token that has read/write access to Content and Actions homebrew-tap repositories.
-It will expire on 17th JAN 2024.
+It will expire on Jul 15 2024.
 It is used by GitHub Actions in turso-cli repository to give them access to both turso-cli and homebrew-tap repositories.
 
 [GoReleaser](https://github.com/goreleaser/goreleaser) is used to package everything up.
