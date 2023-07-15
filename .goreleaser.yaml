@@ -21,7 +21,7 @@ builds:
 
 release:
   github:
-    owner: chiselstrike
+    owner: tursodatabase
     name: homebrew-tap
 
 archives:
