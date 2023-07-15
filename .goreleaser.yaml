@@ -21,7 +21,7 @@ builds:
 
 release:
   github:
-    owner: chiselstrike
+    owner: tursodatabase
     name: homebrew-tap
 
 archives:
@@ -53,9 +53,9 @@ changelog:
 
 brews:
   - name: turso
-    homepage: https://github.com/chiselstrike/homebrew-tap
+    homepage: https://github.com/tursodatabase/homebrew-tap
     tap:
-      owner: chiselstrike
+      owner: tursodatabase
       name: homebrew-tap
     install: |
       bin.install "turso"
