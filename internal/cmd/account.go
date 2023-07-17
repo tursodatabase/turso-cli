@@ -5,8 +5,8 @@ import (
 )
 
 var accountCmd = &cobra.Command{
-	Use:   "account",
-	Short: "Manage your account plan and billing",
+	Use:   "contact",
+	Short: "Reach out for help or feedback for the makers of Turso",
 }
 
 func init() {
