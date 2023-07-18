@@ -6,7 +6,7 @@ import (
 
 var accountCmd = &cobra.Command{
 	Use:   "contact",
-	Short: "Reach out for help or feedback for the makers of Turso",
+	Short: "Reach out to the makers of Turso for help or feedback",
 }
 
 func init() {
