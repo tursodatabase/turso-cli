@@ -56,6 +56,10 @@ func (c *OrganizationsClient) Create(name string) (Organization, error) {
 		return Organization{}, fmt.Errorf("failed to create organization %s: name already exists", internal.Emph(name))
 	}
 
+	if r.StatusCode == http.StatusPaymentRequired {
+		return Organization{}, fmt.Errorf("failed to create organization %s: you need to upgrade your plan", internal.Emph(name))
+	}
+
 	if r.StatusCode != http.StatusOK {
 		return Organization{}, fmt.Errorf("failed to create organization: %s", r.Status)
 	}

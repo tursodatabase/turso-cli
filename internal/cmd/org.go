@@ -129,13 +129,31 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
+		plans, current, hasPaymentMethod, err := GetSelectPlanInfo(client)
+		if err != nil {
+			return fmt.Errorf("failed to get plans: %w", err)
+		}
+
 		org, err := client.Organizations.Create(name)
 		if err != nil {
 			return err
 		}
 
+		if !hasPaymentMethod {
+			fmt.Printf("Organizations are only supported in the %s or %s plan\n", internal.Emph("scaler"), internal.Emph("enterprise"))
+			fmt.Println("You can still create an organization without a paid plan and invite members to collaborate, but you won't be able to create databases in it.")
+		}
+
 		fmt.Printf("Created organization %s.\n", internal.Emph(org.Name))
-		return switchToOrg(client, org.Name)
+		switchToOrg(client, org.Name)
+		plans, current, hasPaymentMethod, err = GetSelectPlanInfo(client)
+		if !hasPaymentMethod || current == "" {
+			err = ChangePlan(client, plans, current, hasPaymentMethod, "scaler")
+			if err != nil {
+				return err
+			}
+		}
+		return err
 	},
 }
 

@@ -115,7 +115,7 @@ var planSelectCmd = &cobra.Command{
 			return err
 		}
 
-		plans, current, hasPaymentMethod, err := getSelectPlanInfo(client)
+		plans, current, hasPaymentMethod, err := GetSelectPlanInfo(client)
 		if err != nil {
 			return fmt.Errorf("failed to get plans: %w", err)
 		}
@@ -125,7 +125,7 @@ var planSelectCmd = &cobra.Command{
 			return err
 		}
 
-		return changePlan(client, plans, current, hasPaymentMethod, selected)
+		return ChangePlan(client, plans, current, hasPaymentMethod, selected)
 	},
 }
 
@@ -139,7 +139,7 @@ var planUpgradeCmd = &cobra.Command{
 			return err
 		}
 
-		plans, current, hasPaymentMethod, err := getSelectPlanInfo(client)
+		plans, current, hasPaymentMethod, err := GetSelectPlanInfo(client)
 		if err != nil {
 			return fmt.Errorf("failed to get plans: %w", err)
 		}
@@ -152,11 +152,11 @@ var planUpgradeCmd = &cobra.Command{
 			return nil
 		}
 
-		return changePlan(client, plans, current, hasPaymentMethod, "scaler")
+		return ChangePlan(client, plans, current, hasPaymentMethod, "scaler")
 	},
 }
 
-func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected string) error {
+func ChangePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected string) error {
 	if selected == current {
 		fmt.Println("You're all set! No changes are needed.")
 		return nil
@@ -164,7 +164,7 @@ func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 
 	upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
 	if !hasPaymentMethod && upgrade {
-		ok, err := paymentMethodHelper(client, selected)
+		ok, err := PaymentMethodHelper(client, selected)
 		if err != nil {
 			return fmt.Errorf("failed to check payment method: %w", err)
 		}
@@ -205,7 +205,7 @@ func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 	return nil
 }
 
-func paymentMethodHelper(client *turso.Client, selected string) (bool, error) {
+func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	fmt.Printf("You need to add a payment method before you can upgrade to the %s plan.\n", internal.Emph(selected))
 	printPricingInfoDisclaimer()
 
@@ -243,7 +243,7 @@ func paymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	}
 }
 
-func getSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string, hasPaymentMethod bool, err error) {
+func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string, hasPaymentMethod bool, err error) {
 	g := errgroup.Group{}
 	g.Go(func() (err error) {
 		plans, err = client.Plans.List()
