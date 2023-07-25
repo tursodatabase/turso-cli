@@ -215,8 +215,12 @@ var createCmd = &cobra.Command{
 		if waitFlag || dbFile != nil {
 			description = fmt.Sprintf("Waiting for database %s to be ready", internal.Emph(name))
 			spinner.Text(description)
-			if err = client.Instances.Wait(name, instance.Name); err != nil {
-				return err
+			numberOfRetries := 0
+			for numberOfRetries < 5 {
+				if err = client.Instances.Wait(name, instance.Name); err == nil {
+					break
+				}
+				numberOfRetries++
 			}
 		}
 
