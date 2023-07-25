@@ -222,6 +222,9 @@ var createCmd = &cobra.Command{
 				}
 				numberOfRetries++
 			}
+			if err != nil {
+				return err
+			}
 		}
 
 		spinner.Stop()
