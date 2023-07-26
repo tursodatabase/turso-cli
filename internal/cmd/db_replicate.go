@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -125,8 +126,8 @@ var replicateCmd = &cobra.Command{
 
 		start := time.Now()
 		instance, err := client.Instances.Create(dbName, instanceName, locationId, image)
-		// var createInstanceLocationError *turso.CreateInstanceLocationError
-		if true {
+		var createInstanceLocationError *turso.CreateInstanceLocationError
+		if errors.As(err, &createInstanceLocationError) {
 			s.Stop()
 			instance, description, err = handleDatabaseReplicationError(client, dbName, locationId, image)
 			if err != nil {
