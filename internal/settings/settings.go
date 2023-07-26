@@ -79,6 +79,12 @@ func PersistChanges() {
 	}
 }
 
+func (s *Settings) PersistChanges() {
+	if settings != nil && settings.changed {
+		viper.WriteConfig()
+	}
+}
+
 func (s *Settings) RegisterUse(cmd string) bool {
 	commands := viper.GetStringMap("usedCommands")
 	firstTime := true

@@ -318,6 +318,21 @@ func billingPortal(client *turso.Client) error {
 	return nil
 }
 
+func BillingPortalForStripeId(client *turso.Client, stripeCustomerId string) error {
+	portal, err := client.Billing.PortalForStripeId(stripeCustomerId)
+	if err != nil {
+		return err
+	}
+
+	msg := "Opening your browser at:"
+	if err := browser.OpenURL(portal.URL); err != nil {
+		msg = "Access the following URL to manage your payment methods:"
+	}
+	fmt.Println(msg)
+	fmt.Println(portal.URL)
+	return nil
+}
+
 func printPricingInfoDisclaimer() {
 	fmt.Printf("For information about Turso plans pricing and features, access: %s\n\n", internal.Emph("https://turso.tech/pricing"))
 }

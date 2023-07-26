@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
@@ -59,7 +61,7 @@ func switchToOrg(client *turso.Client, slug string) error {
 	}
 
 	settings.SetOrganization(slug)
-
+	settings.PersistChanges()
 	fmt.Printf("Current organization set to %s.\n", internal.Emph(org.Slug))
 	fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))
 	fmt.Printf("To switch back to your previous organization:\n\n\t%s\n", internal.Emph(prev))
@@ -129,31 +131,68 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
-		plans, current, hasPaymentMethod, err := GetSelectPlanInfo(client)
+		fmt.Printf("Organizations are only supported in paid plans\n")
+		ok, err := promptConfirmation("do you want to add a payment method now?")
 		if err != nil {
-			return fmt.Errorf("failed to get plans: %w", err)
+			return fmt.Errorf("could not get prompt confirmed: %w", err)
+		}
+		if !ok {
+			fmt.Println("organization creation aborted")
+			return nil
 		}
 
-		org, err := client.Organizations.Create(name)
+		stripeCustomerId, err := client.Billing.CreateStripeCustomer(name)
+		if err != nil {
+			return fmt.Errorf("failed to create customer: %w", err)
+		}
+		err = BillingPortalForStripeId(client, stripeCustomerId)
+		if err != nil {
+			return fmt.Errorf("failed to open billing portal: %w", err)
+		}
+
+		spinner := prompt.Spinner("Waiting for you to add a payment method")
+		defer spinner.Stop()
+		var hasPaymentMethod bool
+		errsInARoW := 0
+		for {
+			hasPaymentMethod, err = client.Billing.HasPaymentMethodWithStripeId(stripeCustomerId)
+			if err != nil {
+				errsInARoW += 1
+			}
+			if errsInARoW > 5 {
+				return err
+			}
+			if err == nil {
+				errsInARoW = 0
+			}
+			if hasPaymentMethod {
+				spinner.Stop()
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+		fmt.Println("Payment method added successfully")
+		ok, err = promptConfirmation(fmt.Sprintf("do you want to upgrade the organization %s to the scaler plan?", name))
+		if err != nil {
+			return fmt.Errorf("could not get prompt confirmed: %w", err)
+		}
+		if !ok {
+			fmt.Println("organization creation aborted")
+			return nil
+		}
+		org, err := client.Organizations.Create(name, stripeCustomerId)
 		if err != nil {
 			return err
 		}
 
-		if !hasPaymentMethod {
-			fmt.Printf("Organizations are only supported in the %s or %s plan\n", internal.Emph("scaler"), internal.Emph("enterprise"))
-			fmt.Println("You can still create an organization without a paid plan and invite members to collaborate, but you won't be able to create databases in it.")
-		}
-
 		fmt.Printf("Created organization %s.\n", internal.Emph(org.Name))
 		switchToOrg(client, org.Name)
-		plans, current, hasPaymentMethod, err = GetSelectPlanInfo(client)
-		if !hasPaymentMethod || current == "" {
-			err = ChangePlan(client, plans, current, hasPaymentMethod, "scaler")
-			if err != nil {
-				return err
-			}
+		client, err = createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
 		}
-		return err
+
+		return client.Subscriptions.Set("scaler")
 	},
 }
 

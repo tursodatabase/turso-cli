@@ -11,9 +11,10 @@ import (
 type OrganizationsClient client
 
 type Organization struct {
-	Name string `json:"name,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Type string `json:"type,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Slug     string `json:"slug,omitempty"`
+	Type     string `json:"type,omitempty"`
+	StripeID string `json:"stripe_id,omitempty"`
 }
 
 func (c *OrganizationsClient) List() ([]Organization, error) {
@@ -40,8 +41,8 @@ func (c *OrganizationsClient) List() ([]Organization, error) {
 	return data.Orgs, nil
 }
 
-func (c *OrganizationsClient) Create(name string) (Organization, error) {
-	body, err := marshal(Organization{Name: name})
+func (c *OrganizationsClient) Create(name string, stripeId string) (Organization, error) {
+	body, err := marshal(Organization{Name: name, StripeID: stripeId})
 	if err != nil {
 		return Organization{}, fmt.Errorf("failed to marshall create org request body: %s", err)
 	}
