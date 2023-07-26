@@ -46,7 +46,7 @@ var devCmd = &cobra.Command{
 		}
 
 		addr := fmt.Sprintf("0.0.0.0:%d", devPort)
-		conn := fmt.Sprintf("ws://127.0.0.1:%d", devPort)
+		conn := fmt.Sprintf("http://127.0.0.1:%d", devPort)
 
 		sqld := exec.Command("sqld", "--no-welcome", "--http-listen-addr", addr, "-d", tempDir)
 		sqld.Env = append(os.Environ(), "RUST_LOG=error")
@@ -63,13 +63,16 @@ var devCmd = &cobra.Command{
 				internal.Emph("sqld"))
 			return err
 		}
-		fmt.Printf("%s sqld listening on port %s. Use this URL to configure your libSQL client SDK for local development: %s\n\n",
-			internal.Emph("→  "), internal.Emph(devPort), internal.Emph(conn))
+		fmt.Printf("sqld listening on port %s.\n", internal.Emph(devPort))
+
+		fmt.Printf("Use the following URL to configure your libSQL client SDK for local development:\n\n    %s\n\n",
+			internal.Emph(conn))
+		fmt.Printf("No auth token is required when sqld is running locally.\n\n")
 
 		if devFile != "" {
 			fmt.Printf("Using database file %s.\n", internal.Emph(devFile))
 		} else {
-			fmt.Printf("This server is using an ephemeral database. Changes will be lost when this server stops. If you want to persist changes, use %s to specify a SQLite database file instead.\n", internal.Emph("--db-file"))
+			fmt.Printf("This server is using an ephemeral database. Changes will be lost when this server stops.\nIf you want to persist changes, use %s to specify a SQLite database file instead.\n", internal.Emph("--db-file"))
 		}
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
