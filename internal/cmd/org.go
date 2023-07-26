@@ -172,7 +172,7 @@ var orgCreateCmd = &cobra.Command{
 			time.Sleep(1 * time.Second)
 		}
 		fmt.Println("Payment method added successfully")
-		ok, err = promptConfirmation(fmt.Sprintf("do you want to upgrade the organization %s to the scaler plan?", name))
+		ok, err = promptConfirmation(fmt.Sprintf("do you want to upgrade the organization %s to the %s plan?", name, internal.Emph("scaler")))
 		if err != nil {
 			return fmt.Errorf("could not get prompt confirmed: %w", err)
 		}
@@ -192,7 +192,7 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 		if err = client.Subscriptions.Set("scaler"); err == nil {
-			fmt.Printf("Upgraded organization %s to the scaler plan.\n", internal.Emph(org.Name))
+			fmt.Printf("Upgraded organization %s to the %s plan.\n", internal.Emph(org.Name), internal.Emph("scaler"))
 		}
 
 		return err
