@@ -72,9 +72,6 @@ func (c *SubscriptionClient) Set(plan string) error {
 		return fmt.Errorf("could not serialize request body: %w", err)
 	}
 
-	fmt.Println(string(plan))
-	fmt.Println(prefix + "/subscription")
-
 	r, err := c.client.Post(prefix+"/subscription", body)
 	if err != nil {
 		return fmt.Errorf("failed to set organization plan: %w", err)
