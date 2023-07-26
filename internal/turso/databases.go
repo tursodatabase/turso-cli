@@ -214,7 +214,7 @@ func (d *DatabasesClient) Transfer(database, org string) error {
 	}
 	r, err := d.client.Post(url, bodyReader)
 	if err != nil {
-		return fmt.Errorf("failed to transfer database %s", err.Error())
+		return fmt.Errorf("failed to transfer database")
 	}
 	defer r.Body.Close()
 	if r.StatusCode == http.StatusForbidden {
@@ -223,7 +223,7 @@ func (d *DatabasesClient) Transfer(database, org string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to transfer database")
+		return fmt.Errorf("failed to transfer database to org %s", org)
 	}
 
 	return nil
