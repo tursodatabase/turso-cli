@@ -189,11 +189,14 @@ var orgCreateCmd = &cobra.Command{
 		switchToOrg(client, org.Name)
 		client, err = createTursoClientFromAccessToken(true)
 		if err != nil {
+			client.Organizations.Delete(org.Slug)
 			return err
 		}
-		if err = client.Subscriptions.Set("scaler"); err == nil {
-			fmt.Printf("Upgraded organization %s to the %s plan.\n", internal.Emph(org.Name), internal.Emph("scaler"))
+		if err = client.Subscriptions.Set("scaler"); err != nil {
+			client.Organizations.Delete(org.Slug)
+			return err
 		}
+		fmt.Printf("Upgraded organization %s to the %s plan.\n", internal.Emph(org.Name), internal.Emph("scaler"))
 
 		return err
 	},
