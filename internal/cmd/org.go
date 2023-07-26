@@ -191,8 +191,11 @@ var orgCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if err = client.Subscriptions.Set("scaler"); err == nil {
+			fmt.Printf("Upgraded organization %s to the scaler plan.\n", internal.Emph(org.Name))
+		}
 
-		return client.Subscriptions.Set("scaler")
+		return err
 	},
 }
 
