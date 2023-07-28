@@ -119,14 +119,33 @@ var planSelectCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to get plans: %w", err)
 		}
-
-		selected, err := promptPlanSelection(plans, current)
+		selectabledPlans, err := getSelectabledPlans(plans)
+		if err != nil {
+			return err
+		}
+		selected, err := promptPlanSelection(selectabledPlans, current)
 		if err != nil {
 			return err
 		}
 
 		return changePlan(client, plans, current, hasPaymentMethod, selected)
 	},
+}
+
+func getSelectabledPlans(plans []turso.Plan) ([]turso.Plan, error) {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return plans, err
+	}
+
+	org := settings.Organization()
+	var plansToSelect []turso.Plan
+	for _, plan := range plans {
+		if plan.Name != "starter" || org == "" {
+			plansToSelect = append(plansToSelect, plan)
+		}
+	}
+	return plansToSelect, nil
 }
 
 var planUpgradeCmd = &cobra.Command{
