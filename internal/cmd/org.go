@@ -172,6 +172,7 @@ var orgCreateCmd = &cobra.Command{
 			client.Organizations.Delete(org.Slug)
 			return err
 		}
+		fmt.Println()
 
 		return err
 	},
