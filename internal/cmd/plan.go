@@ -243,6 +243,44 @@ func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	}
 }
 
+func PaymentMethodHelperWithStripeId(client *turso.Client, selected, stripeId string) (bool, error) {
+	fmt.Printf("You need to add a payment method before you can upgrade to the %s plan.\n", internal.Emph(selected))
+	printPricingInfoDisclaimer()
+
+	ok, _ := promptConfirmation("Want to add a payment method right now?")
+	if !ok {
+		fmt.Printf("When you're ready, you can use %s to manage your payment methods.\n", internal.Emph("turso org billing"))
+		return false, nil
+	}
+
+	fmt.Println()
+	if err := BillingPortalForStripeId(client, stripeId); err != nil {
+		return false, err
+	}
+	fmt.Println()
+
+	spinner := prompt.Spinner("Waiting for you to add a payment method")
+	defer spinner.Stop()
+
+	errsInARoW := 0
+	for {
+		hasPaymentMethod, err := client.Billing.HasPaymentMethodWithStripeId(stripeId)
+		if err != nil {
+			errsInARoW += 1
+		}
+		if errsInARoW > 5 {
+			return false, err
+		}
+		if err == nil {
+			errsInARoW = 0
+		}
+		if hasPaymentMethod {
+			return true, nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string, hasPaymentMethod bool, err error) {
 	g := errgroup.Group{}
 	g.Go(func() (err error) {

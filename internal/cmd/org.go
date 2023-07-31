@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
@@ -131,48 +129,26 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Organizations are only supported in paid plans\n")
-		ok, err := promptConfirmation("do you want to add a payment method now?")
+		fmt.Printf("Organizations are only supported in paid plans.\n\n")
+
+		stripeCustomerId, err := client.Billing.CreateStripeCustomer(name)
+
 		if err != nil {
-			return fmt.Errorf("could not get prompt confirmed: %w", err)
+			return fmt.Errorf("failed to create customer: %w", err)
+		}
+		ok, err := PaymentMethodHelperWithStripeId(client, "scaler", stripeCustomerId)
+
+		if err != nil {
+			return fmt.Errorf("failed to add payment method: %w", err)
 		}
 		if !ok {
 			fmt.Println("organization creation aborted")
 			return nil
 		}
+		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
+		fmt.Printf("You're creating organization %s on the %s plan.\n", internal.Emph(name), internal.Emph("scaler"))
 
-		stripeCustomerId, err := client.Billing.CreateStripeCustomer(name)
-		if err != nil {
-			return fmt.Errorf("failed to create customer: %w", err)
-		}
-		err = BillingPortalForStripeId(client, stripeCustomerId)
-		if err != nil {
-			return fmt.Errorf("failed to open billing portal: %w", err)
-		}
-
-		spinner := prompt.Spinner("Waiting for you to add a payment method")
-		defer spinner.Stop()
-		var hasPaymentMethod bool
-		errsInARoW := 0
-		for {
-			hasPaymentMethod, err = client.Billing.HasPaymentMethodWithStripeId(stripeCustomerId)
-			if err != nil {
-				errsInARoW += 1
-			}
-			if errsInARoW > 5 {
-				return err
-			}
-			if err == nil {
-				errsInARoW = 0
-			}
-			if hasPaymentMethod {
-				spinner.Stop()
-				break
-			}
-			time.Sleep(1 * time.Second)
-		}
-		fmt.Println("Payment method added successfully")
-		ok, err = promptConfirmation(fmt.Sprintf("do you want to upgrade the organization %s to the %s plan?", name, internal.Emph("scaler")))
+		ok, err = promptConfirmation(fmt.Sprintf("do you want to continue?"))
 		if err != nil {
 			return fmt.Errorf("could not get prompt confirmed: %w", err)
 		}
@@ -196,7 +172,6 @@ var orgCreateCmd = &cobra.Command{
 			client.Organizations.Delete(org.Slug)
 			return err
 		}
-		fmt.Printf("Upgraded organization %s to the %s plan.\n", internal.Emph(org.Name), internal.Emph("scaler"))
 
 		return err
 	},
