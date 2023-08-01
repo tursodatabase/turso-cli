@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var adminFlag bool
+
 func init() {
 	rootCmd.AddCommand(orgCmd)
 	orgCmd.AddCommand(orgListCmd)
@@ -20,6 +22,7 @@ func init() {
 	membersCmd.AddCommand(membersAddCmd)
 	membersCmd.AddCommand(membersRemoveCmd)
 	orgCmd.AddCommand(orgBillingCmd)
+	membersAddCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Add the user as an admin")
 }
 
 func switchToOrg(client *turso.Client, slug string) error {
@@ -319,7 +322,13 @@ var membersAddCmd = &cobra.Command{
 			return err
 		}
 
-		if err := client.Organizations.AddMember(username); err != nil {
+		role := "member"
+
+		if adminFlag {
+			role = "admin"
+		}
+
+		if err := client.Organizations.AddMember(username, role); err != nil {
 			return err
 		}
 
