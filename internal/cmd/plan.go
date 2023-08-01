@@ -243,8 +243,8 @@ func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	}
 }
 
-func PaymentMethodHelperWithStripeId(client *turso.Client, selected, stripeId string) (bool, error) {
-	fmt.Printf("You need to add a payment method before you can upgrade to the %s plan.\n", internal.Emph(selected))
+func PaymentMethodHelperWithStripeId(client *turso.Client, stripeId, orgName string) (bool, error) {
+	fmt.Printf("You need to add a payment method before you can create organization %s on the %s plan.\n", internal.Emph(orgName), internal.Emph("scaler"))
 	printPricingInfoDisclaimer()
 
 	ok, _ := promptConfirmation("Want to add a payment method right now?")
