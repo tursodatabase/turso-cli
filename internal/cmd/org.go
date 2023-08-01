@@ -59,7 +59,7 @@ func switchToOrg(client *turso.Client, slug string) error {
 	}
 
 	settings.SetOrganization(slug)
-	settings.PersistChanges()
+
 	fmt.Printf("Current organization set to %s.\n", internal.Emph(org.Slug))
 	fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))
 	fmt.Printf("To switch back to your previous organization:\n\n\t%s\n", internal.Emph(prev))
