@@ -171,13 +171,13 @@ func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 	return data.Members, nil
 }
 
-func (c *OrganizationsClient) AddMember(username string) error {
+func (c *OrganizationsClient) AddMember(username, role string) error {
 	url, err := c.MembersURL("")
 	if err != nil {
 		return err
 	}
 
-	body, err := marshal(Member{Name: username})
+	body, err := marshal(Member{Name: username, Role: role})
 	if err != nil {
 		return fmt.Errorf("failed to marshall add member request body: %s", err)
 	}
