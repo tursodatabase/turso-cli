@@ -129,13 +129,52 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
-		org, err := client.Organizations.Create(name)
+		fmt.Printf("Organizations are only supported in paid plans.\n\n")
+
+		stripeCustomerId, err := client.Billing.CreateStripeCustomer(name)
+
+		if err != nil {
+			return fmt.Errorf("failed to create customer: %w", err)
+		}
+		ok, err := PaymentMethodHelperWithStripeId(client, stripeCustomerId, name)
+
+		if err != nil {
+			return fmt.Errorf("failed to add payment method: %w", err)
+		}
+		if !ok {
+			fmt.Println("organization creation aborted")
+			return nil
+		}
+		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
+		fmt.Printf("You're creating organization %s on the %s plan.\n", internal.Emph(name), internal.Emph("scaler"))
+
+		ok, err = promptConfirmation(fmt.Sprintf("Do you want to continue?"))
+		if err != nil {
+			return fmt.Errorf("could not get prompt confirmed: %w", err)
+		}
+		if !ok {
+			fmt.Println("organization creation aborted")
+			return nil
+		}
+		org, err := client.Organizations.Create(name, stripeCustomerId)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Created organization %s.\n", internal.Emph(org.Name))
-		return switchToOrg(client, org.Name)
+		fmt.Printf("\nCreated organization %s.\n", internal.Emph(org.Name))
+		switchToOrg(client, org.Name)
+		fmt.Println()
+		client, err = createTursoClientFromAccessToken(true)
+		if err != nil {
+			client.Organizations.Delete(org.Slug)
+			return err
+		}
+		if err = client.Subscriptions.Set("scaler"); err != nil {
+			client.Organizations.Delete(org.Slug)
+			return err
+		}
+
+		return err
 	},
 }
 
