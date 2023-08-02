@@ -151,7 +151,7 @@ var orgCreateCmd = &cobra.Command{
 		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
 		fmt.Printf("You're creating organization %s on the %s plan.\n", internal.Emph(name), internal.Emph("scaler"))
 
-		ok, err = promptConfirmation(fmt.Sprintf("Do you want to continue?"))
+		ok, err = promptConfirmation("Do you want to continue?")
 		if err != nil {
 			return fmt.Errorf("could not get prompt confirmed: %w", err)
 		}
