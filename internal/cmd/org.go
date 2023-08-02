@@ -26,6 +26,7 @@ func init() {
 }
 
 func switchToOrg(client *turso.Client, slug string) error {
+	fmt.Println()
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return err
