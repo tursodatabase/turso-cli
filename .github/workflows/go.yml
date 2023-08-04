@@ -49,6 +49,12 @@ jobs:
     - name: Vet
       run: go vet -v ./...
 
+    - name: Install sqlclosecheck
+      run: go install github.com/ryanrolds/sqlclosecheck@latest
+
+    - name: sqlclosecheck
+      run: go vet -vettool=${GOPATH}/bin/sqlclosecheck ./...
+
     - name: Staticcheck
       uses: dominikh/staticcheck-action@v1.3.0
       with:
