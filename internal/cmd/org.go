@@ -354,7 +354,7 @@ var membersInviteCmd = &cobra.Command{
 
 		org := settings.Organization()
 		if org == "" {
-			return fmt.Errorf("cannot add user to personal organization")
+			return fmt.Errorf("cannot invite member to personal organization")
 		}
 
 		email := args[0]
