@@ -21,8 +21,10 @@ func init() {
 	membersCmd.AddCommand(membersListCmd)
 	membersCmd.AddCommand(membersAddCmd)
 	membersCmd.AddCommand(membersRemoveCmd)
+	membersCmd.AddCommand(membersInviteCmd)
 	orgCmd.AddCommand(orgBillingCmd)
 	membersAddCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Add the user as an admin")
+	membersInviteCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Invite the user as an admin")
 }
 
 func switchToOrg(client *turso.Client, slug string) error {
@@ -333,6 +335,49 @@ var membersAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("User %s added to organization %s.\n", internal.Emph(username), internal.Emph(org))
+		return nil
+	},
+}
+
+var membersInviteCmd = &cobra.Command{
+	Use:               "invite <email>",
+	Short:             "Invite an email to join the current organization",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		org := settings.Organization()
+		if org == "" {
+			return fmt.Errorf("cannot add user to personal organization")
+		}
+
+		email := args[0]
+		if email == "" {
+			return fmt.Errorf("email cannot be empty")
+		}
+
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		role := "member"
+
+		if adminFlag {
+			role = "admin"
+		}
+
+		if err := client.Organizations.InviteMember(email, role); err != nil {
+			return err
+		}
+
+		fmt.Printf("Email %s invited to organization %s.\n", internal.Emph(email), internal.Emph(org))
 		return nil
 	},
 }
