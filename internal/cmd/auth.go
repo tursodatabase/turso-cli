@@ -223,17 +223,15 @@ func beginAuth(port int, headless bool, path string) (string, error) {
 			"port":     {strconv.Itoa(port)},
 			"redirect": {"true"},
 		}.Encode()
+		err = browser.OpenURL(authUrl.String())
+		if err != nil {
+			fmt.Println("error: Unable to open browser.")
+		}
 	} else {
 		authUrl.RawQuery = url.Values{
 			"redirect": {"false"},
 		}.Encode()
 	}
-
-	err = browser.OpenURL(authUrl.String())
-	if err != nil {
-		fmt.Println("error: Unable to open browser.")
-	}
-
 	return authUrl.String(), nil
 }
 
