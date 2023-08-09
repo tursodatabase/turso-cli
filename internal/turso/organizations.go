@@ -205,7 +205,6 @@ func (c *OrganizationsClient) AddMember(username, role string) error {
 }
 
 func (c *OrganizationsClient) InviteMember(email, role string) error {
-	prefix := "/v1"
 	if c.client.Org == "" {
 		return fmt.Errorf("the currently active organization %s does not allow members. You can use %s to change to an active organization", internal.Emph("personal"), internal.Emph("turso org switch"))
 	}
