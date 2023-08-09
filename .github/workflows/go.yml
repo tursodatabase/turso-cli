@@ -30,8 +30,8 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha || github.ref }}
         #ref: "refs/pull/${{ github.event.number }}/merge" # THIS IS INSECURE
 
-    - name: Setup Golang with cache
-      uses: magnetikonline/action-golang-cache@v4
+    - name: Setup Golang
+      uses: actions/setup-go@v4
       with:
         go-version-file: go.mod
 
