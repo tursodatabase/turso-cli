@@ -6,6 +6,10 @@ name: Go
 on:
   pull_request_target:
     branches: [ "main" ]
+  push:
+    branches:
+      - "*"
+  
 
 env:
   TURSO_API_TOKEN: ${{ secrets.TURSOCI_TOKEN }}
