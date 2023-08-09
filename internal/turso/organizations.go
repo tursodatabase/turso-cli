@@ -143,6 +143,11 @@ type Member struct {
 	Role string `json:"role,omitempty"`
 }
 
+type Invite struct {
+	Email string `json:"email,omitempty"`
+	Role  string `json:"role,omitempty"`
+}
+
 func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 	url, err := c.MembersURL("")
 	if err != nil {
@@ -156,7 +161,7 @@ func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("only organization owners can list members")
+		return nil, fmt.Errorf("only organization admins or owners can list members")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -189,11 +194,39 @@ func (c *OrganizationsClient) AddMember(username, role string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("only organization owners can add members")
+		return fmt.Errorf("only organization admins or owners can add members")
 	}
 
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to add organization member: %s", r.Status)
+	}
+
+	return nil
+}
+
+func (c *OrganizationsClient) InviteMember(email, role string) error {
+	if c.client.Org == "" {
+		return fmt.Errorf("the currently active organization %s does not allow members. You can use %s to change to an active organization", internal.Emph("personal"), internal.Emph("turso org switch"))
+	}
+	prefix := "/v1/organizations/" + c.client.Org
+
+	body, err := marshal(Invite{Email: email, Role: role})
+	if err != nil {
+		return fmt.Errorf("failed to marshall invite email request body: %s", err)
+	}
+
+	r, err := c.client.Post(prefix+"/invite", body)
+	if err != nil {
+		return fmt.Errorf("failed to invite organization member: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("only organization admins or owners can invite members")
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to invite organization member: %s", r.Status)
 	}
 
 	return nil
@@ -212,7 +245,7 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("only organization owners can remove members")
+		return fmt.Errorf("only organization admins or owners can remove members")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -224,7 +257,7 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 
 func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
 	if c.client.Org == "" {
-		return "", fmt.Errorf("the currently active organization %s does not allow members. You can use %s to change active organization", internal.Emph("personal"), internal.Emph("turso org switch"))
+		return "", fmt.Errorf("the currently active organization %s does not allow members. You can use %s to change to an active organization", internal.Emph("personal"), internal.Emph("turso org switch"))
 	}
 	return "/v1/organizations/" + c.client.Org + "/members" + suffix, nil
 }
