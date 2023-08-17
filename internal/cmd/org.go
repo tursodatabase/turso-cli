@@ -134,6 +134,17 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
+		orgs, err := client.Organizations.List()
+		if err != nil {
+			return err
+		}
+
+		for _, org := range orgs {
+			if org.Name == name {
+				return fmt.Errorf("organization with name %s already exists", internal.Emph(name))
+			}
+		}
+
 		fmt.Printf("Organizations are only supported in paid plans.\n\n")
 
 		stripeCustomerId, err := client.Billing.CreateStripeCustomer(name)
