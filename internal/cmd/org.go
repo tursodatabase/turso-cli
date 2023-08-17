@@ -134,6 +134,12 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
+		_, err = client.Organizations.Create(name, "", true)
+
+		if err != nil {
+			return err
+		}
+
 		fmt.Printf("Organizations are only supported in paid plans.\n\n")
 
 		stripeCustomerId, err := client.Billing.CreateStripeCustomer(name)
@@ -161,7 +167,7 @@ var orgCreateCmd = &cobra.Command{
 			fmt.Println("organization creation aborted")
 			return nil
 		}
-		org, err := client.Organizations.Create(name, stripeCustomerId)
+		org, err := client.Organizations.Create(name, stripeCustomerId, false)
 		if err != nil {
 			return err
 		}
