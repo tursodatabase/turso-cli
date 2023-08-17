@@ -41,13 +41,13 @@ func (c *OrganizationsClient) List() ([]Organization, error) {
 	return data.Orgs, nil
 }
 
-func (c *OrganizationsClient) Create(name string, stripeId string) (Organization, error) {
+func (c *OrganizationsClient) Create(name string, stripeId string, dryRun bool) (Organization, error) {
 	body, err := marshal(Organization{Name: name, StripeID: stripeId})
 	if err != nil {
 		return Organization{}, fmt.Errorf("failed to marshall create org request body: %s", err)
 	}
 
-	r, err := c.client.Post("/v1/organizations", body)
+	r, err := c.client.Post(fmt.Sprintf("/v1/organizations?dry_run=%v", dryRun), body)
 	if err != nil {
 		return Organization{}, fmt.Errorf("failed to post organization: %s", err)
 	}

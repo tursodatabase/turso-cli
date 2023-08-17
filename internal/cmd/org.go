@@ -134,15 +134,10 @@ var orgCreateCmd = &cobra.Command{
 			return err
 		}
 
-		orgs, err := client.Organizations.List()
+		_, err = client.Organizations.Create(name, "", true)
+
 		if err != nil {
 			return err
-		}
-
-		for _, org := range orgs {
-			if org.Name == name {
-				return fmt.Errorf("organization with name %s already exists", internal.Emph(name))
-			}
 		}
 
 		fmt.Printf("Organizations are only supported in paid plans.\n\n")
@@ -172,7 +167,7 @@ var orgCreateCmd = &cobra.Command{
 			fmt.Println("organization creation aborted")
 			return nil
 		}
-		org, err := client.Organizations.Create(name, stripeCustomerId)
+		org, err := client.Organizations.Create(name, stripeCustomerId, false)
 		if err != nil {
 			return err
 		}
