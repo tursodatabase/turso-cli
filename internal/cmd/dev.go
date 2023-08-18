@@ -33,6 +33,13 @@ var devCmd = &cobra.Command{
 		}
 		defer os.RemoveAll(tempDir)
 
+		if err := os.MkdirAll(filepath.Join(tempDir, "dbs"), 0755); err != nil {
+			return fmt.Errorf("Error creating directory: %w", err)
+		}
+		if err = os.Symlink(tempDir, filepath.Join(tempDir, "dbs", "default")); err != nil {
+			return fmt.Errorf("Error creating link to file: %w", err)
+		}
+
 		if devFile != "" {
 			absDevFile, err := filepath.Abs(devFile)
 			if err != nil {
@@ -83,6 +90,7 @@ var devCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("could not kill sqld: %w", err)
 		}
+
 		return nil
 	},
 }
