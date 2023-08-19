@@ -16,6 +16,7 @@ func init() {
 	rootCmd.AddCommand(devCmd)
 	addDevPortFlag(devCmd)
 	addDevFileFlag(devCmd)
+	addDevSqldVersionFlag(devCmd)
 }
 
 var devCmd = &cobra.Command{
@@ -26,6 +27,15 @@ var devCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+
+		if sqldVersion {
+			version, err := getSqldVersion()
+			if err != nil {
+				return err
+			}
+			fmt.Println(version)
+			return nil
+		}
 
 		tempDir, err := os.MkdirTemp("", "*tursodev")
 		if err != nil {
