@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -19,7 +18,6 @@ func getSqldVersion() (string, error) {
 	sqld.Env = append(os.Environ(), "RUST_LOG=error")
 	version, err := sqld.Output()
 	if err != nil {
-		fmt.Println("Error running sqld --version:", err)
 		return "", err
 	}
 	return string(version), nil
