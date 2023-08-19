@@ -16,7 +16,7 @@ func init() {
 	rootCmd.AddCommand(devCmd)
 	addDevPortFlag(devCmd)
 	addDevFileFlag(devCmd)
-	getSqldVersion(devCmd)
+	addDevSqldVersionFlag(devCmd)
 }
 
 var devCmd = &cobra.Command{
@@ -28,9 +28,12 @@ var devCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
-		versionFlag, _ := cmd.Flags().GetBool("version")
-		if versionFlag {
-			sqldVersion()
+		if sqldVersion {
+			version, err := getSqldVersion()
+			if err != nil {
+				return err
+			}
+			fmt.Println(version)
 			return nil
 		}
 
@@ -51,9 +54,6 @@ var devCmd = &cobra.Command{
 				return fmt.Errorf("Error creating link to file: %w", err)
 			}
 		}
-
-		fmt.Printf("Using sqld version: ")
-		sqldVersion()
 
 		addr := fmt.Sprintf("0.0.0.0:%d", devPort)
 		conn := fmt.Sprintf("http://127.0.0.1:%d", devPort)

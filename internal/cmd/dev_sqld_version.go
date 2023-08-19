@@ -8,17 +8,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func getSqldVersion(cmd *cobra.Command) {
-	cmd.Flags().BoolP("version", "v", false, "sqld version")
+var sqldVersion bool
+
+func addDevSqldVersionFlag(cmd *cobra.Command) {
+	cmd.Flags().BoolVarP(&sqldVersion, "version", "v", false, "sqld version")
 }
 
-func sqldVersion() {
+func getSqldVersion() (string, error) {
 	sqld := exec.Command("sqld", "--version")
 	sqld.Env = append(os.Environ(), "RUST_LOG=error")
 	version, err := sqld.Output()
 	if err != nil {
 		fmt.Println("Error running sqld --version:", err)
-		return
+		return "", err
 	}
-	fmt.Printf("%s\n", version)
+	return string(version), nil
 }
