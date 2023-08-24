@@ -30,6 +30,8 @@ func ReadSettings() (*Settings, error) {
 	settings = &Settings{}
 
 	configPath := configdir.LocalConfig("turso")
+	viper.BindEnv("config-path", "TURSO_CONFIG_FOLDER")
+
 	configPathFlag := viper.GetString("config-path")
 	if len(configPathFlag) > 0 {
 		configPath = configPathFlag
