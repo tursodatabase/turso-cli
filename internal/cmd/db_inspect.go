@@ -86,7 +86,7 @@ func (curr *InspectInfo) TotalRowsReadCount() uint64 {
 var dbUsageCmd = &cobra.Command{
 	Use:               "usage {database_name}",
 	Short:             "Inspect database.",
-	Example:           "turso db inspect name-of-my-amazing-db",
+	Example:           "turso db usage name-of-my-amazing-db",
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
