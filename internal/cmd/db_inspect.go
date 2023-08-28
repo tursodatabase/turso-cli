@@ -11,8 +11,8 @@ import (
 )
 
 func init() {
-	dbCmd.AddCommand(dbUsageCmd)
-	addVerboseFlag(dbUsageCmd)
+	dbCmd.AddCommand(dbInspectCmd)
+	addVerboseFlag(dbInspectCmd)
 }
 
 type InspectInstanceInfo struct {
@@ -82,11 +82,11 @@ func (curr *InspectInfo) TotalRowsReadCount() uint64 {
 	return total
 }
 
-// db usage is an alias for db inspect, db inspect should be phased out in the future
-var dbUsageCmd = &cobra.Command{
-	Use:               "usage {database_name}",
+var dbInspectCmd = &cobra.Command{
+	Use:               "inspect {database_name}",
+	Aliases:           []string{"usage {database_name}"},
 	Short:             "Inspect database.",
-	Example:           "turso db usage name-of-my-amazing-db",
+	Example:           "turso db inspect name-of-my-amazing-db",
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
