@@ -22,6 +22,7 @@ import (
 func init() {
 	dbCmd.AddCommand(createCmd)
 	addCanaryFlag(createCmd)
+	addGroupFlag(createCmd)
 	addEnableExtensionsFlag(createCmd)
 	addDbFromFileFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
@@ -179,7 +180,7 @@ var createCmd = &cobra.Command{
 		description := fmt.Sprintf("Creating database %s%s in %s", internal.Emph(name), dbText, internal.Emph(locationText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
-		if _, err = client.Databases.Create(name, locationId, image, extensions); err != nil {
+		if _, err = client.Databases.Create(name, locationId, image, extensions, groupFlag); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
