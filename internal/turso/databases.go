@@ -72,9 +72,9 @@ type CreateDatabaseResponse struct {
 	Username string
 }
 
-func (d *DatabasesClient) Create(name, region, image, extensions string) (*CreateDatabaseResponse, error) {
-	type Body struct{ Name, Region, Image, Extensions string }
-	body, err := marshal(Body{name, region, image, extensions})
+func (d *DatabasesClient) Create(name, region, image, extensions, group string) (*CreateDatabaseResponse, error) {
+	type Body struct{ Name, Region, Image, Extensions, Group string }
+	body, err := marshal(Body{name, region, image, extensions, group})
 	if err != nil {
 		return nil, fmt.Errorf("could not serialize request body: %w", err)
 	}
