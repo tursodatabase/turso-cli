@@ -213,7 +213,7 @@ func ChangePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 	if change == "upgrading" && org == "" {
 		fmt.Println("You're currently using your personal organization.")
 		fmt.Println("In personal organizations, you cannot invite members to collaborate.")
-		fmt.Printf("If you want instead to upgrade to scaler plan, you can create an organization with %s.\n", internal.Emph("turso org create"))
+		fmt.Printf("If you want instead to upgrade aa team org to the scaler plan, you can create an organization with %s.\n", internal.Emph("turso org create"))
 	}
 
 	if ok, _ := promptConfirmation("Do you want to continue?"); !ok {
