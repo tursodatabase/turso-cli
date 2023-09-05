@@ -15,10 +15,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var proxy string
+
 func init() {
 	dbCmd.AddCommand(shellCmd)
 	addInstanceFlag(shellCmd, "Connect to the database at the specified instance.")
 	addLocationFlag(shellCmd, "Connect to the database at the specified location.")
+	shellCmd.Flags().StringVar(&proxy, "proxy", "", "Proxy to use for the connection.")
+	shellCmd.RegisterFlagCompletionFunc("proxy", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	})
 }
 
 func getURL(db *turso.Database, client *turso.Client) (string, error) {
@@ -70,6 +76,7 @@ var shellCmd = &cobra.Command{
 		dbUrl := nameOrUrl
 		urlString := nameOrUrl
 		var db *turso.Database = nil
+		var authToken string
 		// Makes sure localhost URL or self-hosted will work even if not authenticated
 		// to turso. The token code will check for auth
 		if !isURL(nameOrUrl) {
@@ -83,7 +90,7 @@ var shellCmd = &cobra.Command{
 				return err
 			}
 
-			token, err := tokenFromDb(db, client)
+			authToken, err = tokenFromDb(db, client)
 			if err != nil {
 				return err
 			}
@@ -93,13 +100,47 @@ var shellCmd = &cobra.Command{
 				return err
 			}
 			urlString = dbUrl
-			dbUrl = addTokenAsQueryParameter(dbUrl, token)
+		} else {
+			u, err := url.Parse(dbUrl)
+			if err != nil {
+				return err
+			}
+			query := u.Query()
+			authTokenSnake := query.Get("auth_token")
+			authTokenCamel := query.Get("authToken")
+			jwt := query.Get("jwt")
+			u.RawQuery = ""
+
+			countNonEmpty := func(slice ...string) int {
+				count := 0
+				for _, s := range slice {
+					if s != "" {
+						count++
+					}
+				}
+				return count
+			}
+
+			if countNonEmpty(authTokenSnake, authTokenCamel, jwt) > 1 {
+				return fmt.Errorf("please use at most one of the following query parameters: 'auth_token', 'authToken', 'jwt'")
+			}
+
+			if authTokenSnake != "" {
+				authToken = authTokenSnake
+			} else if authTokenCamel != "" {
+				authToken = authTokenCamel
+			} else {
+				authToken = jwt
+			}
+			dbUrl = u.String()
 		}
 
 		connectionInfo := getConnectionInfo(urlString, db)
 
 		shellConfig := shell.ShellConfig{
 			DbUri:          dbUrl,
+			Proxy:          proxy,
+			AuthToken:      authToken,
 			InF:            cmd.InOrStdin(),
 			OutF:           cmd.OutOrStdout(),
 			ErrF:           cmd.ErrOrStderr(),
@@ -201,10 +242,6 @@ func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
 	msg += "Welcome to Turso SQL shell!\n\n"
 	msg += "Type \".quit\" to exit the shell and \".help\" to list all available commands.\n\n"
 	return msg
-}
-
-func addTokenAsQueryParameter(dbUrl string, token string) string {
-	return fmt.Sprintf("%s?jwt=%s", dbUrl, token)
 }
 
 func pipeOrRedirect() bool {
