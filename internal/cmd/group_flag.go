@@ -11,5 +11,4 @@ func addGroupFlag(cmd *cobra.Command) {
 
 func addPersistentGroupFlag(cmd *cobra.Command, description string) {
 	cmd.PersistentFlags().StringVarP(&groupFlag, "group", "g", "", description)
-	cmd.Flags().MarkHidden("group")
 }

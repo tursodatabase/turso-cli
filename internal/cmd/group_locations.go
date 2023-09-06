@@ -1,6 +1,3 @@
-//go:build preview
-// +build preview
-
 package cmd
 
 import (
