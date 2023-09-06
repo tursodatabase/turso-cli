@@ -1,6 +1,3 @@
-//go:build preview
-// +build preview
-
 package cmd
 
 import (
@@ -14,8 +11,9 @@ import (
 )
 
 var groupCmd = &cobra.Command{
-	Use:   "group",
-	Short: "Manage your database groups",
+	Use:    "group",
+	Short:  "Manage your database groups",
+	Hidden: true,
 }
 
 func init() {
