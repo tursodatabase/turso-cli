@@ -31,7 +31,7 @@ var listCmd = &cobra.Command{
 		var data [][]string
 		var helps []string
 		for _, database := range databases {
-			row := []string{database.Name, getDatabaseRegions(database), getDatabaseUrl(&database)}
+			row := []string{database.Name, getDatabaseLocations(database), getDatabaseUrl(&database)}
 			if len(database.Regions) == 0 {
 				help := fmt.Sprintf("🛠 Run %s to finish your database creation!", internal.Emph("turso db replicate "+database.Name))
 				helps = append(helps, help)
