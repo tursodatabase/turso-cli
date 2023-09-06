@@ -16,7 +16,6 @@ var showUrlFlag bool
 var showHttpUrlFlag bool
 var showInstanceUrlsFlag bool
 var showInstanceUrlFlag string
-var yesFlag bool
 
 func getInstanceNames(client *turso.Client, dbName string) []string {
 	instances, err := client.Instances.List(dbName)
