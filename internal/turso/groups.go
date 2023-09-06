@@ -38,6 +38,33 @@ func (d *GroupsClient) List() ([]Group, error) {
 	return resp.Groups, err
 }
 
+func (d *GroupsClient) Get(name string) (Group, error) {
+	r, err := d.client.Get(d.URL("/"+name), nil)
+	if err != nil {
+		return Group{}, fmt.Errorf("failed to get group %s: %w", name, err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return Group{}, notMemberErr(org)
+	}
+
+	if r.StatusCode == http.StatusNotFound {
+		return Group{}, fmt.Errorf("group %s was not found", name)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return Group{}, fmt.Errorf("failed to get database group: received status code %s", r.Status)
+	}
+
+	type Response struct {
+		Group Group `json:"group"`
+	}
+	resp, err := unmarshal[Response](r)
+	return resp.Group, err
+}
+
 func (d *GroupsClient) Delete(group string) error {
 	url := d.URL("/" + group)
 	r, err := d.client.Delete(url, nil)
@@ -82,6 +109,42 @@ func (d *GroupsClient) Create(name, location string) error {
 
 	if res.StatusCode == http.StatusUnprocessableEntity {
 		return fmt.Errorf("group name '%s' is not available", name)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+	return nil
+}
+
+func (d *GroupsClient) AddLocation(name, location string) error {
+	res, err := d.client.Post(d.URL("/"+name+"/locations/"+location), nil)
+	if err != nil {
+		return fmt.Errorf("failed to post group location request: %s", err)
+	}
+	defer res.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(res.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+	return nil
+}
+
+func (d *GroupsClient) RemoveLocation(name, location string) error {
+	res, err := d.client.Delete(d.URL("/"+name+"/locations/"+location), nil)
+	if err != nil {
+		return fmt.Errorf("failed to post group location request: %s", err)
+	}
+	defer res.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(res.StatusCode, org) {
+		return notMemberErr(org)
 	}
 
 	if res.StatusCode != http.StatusOK {
