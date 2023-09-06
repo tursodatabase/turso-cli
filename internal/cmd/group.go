@@ -75,7 +75,7 @@ var groupsCreateCmd = &cobra.Command{
 		}
 
 		start := time.Now()
-		description := fmt.Sprintf("Creating group %s in %s", internal.Emph(name), internal.Emph(location))
+		description := fmt.Sprintf("Creating group %s at %s...", internal.Emph(name), internal.Emph(location))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
 
@@ -85,7 +85,7 @@ var groupsCreateCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created group %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
+		fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
 		return nil
 	},
 }

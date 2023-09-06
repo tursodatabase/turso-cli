@@ -74,21 +74,21 @@ var groupLocationAddCmd = &cobra.Command{
 		}
 
 		start := time.Now()
-		spinner := prompt.StoppedSpinner("")
+		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
 		for _, location := range args {
-			description := fmt.Sprintf("Replicating group %s to %s", internal.Emph(groupFlag), internal.Emph(location))
+			description := fmt.Sprintf("Replicating group %s to %s...", internal.Emph(groupFlag), internal.Emph(location))
 			spinner.Text(description)
 
 			if err := client.Groups.AddLocation(groupFlag, location); err != nil {
-				return err
+				return fmt.Errorf("failed to replicate group %s to %s: %w", groupFlag, location, err)
 			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Group %s replicated to %d locations in %d seconds.\n\n", internal.Emph(groupFlag), len(args), int(elapsed.Seconds()))
+		fmt.Printf("Group %s replicated to %d locations in %d seconds.\n", internal.Emph(groupFlag), len(args), int(elapsed.Seconds()))
 		return nil
 	},
 }
@@ -124,21 +124,21 @@ var groupsLocationsRmCmd = &cobra.Command{
 		}
 
 		start := time.Now()
-		spinner := prompt.StoppedSpinner("")
+		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
 		for _, location := range args {
-			description := fmt.Sprintf("Replicating group %s to %s", internal.Emph(groupFlag), internal.Emph(location))
+			description := fmt.Sprintf("Removing group %s from %s...", internal.Emph(groupFlag), internal.Emph(location))
 			spinner.Text(description)
 
 			if err := client.Groups.RemoveLocation(groupFlag, location); err != nil {
-				return err
+				return fmt.Errorf("failed to remove group %s from %s: %w", groupFlag, location, err)
 			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Group %s removed from %d locations in %d seconds.\n\n", internal.Emph(groupFlag), len(args), int(elapsed.Seconds()))
+		fmt.Printf("Group %s removed from %d locations in %d seconds.\n", internal.Emph(groupFlag), len(args), int(elapsed.Seconds()))
 		return nil
 	},
 }
