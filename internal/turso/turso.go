@@ -35,6 +35,7 @@ type Client struct {
 	Plans         *PlansClient
 	Subscriptions *SubscriptionClient
 	Billing       *BillingClient
+	Groups        *GroupsClient
 }
 
 // Client struct that will be aliases by all other clients
@@ -57,6 +58,7 @@ func New(base *url.URL, token string, cliVersion string, org string) *Client {
 	c.Plans = (*PlansClient)(c.base)
 	c.Subscriptions = (*SubscriptionClient)(c.base)
 	c.Billing = (*BillingClient)(c.base)
+	c.Groups = (*GroupsClient)(c.base)
 	return c
 }
 

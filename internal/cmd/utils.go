@@ -95,16 +95,20 @@ func getUrl(db *turso.Database, inst *turso.Instance, scheme string) string {
 	return fmt.Sprintf("%s://%s", scheme, host)
 }
 
-func getDatabaseRegions(db turso.Database) string {
-	regions := make([]string, 0, len(db.Regions))
-	for _, region := range db.Regions {
-		if region == db.PrimaryRegion {
-			region = fmt.Sprintf("%s (primary)", internal.Emph(region))
+func getDatabaseLocations(db turso.Database) string {
+	return formatLocations(db.Regions, db.PrimaryRegion)
+}
+
+func formatLocations(locations []string, primary string) string {
+	formatted := make([]string, 0, len(locations))
+	for _, location := range locations {
+		if location == primary {
+			location = fmt.Sprintf("%s (primary)", internal.Emph(location))
 		}
-		regions = append(regions, region)
+		formatted = append(formatted, location)
 	}
 
-	return strings.Join(regions, ", ")
+	return strings.Join(formatted, ", ")
 }
 
 func printTable(header []string, data [][]string) {
