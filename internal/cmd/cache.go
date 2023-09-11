@@ -107,3 +107,7 @@ func getGroupsCache(org string) []turso.Group {
 	}
 	return data
 }
+
+func invalidateGroupsCache(org string) {
+	settings.InvalidateCache[[]turso.Group](orgKey(org, GROUP_CACHE_KEY))
+}

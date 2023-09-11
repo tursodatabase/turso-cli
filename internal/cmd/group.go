@@ -84,6 +84,7 @@ var groupsCreateCmd = &cobra.Command{
 		spinner.Stop()
 		elapsed := time.Since(start)
 		fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
+		invalidateGroupsCache(client.Org)
 		return nil
 	},
 }
@@ -133,6 +134,7 @@ func destroyGroup(client *turso.Client, name string) error {
 	elapsed := time.Since(start)
 
 	fmt.Printf("Destroyed group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+	invalidateGroupsCache(client.Org)
 	return nil
 }
 

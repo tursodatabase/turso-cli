@@ -89,6 +89,8 @@ var groupLocationAddCmd = &cobra.Command{
 		spinner.Stop()
 		elapsed := time.Since(start)
 
+		invalidateGroupsCache(client.Org)
+
 		if len(locations) == 1 {
 			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(group), internal.Emph(locations[0]), int(elapsed.Seconds()))
 			return nil
@@ -146,6 +148,8 @@ var groupsLocationsRmCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
+
+		invalidateGroupsCache(client.Org)
 
 		if len(locations) == 1 {
 			fmt.Printf("Group %s removed from %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))
