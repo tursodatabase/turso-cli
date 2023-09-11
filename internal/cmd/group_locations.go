@@ -91,6 +91,12 @@ var groupLocationAddCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
+
+		if len(locationsFlag) == 1 {
+			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(group), internal.Emph(locationsFlag[0]), int(elapsed.Seconds()))
+			return nil
+		}
+
 		fmt.Printf("Group %s replicated to %d locations in %d seconds.\n", internal.Emph(group), len(locationsFlag), int(elapsed.Seconds()))
 		return nil
 	},
@@ -145,6 +151,12 @@ var groupsLocationsRmCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
+
+		if len(locationsFlag) == 1 {
+			fmt.Printf("Group %s removed from %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locationsFlag[0]), int(elapsed.Seconds()))
+			return nil
+		}
+
 		fmt.Printf("Group %s removed from %d locations in %d seconds.\n", internal.Emph(groupName), len(locationsFlag), int(elapsed.Seconds()))
 		return nil
 	},
