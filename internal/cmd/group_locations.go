@@ -7,6 +7,7 @@ import (
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
 )
 
 var groupLocationsCmd = &cobra.Command{
@@ -52,7 +53,7 @@ var groupLocationAddCmd = &cobra.Command{
 	Use:               "add [group] [...locations]",
 	Short:             "Add locations to a database group",
 	Args:              cobra.MinimumNArgs(2),
-	ValidArgsFunction: noFilesArg,
+	ValidArgsFunction: locationsCmdsArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		group := args[0]
 		if group == "" {
@@ -102,7 +103,7 @@ var groupsLocationsRmCmd = &cobra.Command{
 	Use:               "remove [group] [...locations]",
 	Short:             "Remove locations from a database group",
 	Args:              cobra.MinimumNArgs(2),
-	ValidArgsFunction: noFilesArg,
+	ValidArgsFunction: locationsCmdsArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		groupName := args[0]
 		if groupName == "" {
@@ -154,4 +155,17 @@ var groupsLocationsRmCmd = &cobra.Command{
 		fmt.Printf("Group %s removed from %d locations in %d seconds.\n", internal.Emph(groupName), len(locations), int(elapsed.Seconds()))
 		return nil
 	},
+}
+
+func locationsCmdsArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClientFromAccessToken(false)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+	if len(args) == 0 {
+		// TODO: add completion for group names
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+	locations, _ := locations(client)
+	return maps.Keys(locations), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
