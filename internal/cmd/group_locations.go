@@ -17,19 +17,19 @@ var groupLocationsCmd = &cobra.Command{
 func init() {
 	groupCmd.AddCommand(groupLocationsCmd)
 	groupLocationsCmd.AddCommand(groupLocationsListCmd)
-	addPersistentGroupFlag(groupLocationsCmd, "Use the specified group as target for the operation")
 	groupLocationsCmd.AddCommand(groupLocationAddCmd)
 	groupLocationsCmd.AddCommand(groupsLocationsRmCmd)
 }
 
 var groupLocationsListCmd = &cobra.Command{
-	Use:               "list",
+	Use:               "list [group]",
 	Short:             "List database group locations",
-	Args:              cobra.NoArgs,
+	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if groupFlag == "" {
-			return fmt.Errorf("the group flag is required")
+		group := args[0]
+		if group == "" {
+			return fmt.Errorf("the first argument must contain a group name")
 		}
 
 		cmd.SilenceUsage = true
@@ -38,7 +38,7 @@ var groupLocationsListCmd = &cobra.Command{
 			return err
 		}
 
-		groups, err := client.Groups.Get(groupFlag)
+		groups, err := client.Groups.Get(group)
 		if err != nil {
 			return err
 		}
@@ -49,13 +49,14 @@ var groupLocationsListCmd = &cobra.Command{
 }
 
 var groupLocationAddCmd = &cobra.Command{
-	Use:               "add [...locations]",
+	Use:               "add [group] [...locations]",
 	Short:             "Add locations to a database group",
-	Args:              cobra.MinimumNArgs(1),
+	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if groupFlag == "" {
-			return fmt.Errorf("the group flag is required")
+		group := args[0]
+		if group == "" {
+			return fmt.Errorf("the first argument must contain a group name")
 		}
 
 		cmd.SilenceUsage = true
@@ -64,7 +65,8 @@ var groupLocationAddCmd = &cobra.Command{
 			return err
 		}
 
-		for _, location := range args {
+		locations := args[1:]
+		for _, location := range locations {
 			if !isValidLocation(client, location) {
 				return fmt.Errorf("location '%s' is not a valid one", location)
 			}
@@ -74,29 +76,36 @@ var groupLocationAddCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
-		for _, location := range args {
-			description := fmt.Sprintf("Replicating group %s to %s...", internal.Emph(groupFlag), internal.Emph(location))
+		for _, location := range locations {
+			description := fmt.Sprintf("Replicating group %s to %s...", internal.Emph(group), internal.Emph(location))
 			spinner.Text(description)
 
-			if err := client.Groups.AddLocation(groupFlag, location); err != nil {
-				return fmt.Errorf("failed to replicate group %s to %s: %w", groupFlag, location, err)
+			if err := client.Groups.AddLocation(group, location); err != nil {
+				return fmt.Errorf("failed to replicate group %s to %s: %w", group, location, err)
 			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Group %s replicated to %d locations in %d seconds.\n", internal.Emph(groupFlag), len(args), int(elapsed.Seconds()))
+
+		if len(locations) == 1 {
+			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(group), internal.Emph(locations[0]), int(elapsed.Seconds()))
+			return nil
+		}
+
+		fmt.Printf("Group %s replicated to %d locations in %d seconds.\n", internal.Emph(group), len(locations), int(elapsed.Seconds()))
 		return nil
 	},
 }
 
 var groupsLocationsRmCmd = &cobra.Command{
-	Use:               "remove [...locations]",
+	Use:               "remove [group] [...locations]",
 	Short:             "Remove locations from a database group",
-	Args:              cobra.MinimumNArgs(1),
+	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if groupFlag == "" {
+		groupName := args[0]
+		if groupName == "" {
 			return fmt.Errorf("the group flag is required")
 		}
 
@@ -106,17 +115,18 @@ var groupsLocationsRmCmd = &cobra.Command{
 			return err
 		}
 
-		group, err := client.Groups.Get(groupFlag)
+		group, err := client.Groups.Get(groupName)
 		if err != nil {
 			return err
 		}
 
-		for _, location := range args {
+		locations := args[1:]
+		for _, location := range locations {
 			if !isValidLocation(client, location) {
 				return fmt.Errorf("location '%s' is not a valid one", location)
 			}
 			if group.Primary == location {
-				return fmt.Errorf("cannot remove primary location '%s' from group '%s'", location, groupFlag)
+				return fmt.Errorf("cannot remove primary location '%s' from group '%s'", location, groupName)
 			}
 		}
 
@@ -124,18 +134,24 @@ var groupsLocationsRmCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
-		for _, location := range args {
-			description := fmt.Sprintf("Removing group %s from %s...", internal.Emph(groupFlag), internal.Emph(location))
+		for _, location := range locations {
+			description := fmt.Sprintf("Removing group %s from %s...", internal.Emph(groupName), internal.Emph(location))
 			spinner.Text(description)
 
-			if err := client.Groups.RemoveLocation(groupFlag, location); err != nil {
-				return fmt.Errorf("failed to remove group %s from %s: %w", groupFlag, location, err)
+			if err := client.Groups.RemoveLocation(groupName, location); err != nil {
+				return fmt.Errorf("failed to remove group %s from %s: %w", groupName, location, err)
 			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Group %s removed from %d locations in %d seconds.\n", internal.Emph(groupFlag), len(args), int(elapsed.Seconds()))
+
+		if len(locations) == 1 {
+			fmt.Printf("Group %s removed from %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))
+			return nil
+		}
+
+		fmt.Printf("Group %s removed from %d locations in %d seconds.\n", internal.Emph(groupName), len(locations), int(elapsed.Seconds()))
 		return nil
 	},
 }
