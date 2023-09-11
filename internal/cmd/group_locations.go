@@ -158,18 +158,36 @@ var groupsLocationsRmCmd = &cobra.Command{
 }
 
 func locationsCmdsArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return groupArgs(cmd, args, toComplete)
+	}
+
 	client, err := createTursoClientFromAccessToken(false)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
-	if len(args) == 0 {
-		// TODO: add completion for group names
-		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
-	}
+
 	locations, _ := locations(client)
+
 	used := args[1:]
 	for _, location := range used {
 		delete(locations, location)
 	}
+
+	group, _ := getGroup(client, args[0])
+	for _, location := range group.Locations {
+		delete(locations, location)
+	}
+
 	return maps.Keys(locations), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+}
+
+func groupArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClientFromAccessToken(false)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+
+	groups, _ := groupNames(client)
+	return groups, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
