@@ -86,6 +86,10 @@ func (t *Client) newRequest(method, urlPath string, body io.Reader) (*http.Reque
 
 func (t *Client) do(method, path string, body io.Reader) (*http.Response, error) {
 	req, err := t.newRequest(method, path, body)
+	var reqDump string
+	if flags.Debug() {
+		reqDump = dumpRequest(req)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -94,29 +98,34 @@ func (t *Client) do(method, path string, body io.Reader) (*http.Response, error)
 		return nil, err
 	}
 	if flags.Debug() {
-		dumpRequest(req)
-		dumpResponse(resp)
-		fmt.Println()
+		printDumps(reqDump, dumpResponse(resp))
 	}
 	return resp, nil
 }
 
-func dumpRequest(req *http.Request) {
-	dump, err := httputil.DumpRequestOut(req, true)
-	if err != nil {
-		fmt.Printf("Failed to dump the HTTP request, you can either remove the debug flag or ignore this error: %s", err.Error())
-		return
+func printDumps(req, resp string) {
+	if req != "" {
+		fmt.Println(req)
 	}
-	fmt.Println(string(dump))
+	if resp != "" {
+		fmt.Println(resp)
+	}
 }
 
-func dumpResponse(req *http.Response) {
+func dumpRequest(req *http.Request) string {
+	dump, err := httputil.DumpRequestOut(req, true)
+	if err != nil {
+		return ""
+	}
+	return string(dump)
+}
+
+func dumpResponse(req *http.Response) string {
 	dump, err := httputil.DumpResponse(req, true)
 	if err != nil {
-		fmt.Printf("Failed to dump the HTTP response, you can either remove the debug flag or ignore this error: %s", err.Error())
-		return
+		return ""
 	}
-	fmt.Println(string(dump))
+	return string(dump)
 }
 
 func (t *Client) Get(path string, body io.Reader) (*http.Response, error) {
