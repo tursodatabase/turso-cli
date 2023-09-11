@@ -53,7 +53,7 @@ var groupLocationAddCmd = &cobra.Command{
 	Use:               "add [group] [...locations]",
 	Short:             "Add locations to a database group",
 	Args:              cobra.MinimumNArgs(2),
-	ValidArgsFunction: locationsCmdsArgs,
+	ValidArgsFunction: locationsAddArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		group := args[0]
 		if group == "" {
@@ -89,6 +89,8 @@ var groupLocationAddCmd = &cobra.Command{
 		spinner.Stop()
 		elapsed := time.Since(start)
 
+		invalidateGroupsCache(client.Org)
+
 		if len(locations) == 1 {
 			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(group), internal.Emph(locations[0]), int(elapsed.Seconds()))
 			return nil
@@ -103,7 +105,7 @@ var groupsLocationsRmCmd = &cobra.Command{
 	Use:               "remove [group] [...locations]",
 	Short:             "Remove locations from a database group",
 	Args:              cobra.MinimumNArgs(2),
-	ValidArgsFunction: locationsCmdsArgs,
+	ValidArgsFunction: locationsRmArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		groupName := args[0]
 		if groupName == "" {
@@ -147,6 +149,8 @@ var groupsLocationsRmCmd = &cobra.Command{
 		spinner.Stop()
 		elapsed := time.Since(start)
 
+		invalidateGroupsCache(client.Org)
+
 		if len(locations) == 1 {
 			fmt.Printf("Group %s removed from %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))
 			return nil
@@ -157,19 +161,61 @@ var groupsLocationsRmCmd = &cobra.Command{
 	},
 }
 
-func locationsCmdsArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func locationsAddArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return groupArgs(cmd, args, toComplete)
+	}
+
 	client, err := createTursoClientFromAccessToken(false)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
-	if len(args) == 0 {
-		// TODO: add completion for group names
-		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
-	}
+
 	locations, _ := locations(client)
+
 	used := args[1:]
 	for _, location := range used {
 		delete(locations, location)
 	}
+
+	group, _ := getGroup(client, args[0])
+	for _, location := range group.Locations {
+		delete(locations, location)
+	}
+
 	return maps.Keys(locations), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+}
+
+func locationsRmArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return groupArgs(cmd, args, toComplete)
+	}
+
+	client, err := createTursoClientFromAccessToken(false)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+
+	group, _ := getGroup(client, args[0])
+	locations := make(map[string]bool, len(group.Locations))
+	for _, location := range group.Locations {
+		locations[location] = true
+	}
+
+	used := args[1:]
+	for _, location := range used {
+		delete(locations, location)
+	}
+
+	return maps.Keys(locations), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+}
+
+func groupArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClientFromAccessToken(false)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+
+	groups, _ := groupNames(client)
+	return groups, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }

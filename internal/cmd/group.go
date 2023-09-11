@@ -37,7 +37,7 @@ var groupsListCmd = &cobra.Command{
 			return err
 		}
 
-		groups, err := client.Groups.List()
+		groups, err := getGroups(client, true)
 		if err != nil {
 			return err
 		}
@@ -84,6 +84,7 @@ var groupsCreateCmd = &cobra.Command{
 		spinner.Stop()
 		elapsed := time.Since(start)
 		fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
+		invalidateGroupsCache(client.Org)
 		return nil
 	},
 }
@@ -133,6 +134,7 @@ func destroyGroup(client *turso.Client, name string) error {
 	elapsed := time.Since(start)
 
 	fmt.Printf("Destroyed group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+	invalidateGroupsCache(client.Org)
 	return nil
 }
 
@@ -143,4 +145,42 @@ func groupsTable(groups []turso.Group) [][]string {
 		data = append(data, row)
 	}
 	return data
+}
+
+func getGroups(client *turso.Client, fresh ...bool) ([]turso.Group, error) {
+	skipCache := len(fresh) > 0 && fresh[0]
+	if cached := getGroupsCache(client.Org); !skipCache && cached != nil {
+		return cached, nil
+	}
+	groups, err := client.Groups.List()
+	if err != nil {
+		return nil, err
+	}
+	setGroupsCache(client.Org, groups)
+	return groups, nil
+}
+
+func groupNames(client *turso.Client) ([]string, error) {
+	groups, err := getGroups(client)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(groups))
+	for _, group := range groups {
+		names = append(names, group.Name)
+	}
+	return names, nil
+}
+
+func getGroup(client *turso.Client, name string) (turso.Group, error) {
+	groups, err := getGroups(client)
+	if err != nil {
+		return turso.Group{}, err
+	}
+	for _, group := range groups {
+		if group.Name == name {
+			return group, nil
+		}
+	}
+	return turso.Group{}, fmt.Errorf("group %s was not found", name)
 }

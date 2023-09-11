@@ -83,3 +83,31 @@ func dbTokenCache(dbID string) string {
 	}
 	return token
 }
+
+const ORG_CACHE_KEY = "organizations"
+const GROUP_CACHE_KEY = "groups"
+const GROUP_CACHE_TTL_SECONDS = 30 * 60
+
+func orgKey(org, suffix string) string {
+	key := suffix
+	if org != "" {
+		key = ORG_CACHE_KEY + "." + org + "." + suffix
+	}
+	return key
+}
+
+func setGroupsCache(org string, groups []turso.Group) {
+	settings.SetCache(orgKey(org, GROUP_CACHE_KEY), GROUP_CACHE_TTL_SECONDS, groups)
+}
+
+func getGroupsCache(org string) []turso.Group {
+	data, err := settings.GetCache[[]turso.Group](orgKey(org, GROUP_CACHE_KEY))
+	if err != nil {
+		return nil
+	}
+	return data
+}
+
+func invalidateGroupsCache(org string) {
+	settings.InvalidateCache[[]turso.Group](orgKey(org, GROUP_CACHE_KEY))
+}
