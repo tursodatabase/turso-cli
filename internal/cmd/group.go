@@ -93,7 +93,7 @@ var groupsDestroyCmd = &cobra.Command{
 	Use:               "destroy [group]",
 	Short:             "Destroy a database group",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: noFilesArg,
+	ValidArgsFunction: groupArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client, err := createTursoClientFromAccessToken(true)
