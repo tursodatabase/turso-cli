@@ -48,7 +48,7 @@ var groupsListCmd = &cobra.Command{
 }
 
 var groupsCreateCmd = &cobra.Command{
-	Use:               "create [group_name]",
+	Use:               "create [group]",
 	Short:             "Create a database group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
@@ -89,7 +89,7 @@ var groupsCreateCmd = &cobra.Command{
 }
 
 var groupsDestroyCmd = &cobra.Command{
-	Use:               "destroy [group_name]",
+	Use:               "destroy [group]",
 	Short:             "Destroy a database group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
