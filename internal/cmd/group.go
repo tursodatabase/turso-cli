@@ -37,7 +37,7 @@ var groupsListCmd = &cobra.Command{
 			return err
 		}
 
-		groups, err := client.Groups.List()
+		groups, err := getGroups(client, true)
 		if err != nil {
 			return err
 		}
