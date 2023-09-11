@@ -167,5 +167,9 @@ func locationsCmdsArgs(cmd *cobra.Command, args []string, toComplete string) ([]
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 	locations, _ := locations(client)
+	used := args[1:]
+	for _, location := range used {
+		delete(locations, location)
+	}
 	return maps.Keys(locations), cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
