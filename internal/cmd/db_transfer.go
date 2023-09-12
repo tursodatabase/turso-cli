@@ -27,7 +27,7 @@ var dbTransferCmd = &cobra.Command{
 		dbName := args[0]
 		orgName := args[1]
 
-		if _, err := getDatabase(client, dbName); err != nil {
+		if _, err := getDatabase(client, dbName, true); err != nil {
 			return err
 		}
 		fmt.Printf("To transfer %s database to another organization, all its replicas must be updated.\n", internal.Emph(dbName))

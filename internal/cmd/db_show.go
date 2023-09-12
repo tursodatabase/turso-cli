@@ -31,7 +31,7 @@ var showCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		db, err := getDatabase(client, args[0])
+		db, err := getDatabase(client, args[0], true)
 		if err != nil {
 			return err
 		}
