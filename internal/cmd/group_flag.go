@@ -16,3 +16,11 @@ func addGroupFlag(cmd *cobra.Command) {
 		return groups, cobra.ShellCompDirectiveNoFileComp
 	})
 }
+
+var forkFlag string
+
+func addForkFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&forkFlag, "fork", "", "fork the new database from an existing one")
+	cmd.Flags().MarkHidden("fork")
+	cmd.RegisterFlagCompletionFunc("fork", dbNameArg)
+}
