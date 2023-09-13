@@ -155,7 +155,7 @@ func destroyDatabaseRegion(client *turso.Client, database, region string) error 
 	s := prompt.Spinner(fmt.Sprintf("Destroying location %s of database %s... ", internal.Emph(region), internal.Emph(database)))
 	defer s.Stop()
 
-	db, err := getDatabase(client, database)
+	db, err := getDatabase(client, database, true)
 	if err != nil {
 		return err
 	}

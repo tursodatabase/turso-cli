@@ -37,8 +37,8 @@ func extractDatabaseNames(databases []turso.Database) []string {
 	return names
 }
 
-func getDatabase(client *turso.Client, name string) (turso.Database, error) {
-	databases, err := getDatabases(client)
+func getDatabase(client *turso.Client, name string, fresh ...bool) (turso.Database, error) {
+	databases, err := getDatabases(client, fresh...)
 	if err != nil {
 		return turso.Database{}, err
 	}
@@ -52,8 +52,9 @@ func getDatabase(client *turso.Client, name string) (turso.Database, error) {
 	return turso.Database{}, fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(name), internal.Emph("turso db list"))
 }
 
-func getDatabases(client *turso.Client) ([]turso.Database, error) {
-	if cachedNames := getDatabasesCache(); cachedNames != nil {
+func getDatabases(client *turso.Client, fresh ...bool) ([]turso.Database, error) {
+	skipCache := len(fresh) > 0 && fresh[0]
+	if cachedNames := getDatabasesCache(); !skipCache && cachedNames != nil {
 		return cachedNames, nil
 	}
 	databases, err := client.Databases.List()

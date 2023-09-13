@@ -81,7 +81,7 @@ var replicateCmd = &cobra.Command{
 			return fmt.Errorf("you must specify a database name to replicate it")
 		}
 
-		database, err := getDatabase(client, dbName)
+		database, err := getDatabase(client, dbName, true)
 		if err != nil {
 			return err
 		}

@@ -28,7 +28,7 @@ var dbInvalidateTokensCmd = &cobra.Command{
 		}
 		name := args[0]
 
-		if _, err := getDatabase(client, name); err != nil {
+		if _, err := getDatabase(client, name, true); err != nil {
 			return err
 		}
 

@@ -100,7 +100,7 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
-		db, err := getDatabase(client, name)
+		db, err := getDatabase(client, name, true)
 		if err != nil {
 			return err
 		}

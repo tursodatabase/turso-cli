@@ -16,6 +16,7 @@ type Database struct {
 	Regions       []string
 	PrimaryRegion string
 	Hostname      string
+	Version       string
 }
 
 type DatabasesClient client
