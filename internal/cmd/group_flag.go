@@ -17,10 +17,10 @@ func addGroupFlag(cmd *cobra.Command) {
 	})
 }
 
-var forkFlag string
+var fromDBFlag string
 
-func addForkFlag(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&forkFlag, "fork", "", "fork the new database from an existing one")
-	cmd.Flags().MarkHidden("fork")
-	cmd.RegisterFlagCompletionFunc("fork", dbNameArg)
+func addFromDBFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&fromDBFlag, "from-db", "", "Creates the new database based on an existing one")
+	cmd.Flags().MarkHidden("from-db")
+	cmd.RegisterFlagCompletionFunc("from-db", dbNameArg)
 }
