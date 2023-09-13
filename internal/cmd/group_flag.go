@@ -16,3 +16,11 @@ func addGroupFlag(cmd *cobra.Command) {
 		return groups, cobra.ShellCompDirectiveNoFileComp
 	})
 }
+
+var fromDBFlag string
+
+func addFromDBFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&fromDBFlag, "from-db", "", "Creates the new database based on an existing one")
+	cmd.Flags().MarkHidden("from-db")
+	cmd.RegisterFlagCompletionFunc("from-db", dbNameArg)
+}

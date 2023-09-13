@@ -73,9 +73,27 @@ type CreateDatabaseResponse struct {
 	Username string
 }
 
-func (d *DatabasesClient) Create(name, region, image, extensions, group string) (*CreateDatabaseResponse, error) {
-	type Body struct{ Name, Region, Image, Extensions, Group string }
-	body, err := marshal(Body{name, region, image, extensions, group})
+type DBSeed struct {
+	Value string `json:"value"`
+	Type  string `json:"type"`
+}
+
+type CreateDatabaseBody struct {
+	Name       string  `json:"name"`
+	Location   string  `json:"location"`
+	Image      string  `json:"image,omitempty"`
+	Extensions string  `json:"extensions,omitempty"`
+	Group      string  `json:"group,omitempty"`
+	Seed       *DBSeed `json:"seed,omitempty"`
+}
+
+func (d *DatabasesClient) Create(name, location, image, extensions, group, fromDB string) (*CreateDatabaseResponse, error) {
+	params := CreateDatabaseBody{name, location, image, extensions, group, nil}
+	if fromDB != "" {
+		params.Seed = &DBSeed{fromDB, "database"}
+	}
+
+	body, err := marshal(params)
 	if err != nil {
 		return nil, fmt.Errorf("could not serialize request body: %w", err)
 	}
