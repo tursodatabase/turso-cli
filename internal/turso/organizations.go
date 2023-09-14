@@ -26,7 +26,6 @@ func (c *OrganizationsClient) List() ([]Organization, error) {
 
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to list organizations: %s", r.Status)
-
 	}
 
 	type ListResponse struct {
@@ -136,6 +135,25 @@ func (c *OrganizationsClient) Usage() (OrgUsage, error) {
 		return OrgUsage{}, err
 	}
 	return body.OrgUsage, nil
+}
+
+func (c *OrganizationsClient) SetOverages(slug string, toggle bool) error {
+	path := "/v1/organizations/" + slug
+	body, err := marshal(map[string]bool{"overages": toggle})
+	if err != nil {
+		return fmt.Errorf("failed to marshall set overages request body: %s", err)
+	}
+	r, err := c.client.Patch(path, body)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to set overages: %s", r.Status)
+	}
+
+	return nil
 }
 
 type Member struct {

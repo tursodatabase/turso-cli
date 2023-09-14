@@ -143,12 +143,10 @@ var orgCreateCmd = &cobra.Command{
 		fmt.Printf("Organizations are only supported in paid plans.\n\n")
 
 		stripeCustomerId, err := client.Billing.CreateStripeCustomer(name)
-
 		if err != nil {
 			return fmt.Errorf("failed to create customer: %w", err)
 		}
 		ok, err := PaymentMethodHelperWithStripeId(client, stripeCustomerId, name)
-
 		if err != nil {
 			return fmt.Errorf("failed to add payment method: %w", err)
 		}
@@ -223,7 +221,7 @@ var orgDestroyCmd = &cobra.Command{
 
 var orgSwitchCmd = &cobra.Command{
 	Use:               "switch <slug>",
-	Short:             "switch to an organization as the context for your commands.",
+	Short:             "Switch to an organization as the context for your commands.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
 	RunE: func(cmd *cobra.Command, args []string) error {
