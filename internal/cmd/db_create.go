@@ -89,7 +89,6 @@ func firstTimeHint(dbName string, image string, client *turso.Client, location s
 	case false:
 		fmt.Printf("Ok! %s", replicaStr)
 	}
-
 }
 
 func replicate(client *turso.Client, dbName string, location string, locationText string, image string) error {
@@ -212,6 +211,11 @@ var createCmd = &cobra.Command{
 			}
 			spinner = prompt.Spinner(description)
 			defer spinner.Stop()
+		}
+
+		if err != nil {
+			client.Databases.Delete(name)
+			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
 		if waitFlag || dbFile != nil {
