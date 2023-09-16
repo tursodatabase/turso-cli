@@ -245,7 +245,7 @@ var createCmd = &cobra.Command{
 			isOnlyDatabase = true
 		}
 
-		if firstTime && isInteractive && isOnlyDatabase {
+		if firstTime && isInteractive && isOnlyDatabase && groupFlag == "" {
 			firstTimeHint(name, image, client, locationId, locations)
 		}
 
