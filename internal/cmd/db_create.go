@@ -184,59 +184,65 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
-		if dbFile != nil {
-			defer dbFile.Close()
-			description = fmt.Sprintf("Uploading database file %s", internal.Emph(fromFileFlag))
-			spinner.Text(description)
+		if groupFlag == "" {
 
-			err := client.Databases.Seed(name, dbFile)
+			if dbFile != nil {
+				defer dbFile.Close()
+				description = fmt.Sprintf("Uploading database file %s", internal.Emph(fromFileFlag))
+				spinner.Text(description)
+
+				err := client.Databases.Seed(name, dbFile)
+				if err != nil {
+					client.Databases.Delete(name)
+					return fmt.Errorf("could not create database %s: %w", name, err)
+				}
+
+				description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
+				spinner.Text(description)
+			}
+			var instance *turso.Instance
+			instance, err = client.Instances.Create(name, "", locationId, image)
+
+			var createInstanceLocationError *turso.CreateInstanceLocationError
+			if errors.As(err, &createInstanceLocationError) {
+				spinner.Stop()
+				instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
+				if err != nil {
+					client.Databases.Delete(name)
+					return err
+				}
+				spinner = prompt.Spinner(description)
+				defer spinner.Stop()
+			}
+
 			if err != nil {
 				client.Databases.Delete(name)
 				return fmt.Errorf("could not create database %s: %w", name, err)
 			}
 
-			description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
-			spinner.Text(description)
-		}
-		var instance *turso.Instance
-		instance, err = client.Instances.Create(name, "", locationId, image)
-
-		var createInstanceLocationError *turso.CreateInstanceLocationError
-		if errors.As(err, &createInstanceLocationError) {
-			spinner.Stop()
-			instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
-			if err != nil {
-				client.Databases.Delete(name)
-				return err
-			}
-			spinner = prompt.Spinner(description)
-			defer spinner.Stop()
-		}
-
-		if err != nil {
-			client.Databases.Delete(name)
-			return fmt.Errorf("could not create database %s: %w", name, err)
-		}
-
-		if waitFlag || dbFile != nil {
-			description = fmt.Sprintf("Waiting for database %s to be ready", internal.Emph(name))
-			spinner.Text(description)
-			numberOfRetries := 0
-			for numberOfRetries < 5 {
-				if err = client.Instances.Wait(name, instance.Name); err == nil {
-					break
+			if waitFlag || dbFile != nil {
+				description = fmt.Sprintf("Waiting for database %s to be ready", internal.Emph(name))
+				spinner.Text(description)
+				numberOfRetries := 0
+				for numberOfRetries < 5 {
+					if err = client.Instances.Wait(name, instance.Name); err == nil {
+						break
+					}
+					numberOfRetries++
 				}
-				numberOfRetries++
-			}
-			if err != nil {
-				return err
+				if err != nil {
+					return err
+				}
 			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(locationText), int(elapsed.Seconds()))
-
+		if groupFlag == "" {
+			fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(locationText), int(elapsed.Seconds()))
+		} else {
+			fmt.Printf("Created database %s in %s group in %d seconds.\n\n", internal.Emph(name), internal.Emph(groupFlag), int(elapsed.Seconds()))
+		}
 		firstTime := config.RegisterUse("db_create")
 		isInteractive := isatty.IsTerminal(os.Stdin.Fd())
 		isOnlyDatabase := false
