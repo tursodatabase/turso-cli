@@ -50,7 +50,12 @@ var replicateCmd = &cobra.Command{
 			return fmt.Errorf("invalid location ID. Run %s to see a list of valid location IDs", internal.Emph("turso db locations"))
 		}
 
-		instance, err := replicate(client, dbName, location)
+		if ok, _ := canReplicate(client, dbName); !ok {
+			cmd := internal.Emph(fmt.Sprintf("turso group locations add %s %s", database.Group, location))
+			return fmt.Errorf("database %s is part of a group.\nUse %s to replicate the group instead.", internal.Emph(dbName), cmd)
+		}
+
+		instance, err := replicate(client, database, location)
 		if err != nil {
 			return err
 		}
@@ -65,11 +70,11 @@ var replicateCmd = &cobra.Command{
 	},
 }
 
-func replicate(client *turso.Client, database, location string) (*turso.Instance, error) {
+func replicate(client *turso.Client, database turso.Database, location string) (*turso.Instance, error) {
 	start := time.Now()
 	instance, err := createInstance(client, database, location)
 	if shouldRetryReplicate(err) {
-		location, err = selectAlternativeLocation(client, database, location)
+		location, err = selectAlternativeLocation(client, database.Name, location)
 		if err != nil {
 			return nil, err
 		}
@@ -81,14 +86,14 @@ func replicate(client *turso.Client, database, location string) (*turso.Instance
 	}
 
 	if waitFlag {
-		err := waitForInstance(client, database, instance.Name, location)
+		err := waitForInstance(client, database.Name, instance.Name, location)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	elapsed := time.Since(start)
-	fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(database), internal.Emph(formatLocation(client, location)), int(elapsed.Seconds()))
+	fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(database.Name), internal.Emph(formatLocation(client, location)), int(elapsed.Seconds()))
 	return instance, nil
 }
 
@@ -129,12 +134,16 @@ func selectAlternativeLocation(client *turso.Client, database, locationID string
 	return locationID, nil
 }
 
-func createInstance(client *turso.Client, database, location string) (*turso.Instance, error) {
-	description := fmt.Sprintf("Replicating database %s to %s", internal.Emph(database), internal.Emph(formatLocation(client, location)))
+func createInstance(client *turso.Client, database turso.Database, location string) (*turso.Instance, error) {
+	description := fmt.Sprintf("Replicating database %s to %s", internal.Emph(database.Name), internal.Emph(formatLocation(client, location)))
 	s := prompt.Spinner(description)
 	defer s.Stop()
 
-	return client.Instances.Create(database, location)
+	if database.Group != "" {
+		return &turso.Instance{Name: location, Region: location}, client.Groups.AddLocation(database.Group, location)
+	}
+
+	return client.Instances.Create(database.Name, location)
 }
 
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -195,4 +204,25 @@ func pickLocation(dbName string, locations map[string]string, exclude []string) 
 	var choice string
 	fmt.Scanf("%s", &choice)
 	return choice
+}
+
+func canReplicate(client *turso.Client, name string) (bool, error) {
+	databases, err := getDatabases(client)
+	if err != nil {
+		return false, err
+	}
+
+	counter := map[string]int{}
+	group := ""
+	for _, database := range databases {
+		counter[database.Group]++
+		if database.Name == name {
+			group = database.Group
+		}
+	}
+
+	if group == "" {
+		return true, nil
+	}
+	return counter[group] == 1, nil
 }
