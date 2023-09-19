@@ -1,119 +1,22 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"sort"
 	"time"
-
-	"golang.org/x/exp/maps"
 
 	"github.com/athoscouto/codename"
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
-	"github.com/manifoldco/promptui"
-	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	dbCmd.AddCommand(createCmd)
-	addCanaryFlag(createCmd)
 	addGroupFlag(createCmd)
 	addFromDBFlag(createCmd)
-	addEnableExtensionsFlag(createCmd)
 	addDbFromFileFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
-	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
-}
-
-func firstTimeHint(dbName string, image string, client *turso.Client, location string, locations map[string]string) {
-	str := fmt.Sprintf("🎉 Congrats on creating your first database! Shall we make it available on another location?\n(Don't worry! We'll only ask you this the first time.).\n%s", internal.Emph("Let's do it?"))
-	doReplica, err := promptConfirmation(str)
-	fmt.Println("")
-	if err != nil {
-		doReplica = false
-	}
-
-	replicaStr := fmt.Sprintf("If you want to create a replica later, you can pick a location with %s, and then:\n\n   %s\n\n",
-		internal.Emph("turso db locations"), internal.Emph(fmt.Sprintf("turso db replicate %s [location]", dbName)))
-
-	switch doReplica {
-	case true:
-		suggestedLoc, suggestedLocationName := suggestedLocation(location, locations)
-
-		ids := maps.Keys(locations)
-		sort.Strings(ids)
-
-		columns := make([]interface{}, 0)
-		columns = append(columns, "ID↓")
-		columns = append(columns, "LOCATION")
-
-		tbl := turso.LocationsTable(columns)
-
-		for _, id := range ids {
-			if id == location {
-				continue
-			}
-			var text string
-			if id == suggestedLoc {
-				text = fmt.Sprintf("%s [suggested]", locations[id])
-				tbl.AddRow(internal.Emph(id), internal.Emph(text))
-			} else {
-				text = locations[id]
-				tbl.AddRow(id, text)
-			}
-		}
-		fmt.Printf("Great!! Where? We suggest %s, since you don't yet have coverage in %s\n", internal.Emph(suggestedLoc), internal.Emph(suggestedLocationName))
-		tbl.Print()
-		fmt.Printf("\n%s ", internal.Emph("Your choice"))
-		var chosen string
-		fmt.Scanf("%s", &chosen)
-		if chosen == "" {
-			fmt.Printf("Ok! %s", replicaStr)
-		} else {
-			if !isValidLocation(client, chosen) {
-				fmt.Printf("invalid location ID. Skipping\n")
-			} else {
-				err = replicate(client, dbName, chosen, locations[chosen], image)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error while creating replica: %v", err)
-				} else {
-					fmt.Printf("Don't forget: %s", replicaStr)
-				}
-			}
-		}
-	case false:
-		fmt.Printf("Ok! %s", replicaStr)
-	}
-}
-
-func replicate(client *turso.Client, dbName string, location string, locationText string, image string) error {
-	s := prompt.Spinner(fmt.Sprintf("Replicating database %s to %s ", internal.Emph(dbName), internal.Emph(locationText)))
-	defer s.Stop()
-
-	start := time.Now()
-	instance, err := client.Instances.Create(dbName, "", location, image)
-	if err != nil {
-		return fmt.Errorf("failed to create database: %s", err)
-	}
-
-	if waitFlag {
-		description := fmt.Sprintf("Waiting for replica of %s in %s to be ready", internal.Emph(dbName), internal.Emph(locationText))
-		s.Text(description)
-		if err = client.Instances.Wait(dbName, instance.Name); err != nil {
-			return err
-		}
-	}
-
-	s.Stop()
-	end := time.Now()
-	elapsed := end.Sub(start)
-	fmt.Printf("Replicated database %s to %s in %d seconds.\n\n", internal.Emph(dbName), internal.Emph(locationText), int(elapsed.Seconds()))
-	return nil
 }
 
 var createCmd = &cobra.Command{
@@ -132,11 +35,6 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("invalid database name: %w", err)
 		}
 
-		config, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
-
 		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
@@ -150,115 +48,23 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("location '%s' is not a valid one", locationId)
 		}
 
-		locations, err := locations(client)
-		if err != nil {
-			return err
-		}
-
-		image := "latest"
-		if canaryFlag {
-			image = "canary"
-		}
-
-		extensions := ""
-		if enableExtensionsFlag {
-			extensions = "all"
-		}
-
 		timestamp, err := parseTimestampFlag()
 		if err != nil {
 			return err
 		}
 
-		dbFile, err := getDbFile(fromFileFlag)
-		if err != nil {
-			return err
-		}
-
-		dbText := ""
-		if fromFileFlag != "" {
-			dbText = fmt.Sprintf(" from file %s", internal.Emph(fromFileFlag))
-		}
 		locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
-
 		start := time.Now()
-		description := fmt.Sprintf("Creating database %s%s in %s", internal.Emph(name), dbText, internal.Emph(locationText))
+		description := fmt.Sprintf("Creating database %s in %s", internal.Emph(name), internal.Emph(locationText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
-		if _, err = client.Databases.Create(name, locationId, image, extensions, groupFlag, fromDBFlag, timestamp); err != nil {
+		if _, err = client.Databases.Create(name, locationId, "", "", groupFlag, fromDBFlag, timestamp); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
-		}
-
-		if groupFlag == "" {
-
-			if dbFile != nil {
-				defer dbFile.Close()
-				description = fmt.Sprintf("Uploading database file %s", internal.Emph(fromFileFlag))
-				spinner.Text(description)
-
-				err := client.Databases.Seed(name, dbFile)
-				if err != nil {
-					client.Databases.Delete(name)
-					return fmt.Errorf("could not create database %s: %w", name, err)
-				}
-
-				description = fmt.Sprintf("Finishing to create database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
-				spinner.Text(description)
-			}
-			var instance *turso.Instance
-			instance, err = client.Instances.Create(name, "", locationId, image)
-
-			var createInstanceLocationError *turso.CreateInstanceLocationError
-			if errors.As(err, &createInstanceLocationError) {
-				spinner.Stop()
-				instance, description, err = handleInstanceCreationError(client, name, locationId, dbText, image)
-				if err != nil {
-					client.Databases.Delete(name)
-					return err
-				}
-				spinner = prompt.Spinner(description)
-				defer spinner.Stop()
-			}
-
-			if err != nil {
-				client.Databases.Delete(name)
-				return fmt.Errorf("could not create database %s: %w", name, err)
-			}
-
-			if waitFlag || dbFile != nil {
-				description = fmt.Sprintf("Waiting for database %s to be ready", internal.Emph(name))
-				spinner.Text(description)
-				numberOfRetries := 0
-				for numberOfRetries < 5 {
-					if err = client.Instances.Wait(name, instance.Name); err == nil {
-						break
-					}
-					numberOfRetries++
-				}
-				if err != nil {
-					return err
-				}
-			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		if groupFlag == "" {
-			fmt.Printf("Created database %s in %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(locationText), int(elapsed.Seconds()))
-		} else {
-			fmt.Printf("Created database %s in %s group in %d seconds.\n\n", internal.Emph(name), internal.Emph(groupFlag), int(elapsed.Seconds()))
-		}
-		firstTime := config.RegisterUse("db_create")
-		isInteractive := isatty.IsTerminal(os.Stdin.Fd())
-		isOnlyDatabase := false
-		databases, err := client.Databases.List()
-		if err == nil && len(databases) == 1 {
-			isOnlyDatabase = true
-		}
-
-		if firstTime && isInteractive && isOnlyDatabase && groupFlag == "" {
-			firstTimeHint(name, image, client, locationId, locations)
-		}
+		fmt.Printf("Created database %s in %s group in %d seconds.\n\n", internal.Emph(name), internal.Emph(groupFlag), int(elapsed.Seconds()))
 
 		fmt.Printf("You can start an interactive SQL shell with:\n\n")
 		fmt.Printf("   turso db shell %s\n\n", name)
@@ -271,36 +77,6 @@ var createCmd = &cobra.Command{
 	},
 }
 
-func getDbFile(path string) (*os.File, error) {
-	if fromFileFlag == "" {
-		return nil, nil
-	}
-
-	f, err := os.Open(fromFileFlag)
-	if err != nil {
-		return nil, fmt.Errorf("can't open %s: %w", fromFileFlag, err)
-	}
-
-	stat, err := f.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("can't stat %s: %w", fromFileFlag, err)
-	}
-
-	if stat.Size() > (2 << 30) {
-		return nil, fmt.Errorf("only files up to 2GiB are supported")
-	}
-
-	valid, err := isSQLiteFile(f)
-	if err != nil {
-		return nil, fmt.Errorf("error while reading %s: %w", fromFileFlag, err)
-	}
-	if !valid {
-		return nil, fmt.Errorf("%s doesn't seem to be a SQLite file", fromFileFlag)
-	}
-
-	return f, nil
-}
-
 func getDatabaseName(args []string) (string, error) {
 	if len(args) > 0 && len(args[0]) > 0 {
 		return args[0], nil
@@ -311,37 +87,4 @@ func getDatabaseName(args []string) (string, error) {
 		return "", err
 	}
 	return codename.Generate(rng, 0), nil
-}
-
-func handleInstanceCreationError(client *turso.Client, name, locationId string, dbText string, image string) (*turso.Instance, string, error) {
-	fmt.Printf("We couldn't create your database at %s.\nPlease try again in a few moments, or pick one of the nearby locations we've selected for you.\n", internal.Emph(locationId))
-
-	location, _ := client.Locations.Get(locationId)
-
-	closestLocationCodes := make([]string, 0, len(location.Closest))
-	for _, location := range location.Closest {
-		code := location.Code
-		closestLocationCodes = append(closestLocationCodes, code)
-	}
-	promptSelect := promptui.Select{
-		HideHelp:     true,
-		Label:        "Select a location",
-		Items:        closestLocationCodes,
-		HideSelected: true,
-	}
-
-	_, locationId, err := promptSelect.Run()
-	if err != nil {
-		return nil, "", fmt.Errorf("prompt failed %v", err)
-	}
-
-	locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
-
-	description := fmt.Sprintf("Creating database %s%s in %s ", internal.Emph(name), dbText, internal.Emph(locationText))
-	var instance *turso.Instance
-	if instance, err = client.Instances.Create(name, "", locationId, image); err != nil {
-		return nil, "", fmt.Errorf("we couldn't create your database. Please try again later")
-	}
-
-	return instance, description, nil
 }
