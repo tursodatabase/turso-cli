@@ -143,7 +143,6 @@ func restoreDatabase(client *turso.Client, name string, timestamp time.Time) err
 	elapsed := time.Since(start)
 
 	fmt.Printf("Restored database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
-	invalidateDatabasesCache()
 	return nil
 }
 

@@ -166,7 +166,3 @@ func (t *Client) Upload(path string, fileData *os.File) (*http.Response, error) 
 func (t *Client) Delete(path string, body io.Reader) (*http.Response, error) {
 	return t.do("DELETE", path, body)
 }
-
-func (t *Client) Restore(path string, body io.Reader) (*http.Response, error) {
-	return t.do("DELETE", path, body)
-}

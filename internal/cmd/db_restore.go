@@ -12,13 +12,12 @@ func init() {
 	dbCmd.AddCommand(restoreCmd)
 	restoreCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the restoration of all locations of the database.")
 	addDbTimestampFlag(restoreCmd)
-	restoreCmd.RegisterFlagCompletionFunc("instance", completeInstanceName)
 }
 
 var restoreCmd = &cobra.Command{
-	Use:               "restore database_name --timestamp 2023-09-25T14:53:00",
+	Use:               "restore database_name 2023-09-25T14:53:00",
 	Short:             "Restore a database to a given point in time.",
-	Args:              cobra.ExactArgs(1),
+	Args:              cobra.ExactArgs(2),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
@@ -27,7 +26,7 @@ var restoreCmd = &cobra.Command{
 			return err
 		}
 		name := args[0]
-		timestamp, err := time.Parse("2006-01-02T15:04:05", timestampFlag)
+		timestamp, err := time.Parse("2006-01-02T15:04:05", args[1])
 		if err != nil {
 			return fmt.Errorf("could not parse timestamp using 'yyyy-MM-ddThh:mm:ss' pattern: %w", err)
 		}
