@@ -131,6 +131,22 @@ func printTable(header []string, data [][]string) {
 	table.Render()
 }
 
+func restoreDatabase(client *turso.Client, name string, timestamp time.Time) error {
+	start := time.Now()
+	s := prompt.Spinner(fmt.Sprintf("Restoring the database %s to %s ... ", internal.Emph(name), timestamp.Format(time.RFC1123)))
+	defer s.Stop()
+
+	if err := client.Databases.Restore(name, timestamp); err != nil {
+		return err
+	}
+	s.Stop()
+	elapsed := time.Since(start)
+
+	fmt.Printf("Restored database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+	invalidateDatabasesCache()
+	return nil
+}
+
 func destroyDatabase(client *turso.Client, name string) error {
 	start := time.Now()
 	s := prompt.Spinner(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))

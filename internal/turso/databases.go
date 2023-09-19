@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 )
@@ -63,6 +64,39 @@ func (d *DatabasesClient) Delete(database string) error {
 
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to delete database: %s", r.Status)
+	}
+
+	return nil
+}
+
+type RestoreDatabaseBody struct {
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func (d *DatabasesClient) Restore(database string, timestamp time.Time) error {
+	url := d.URL(fmt.Sprintf("/%s/restore", database))
+	params := RestoreDatabaseBody{Timestamp: timestamp}
+	body, err := marshal(params)
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+	r, err := d.client.Post(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to restore database: %s", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(database), internal.Emph("turso db list"))
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to restore database: %s", r.Status)
 	}
 
 	return nil
