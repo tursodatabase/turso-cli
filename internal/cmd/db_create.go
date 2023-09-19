@@ -40,33 +40,39 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		locationId := locationFlag
-		if locationId == "" {
-			locationId, _ = closestLocation(client)
-		}
-		if !isValidLocation(client, locationId) {
-			return fmt.Errorf("location '%s' is not a valid one", locationId)
+		group, err := groupFromFlag(client)
+		if err != nil {
+			return err
 		}
 
-		locationText := fmt.Sprintf("%s (%s)", locationDescription(client, locationId), locationId)
+		location, err := locationFromFlag(client)
+		if err != nil {
+			return err
+		}
+
+		if ok, err := shouldCreateGroup(client, group, location); ok {
+			createGroup(client, group, location)
+		} else if err != nil {
+			return err
+		}
+
 		start := time.Now()
-		description := fmt.Sprintf("Creating database %s in %s", internal.Emph(name), internal.Emph(locationText))
-		spinner := prompt.Spinner(description)
+		spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(group)))
 		defer spinner.Stop()
-		if _, err = client.Databases.Create(name, locationId, "", "", groupFlag, fromDBFlag); err != nil {
+		if _, err = client.Databases.Create(name, location, "", "", group, fromDBFlag); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s in %s group in %d seconds.\n\n", internal.Emph(name), internal.Emph(groupFlag), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s at group %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(group), int(elapsed.Seconds()))
 
-		fmt.Printf("You can start an interactive SQL shell with:\n\n")
-		fmt.Printf("   turso db shell %s\n\n", name)
+		fmt.Printf("Start an interactive SQL shell with:\n\n")
+		fmt.Printf("   %s\n\n", internal.Emph("turso db shell "+name))
 		fmt.Printf("To see information about the database, including a connection URL, run:\n\n")
-		fmt.Printf("   turso db show %s\n\n", name)
+		fmt.Printf("   %s\n\n", internal.Emph("turso db show "+name))
 		fmt.Printf("To get an authentication token for the database, run:\n\n")
-		fmt.Printf("   turso db tokens create %s\n\n", name)
+		fmt.Printf("   %s\n\n", internal.Emph("turso db tokens create "+name))
 		invalidateDatabasesCache()
 		return nil
 	},
@@ -82,4 +88,57 @@ func getDatabaseName(args []string) (string, error) {
 		return "", err
 	}
 	return codename.Generate(rng, 0), nil
+}
+
+func groupFromFlag(client *turso.Client) (string, error) {
+	groups, err := getGroups(client)
+	if err != nil {
+		return "", err
+	}
+
+	if groupFlag != "" {
+		if !groupExists(groups, groupFlag) {
+			return "", fmt.Errorf("group %s does not exist", groupFlag)
+		}
+		return groupFlag, nil
+	}
+
+	switch {
+	case len(groups) == 0:
+		return "default", nil
+	case len(groups) == 1:
+		return groups[0].Name, nil
+	default:
+		return "", fmt.Errorf("you have more than one database group. Please specify one with %s", internal.Emph("--group"))
+
+	}
+}
+
+func groupExists(groups []turso.Group, name string) bool {
+	for _, group := range groups {
+		if group.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func locationFromFlag(client *turso.Client) (string, error) {
+	loc := locationFlag
+	if loc == "" {
+		loc, _ = closestLocation(client)
+	}
+	if !isValidLocation(client, loc) {
+		return "", fmt.Errorf("location '%s' is not valid", loc)
+	}
+	return loc, nil
+}
+
+func shouldCreateGroup(client *turso.Client, name, location string) (bool, error) {
+	groups, err := getGroups(client)
+	if err != nil {
+		return false, err
+	}
+	// we only create the default group automatically
+	return name == "default" && len(groups) == 0, nil
 }
