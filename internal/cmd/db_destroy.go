@@ -26,12 +26,24 @@ var destroyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		db, err := getDatabase(client, args[0])
+		if err != nil {
+			return nil
+		}
+
 		name := args[0]
 		if instanceFlag != "" {
+			if db.Group != "" {
+				return fmt.Errorf("group databases do not support instance destruction.\nUse %s instead", internal.Emph("turso group locations rm "+name))
+			}
 			return destroyDatabaseInstance(client, name, instanceFlag)
 		}
 
 		if locationFlag != "" {
+			if db.Group != "" {
+				return fmt.Errorf("group databases do not support location destruction.\nUse %s instead", internal.Emph("turso group locations rm "+name+" "+locationFlag))
+			}
 			return destroyDatabaseRegion(client, name, locationFlag)
 		}
 
@@ -39,7 +51,7 @@ var destroyCmd = &cobra.Command{
 			return destroyDatabase(client, name)
 		}
 
-		fmt.Printf("Database %s, all its replicas, and data will be destroyed.\n", internal.Emph(name))
+		fmt.Printf("Database %s, and all its data will be destroyed.\n", internal.Emph(name))
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
 		if err != nil {
