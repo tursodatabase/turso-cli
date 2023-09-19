@@ -79,12 +79,11 @@ func (i *InstancesClient) Delete(db, instance string) error {
 	return nil
 }
 
-func (d *InstancesClient) Create(dbName, instanceName, region, image string) (*Instance, error) {
+func (d *InstancesClient) Create(dbName, location string) (*Instance, error) {
 	type Body struct {
-		Region, Image string
-		InstanceName  string `json:"instance_name,omitempty"`
+		Location string
 	}
-	body, err := marshal(Body{region, image, instanceName})
+	body, err := marshal(Body{location})
 	if err != nil {
 		return nil, fmt.Errorf("could not serialize request body: %w", err)
 	}

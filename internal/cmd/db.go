@@ -227,3 +227,11 @@ func locationDescription(client *turso.Client, id string) string {
 	}
 	return fmt.Sprintf("Location ID: %s", id)
 }
+
+func formatLocation(client *turso.Client, id string) string {
+	locations, _ := locations(client)
+	if desc, ok := locations[id]; ok {
+		return fmt.Sprintf("%s (%s)", desc, id)
+	}
+	return fmt.Sprintf("Location ID: %s", id)
+}
