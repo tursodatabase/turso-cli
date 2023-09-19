@@ -17,6 +17,7 @@ type Database struct {
 	PrimaryRegion string
 	Hostname      string
 	Version       string
+	Group         string
 }
 
 type DatabasesClient client
