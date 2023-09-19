@@ -72,20 +72,7 @@ var groupsCreateCmd = &cobra.Command{
 			return fmt.Errorf("location '%s' is not a valid one", location)
 		}
 
-		start := time.Now()
-		description := fmt.Sprintf("Creating group %s at %s...", internal.Emph(name), internal.Emph(location))
-		spinner := prompt.Spinner(description)
-		defer spinner.Stop()
-
-		if err := client.Groups.Create(name, location); err != nil {
-			return err
-		}
-
-		spinner.Stop()
-		elapsed := time.Since(start)
-		fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
-		invalidateGroupsCache(client.Org)
-		return nil
+		return createGroup(client, name, location)
 	},
 }
 
@@ -120,6 +107,24 @@ var groupsDestroyCmd = &cobra.Command{
 
 		return destroyGroup(client, name)
 	},
+}
+
+func createGroup(client *turso.Client, name, location string) error {
+	start := time.Now()
+	description := fmt.Sprintf("Creating group %s at %s...", internal.Emph(name), internal.Emph(location))
+	spinner := prompt.Spinner(description)
+	defer spinner.Stop()
+
+	if err := client.Groups.Create(name, location); err != nil {
+		return err
+	}
+
+	spinner.Stop()
+	elapsed := time.Since(start)
+	fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
+
+	invalidateGroupsCache(client.Org)
+	return nil
 }
 
 func destroyGroup(client *turso.Client, name string) error {
