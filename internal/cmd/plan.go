@@ -64,34 +64,56 @@ var planShowCmd = &cobra.Command{
 		if organizationName = client.Org; organizationName == "" {
 			organizationName = settings.GetUsername()
 		}
+		orgs, err := client.Organizations.List()
+		if err != nil {
+			return err
+		}
+		var currentOrg turso.Organization
+		for _, org := range orgs {
+			if org.Slug == organizationName {
+				currentOrg = org
+				break
+			}
+		}
 
 		fmt.Printf("Organization: %s\n", internal.Emph(organizationName))
 
 		fmt.Printf("Plan: %s\n", internal.Emph(plan))
+		fmt.Printf("Overages enabled: %s\n", internal.Emph(strconv.FormatBool(currentOrg.Overages)))
 		fmt.Println()
 
 		current := getPlan(plan, plans)
-
-		columns := make([]interface{}, 0)
-		columns = append(columns, "RESOURCE")
-		columns = append(columns, "USED")
-		columns = append(columns, "LIMIT")
-		columns = append(columns, "USED %")
-
-		tbl := table.New(columns...)
-
-		columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
-		tbl.WithFirstColumnFormatter(columnFmt)
-
-		addResourceRowBytes(tbl, "storage", orgUsage.Usage.StorageBytesUsed, current.Quotas.Storage)
-		addResourceRowMillions(tbl, "rows read", orgUsage.Usage.RowsRead, current.Quotas.RowsRead)
-		addResourceRowMillions(tbl, "rows written", orgUsage.Usage.RowsWritten, current.Quotas.RowsWritten)
-		addResourceRowCount(tbl, "databases", orgUsage.Usage.Databases, current.Quotas.Databases)
-		addResourceRowCount(tbl, "locations", orgUsage.Usage.Locations, current.Quotas.Locations)
+		tbl := planUsageTable(orgUsage, current, currentOrg)
 		tbl.Print()
 		fmt.Printf("\nQuota will reset on %s\n", getFirstDayOfNextMonth().Local().Format(time.RFC1123))
 		return nil
 	},
+}
+
+func planUsageTable(orgUsage turso.OrgUsage, current turso.Plan, currentOrg turso.Organization) table.Table {
+	columns := make([]interface{}, 0)
+	columns = append(columns, "RESOURCE")
+	columns = append(columns, "USED")
+
+	if currentOrg.Overages {
+		columns = append(columns, "ALLOWANCE")
+		columns = append(columns, "ALLOWANCE USED %")
+	} else {
+		columns = append(columns, "LIMIT")
+		columns = append(columns, "USED %")
+	}
+
+	tbl := table.New(columns...)
+
+	columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
+	tbl.WithFirstColumnFormatter(columnFmt)
+
+	addResourceRowBytes(tbl, "storage", orgUsage.Usage.StorageBytesUsed, current.Quotas.Storage)
+	addResourceRowMillions(tbl, "rows read", orgUsage.Usage.RowsRead, current.Quotas.RowsRead)
+	addResourceRowMillions(tbl, "rows written", orgUsage.Usage.RowsWritten, current.Quotas.RowsWritten)
+	addResourceRowCount(tbl, "databases", orgUsage.Usage.Databases, current.Quotas.Databases)
+	addResourceRowCount(tbl, "locations", orgUsage.Usage.Locations, current.Quotas.Locations)
+	return tbl
 }
 
 func orgPlanData(client *turso.Client) (sub string, usage turso.OrgUsage, plans []turso.Plan, err error) {

@@ -15,6 +15,7 @@ type Organization struct {
 	Slug     string `json:"slug,omitempty"`
 	Type     string `json:"type,omitempty"`
 	StripeID string `json:"stripe_id,omitempty"`
+	Overages bool   `json:"overages,omitempty"`
 }
 
 func (c *OrganizationsClient) List() ([]Organization, error) {
