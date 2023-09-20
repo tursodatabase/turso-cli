@@ -165,15 +165,9 @@ var createCmd = &cobra.Command{
 			extensions = "all"
 		}
 
-		var timestamp *time.Time
-		if fromDBFlag != "" {
-			ts, err := time.Parse("2006-01-02T15:04:05", timestampFlag)
-			if err != nil {
-				return fmt.Errorf("provided timestamp was not in 'yyyy-MM-ddThh:mm::ss' format")
-			}
-			timestamp = &ts
-		} else if timestampFlag != "" {
-			return fmt.Errorf("--timestamp cannot be used without specifying --from-db option")
+		timestamp, err := parseTimestampFlag()
+		if err != nil {
+			return nil
 		}
 
 		dbFile, err := getDbFile(fromFileFlag)
