@@ -136,6 +136,10 @@ func (t *Client) Post(path string, body io.Reader) (*http.Response, error) {
 	return t.do("POST", path, body)
 }
 
+func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {
+	return t.do("PATCH", path, body)
+}
+
 func (t *Client) Upload(path string, fileData *os.File) (*http.Response, error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)

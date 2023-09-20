@@ -24,11 +24,20 @@ func init() {
 	planCmd.AddCommand(planShowCmd)
 	planCmd.AddCommand(planSelectCmd)
 	planCmd.AddCommand(planUpgradeCmd)
+	planCmd.AddCommand(overagesCommand)
+	overagesCommand.AddCommand(planEnableOverages)
+	overagesCommand.AddCommand(planDisableOverages)
 }
 
 var planCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Manage your organization plan",
+}
+
+var overagesCommand = &cobra.Command{
+	Use:    "overages",
+	Short:  "Manage your current organization overages",
+	Hidden: true,
 }
 
 var planShowCmd = &cobra.Command{
@@ -172,6 +181,50 @@ var planUpgradeCmd = &cobra.Command{
 		}
 
 		return ChangePlan(client, plans, current, hasPaymentMethod, "scaler")
+	},
+}
+
+var planEnableOverages = &cobra.Command{
+	Use:   "enable",
+	Short: "Enable overages for your current organization plan",
+	Args:  cobra.ExactArgs(0),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+		var org string
+		if org = settings.Organization(); org == "" {
+			org = settings.GetUsername()
+		}
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		return client.Organizations.SetOverages(org, true)
+	},
+}
+
+var planDisableOverages = &cobra.Command{
+	Use:   "disable",
+	Short: "Disable overages for your current organization plan",
+	Args:  cobra.ExactArgs(0),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+		var org string
+		if org = settings.Organization(); org == "" {
+			org = settings.GetUsername()
+		}
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		return client.Organizations.SetOverages(org, false)
 	},
 }
 
