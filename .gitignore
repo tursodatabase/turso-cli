@@ -4,4 +4,5 @@ completions
 internal/cmd/version.txt
 .turso_history
 .vscode/
+.idea/
 cmd/turso/turso

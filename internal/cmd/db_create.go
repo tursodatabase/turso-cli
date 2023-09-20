@@ -165,6 +165,17 @@ var createCmd = &cobra.Command{
 			extensions = "all"
 		}
 
+		var timestamp *time.Time
+		if fromDBFlag != "" {
+			ts, err := time.Parse("2006-01-02T15:04:05", timestampFlag)
+			if err != nil {
+				return fmt.Errorf("provided timestamp was not in 'yyyy-MM-ddThh:mm::ss' format")
+			}
+			timestamp = &ts
+		} else if timestampFlag != "" {
+			return fmt.Errorf("--timestamp cannot be used without specifying --from-db option")
+		}
+
 		dbFile, err := getDbFile(fromFileFlag)
 		if err != nil {
 			return err
@@ -180,7 +191,7 @@ var createCmd = &cobra.Command{
 		description := fmt.Sprintf("Creating database %s%s in %s", internal.Emph(name), dbText, internal.Emph(locationText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
-		if _, err = client.Databases.Create(name, locationId, image, extensions, groupFlag, fromDBFlag); err != nil {
+		if _, err = client.Databases.Create(name, locationId, image, extensions, groupFlag, fromDBFlag, timestamp); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
