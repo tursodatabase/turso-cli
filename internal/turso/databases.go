@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 )
@@ -79,16 +80,17 @@ type DBSeed struct {
 }
 
 type CreateDatabaseBody struct {
-	Name       string  `json:"name"`
-	Location   string  `json:"location"`
-	Image      string  `json:"image,omitempty"`
-	Extensions string  `json:"extensions,omitempty"`
-	Group      string  `json:"group,omitempty"`
-	Seed       *DBSeed `json:"seed,omitempty"`
+	Name       string     `json:"name"`
+	Location   string     `json:"location"`
+	Image      string     `json:"image,omitempty"`
+	Extensions string     `json:"extensions,omitempty"`
+	Group      string     `json:"group,omitempty"`
+	Seed       *DBSeed    `json:"seed,omitempty"`
+	Timestamp  *time.Time `json:"timestamp,omitempty"`
 }
 
-func (d *DatabasesClient) Create(name, location, image, extensions, group, fromDB string) (*CreateDatabaseResponse, error) {
-	params := CreateDatabaseBody{name, location, image, extensions, group, nil}
+func (d *DatabasesClient) Create(name, location, image, extensions, group, fromDB string, timestamp *time.Time) (*CreateDatabaseResponse, error) {
+	params := CreateDatabaseBody{name, location, image, extensions, group, nil, timestamp}
 	if fromDB != "" {
 		params.Seed = &DBSeed{fromDB, "database"}
 	}

@@ -165,6 +165,11 @@ var createCmd = &cobra.Command{
 			extensions = "all"
 		}
 
+		timestamp, err := parseTimestampFlag()
+		if err != nil {
+			return err
+		}
+
 		dbFile, err := getDbFile(fromFileFlag)
 		if err != nil {
 			return err
@@ -180,7 +185,7 @@ var createCmd = &cobra.Command{
 		description := fmt.Sprintf("Creating database %s%s in %s", internal.Emph(name), dbText, internal.Emph(locationText))
 		spinner := prompt.Spinner(description)
 		defer spinner.Stop()
-		if _, err = client.Databases.Create(name, locationId, image, extensions, groupFlag, fromDBFlag); err != nil {
+		if _, err = client.Databases.Create(name, locationId, image, extensions, groupFlag, fromDBFlag, timestamp); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
