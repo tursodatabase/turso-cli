@@ -34,17 +34,16 @@ func addFromDBFlag(cmd *cobra.Command) {
 }
 
 func parseTimestampFlag() (*time.Time, error) {
-	var timestamp *time.Time
-	if fromDBFlag != "" {
-		if timestampFlag != "" {
-			ts, err := time.Parse("2006-01-02T15:04:05", timestampFlag)
-			if err != nil {
-				return nil, fmt.Errorf("provided timestamp was not in 'yyyy-MM-ddThh:mm::ss' format")
-			}
-			timestamp = &ts
-		}
-	} else if timestampFlag != "" {
-		return nil, fmt.Errorf("--timestamp cannot be used without specifying --from-db option")
+	if timestampFlag == "" {
+		return nil, nil
 	}
-	return timestamp, nil
+	if fromDBFlag == "" {
+		return nil, fmt.Errorf("--timestamp cannot be used without specifying --from-db")
+	}
+
+	ts, err := time.Parse("2006-01-02T15:04:05", timestampFlag)
+	if err != nil {
+		return nil, fmt.Errorf("provided timestamp was not in 'yyyy-MM-ddThh:mm::ss' format")
+	}
+	return &ts, nil
 }
