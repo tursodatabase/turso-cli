@@ -167,7 +167,7 @@ var createCmd = &cobra.Command{
 
 		timestamp, err := parseTimestampFlag()
 		if err != nil {
-			return nil
+			return err
 		}
 
 		dbFile, err := getDbFile(fromFileFlag)
