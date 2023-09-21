@@ -11,9 +11,8 @@ import (
 )
 
 var groupCmd = &cobra.Command{
-	Use:    "group",
-	Short:  "Manage your database groups",
-	Hidden: true,
+	Use:   "group",
+	Short: "Manage your database groups",
 }
 
 func init() {
