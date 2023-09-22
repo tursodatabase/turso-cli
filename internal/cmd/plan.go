@@ -314,16 +314,19 @@ func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	return checkPaymentMethod(client, "")
 }
 
+func hasPaymentMethodCheck(client *turso.Client, stripeId string) (bool, error) {
+	if stripeId != "" {
+		return client.Billing.HasPaymentMethodWithStripeId(stripeId)
+	}
+	return client.Billing.HasPaymentMethod()
+}
+
 func checkPaymentMethod(client *turso.Client, stripeId string) (bool, error) {
 	errsInARoW := 0
 	var hasPaymentMethod bool
 	var err error
 	for {
-		if stripeId != "" {
-			hasPaymentMethod, err = client.Billing.HasPaymentMethodWithStripeId(stripeId)
-		} else {
-			hasPaymentMethod, err = client.Billing.HasPaymentMethod()
-		}
+		hasPaymentMethod, err = hasPaymentMethodCheck(client, stripeId)
 		if err != nil {
 			errsInARoW += 1
 		}
