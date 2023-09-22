@@ -212,7 +212,7 @@ var planEnableOverages = &cobra.Command{
 				return fmt.Errorf("failed to check payment method: %w", err)
 			}
 			if !ok {
-				return nil
+				return fmt.Errorf("failed to add payment method")
 			}
 			fmt.Println("Payment method added successfully.")
 			fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
