@@ -202,6 +202,21 @@ var planEnableOverages = &cobra.Command{
 			return err
 		}
 
+		hasPaymentMethod, err := client.Billing.HasPaymentMethod()
+		if err != nil {
+			return err
+		}
+		if !hasPaymentMethod {
+			ok, err := PaymentMethodHelperOverages(client)
+			if err != nil {
+				return fmt.Errorf("failed to check payment method: %w", err)
+			}
+			if !ok {
+				return fmt.Errorf("failed to add payment method")
+			}
+			fmt.Println("Payment method added successfully.")
+			fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
+		}
 		return client.Organizations.SetOverages(org, true)
 	},
 }
@@ -296,9 +311,22 @@ func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	spinner := prompt.Spinner("Waiting for you to add a payment method")
 	defer spinner.Stop()
 
+	return checkPaymentMethod(client, "")
+}
+
+func hasPaymentMethodCheck(client *turso.Client, stripeId string) (bool, error) {
+	if stripeId != "" {
+		return client.Billing.HasPaymentMethodWithStripeId(stripeId)
+	}
+	return client.Billing.HasPaymentMethod()
+}
+
+func checkPaymentMethod(client *turso.Client, stripeId string) (bool, error) {
 	errsInARoW := 0
+	var hasPaymentMethod bool
+	var err error
 	for {
-		hasPaymentMethod, err := client.Billing.HasPaymentMethod()
+		hasPaymentMethod, err = hasPaymentMethodCheck(client, stripeId)
 		if err != nil {
 			errsInARoW += 1
 		}
@@ -313,6 +341,28 @@ func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 		}
 		time.Sleep(1 * time.Second)
 	}
+}
+
+func PaymentMethodHelperOverages(client *turso.Client) (bool, error) {
+	fmt.Print("You need to add a payment method before you can enable overages.\n")
+	printPricingInfoDisclaimer()
+
+	ok, _ := promptConfirmation("Want to add a payment method right now?")
+	if !ok {
+		fmt.Printf("When you're ready, you can use %s to manage your payment methods.\n", internal.Emph("turso org billing"))
+		return false, nil
+	}
+
+	fmt.Println()
+	if err := billingPortal(client); err != nil {
+		return false, err
+	}
+	fmt.Println()
+
+	spinner := prompt.Spinner("Waiting for you to add a payment method")
+	defer spinner.Stop()
+
+	return checkPaymentMethod(client, "")
 }
 
 func PaymentMethodHelperWithStripeId(client *turso.Client, stripeId, orgName string) (bool, error) {
@@ -334,23 +384,7 @@ func PaymentMethodHelperWithStripeId(client *turso.Client, stripeId, orgName str
 	spinner := prompt.Spinner("Waiting for you to add a payment method")
 	defer spinner.Stop()
 
-	errsInARoW := 0
-	for {
-		hasPaymentMethod, err := client.Billing.HasPaymentMethodWithStripeId(stripeId)
-		if err != nil {
-			errsInARoW += 1
-		}
-		if errsInARoW > 5 {
-			return false, err
-		}
-		if err == nil {
-			errsInARoW = 0
-		}
-		if hasPaymentMethod {
-			return true, nil
-		}
-		time.Sleep(1 * time.Second)
-	}
+	return checkPaymentMethod(client, stripeId)
 }
 
 func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string, hasPaymentMethod bool, err error) {
