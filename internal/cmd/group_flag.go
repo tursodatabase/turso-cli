@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 var groupFlag string
@@ -24,11 +25,9 @@ var fromDBFlag string
 var timestampFlag string
 
 func addFromDBFlag(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&fromDBFlag, "from-db", "", "Creates the new database based on an existing one")
+	cmd.Flags().StringVar(&fromDBFlag, "from-db", "", "Select another database to copy data from. To use data from a past version of the selected database, see the 'timestamp' flag.")
 	cmd.RegisterFlagCompletionFunc("from-db", dbNameArg)
-
-	cmd.Flags().StringVar(&timestampFlag, "timestamp", "", "When used with --from-db option, new database will represent state of its origin at given point in time")
-	cmd.Flags().MarkHidden("timestamp")
+	cmd.Flags().StringVar(&timestampFlag, "timestamp", "", "Set a point in time in the past to copy data from the selected database. Must be used with the 'from-db' flag. Must be in the format 'yyyy-MM-ddThh:mm::ss'")
 }
 
 func parseTimestampFlag() (*time.Time, error) {
