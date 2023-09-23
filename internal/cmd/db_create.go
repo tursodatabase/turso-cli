@@ -55,9 +55,7 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		if ok, err := shouldCreateGroup(client, group, location); ok {
-			createGroup(client, group, location)
-		} else if err != nil {
+		if err := ensureGroup(client, group, location); err != nil {
 			return err
 		}
 
@@ -81,6 +79,13 @@ var createCmd = &cobra.Command{
 		invalidateDatabasesCache()
 		return nil
 	},
+}
+
+func ensureGroup(client *turso.Client, group, location string) error {
+	if ok, err := shouldCreateGroup(client, group, location); !ok {
+		return err
+	}
+	return createGroup(client, group, location)
 }
 
 func getDatabaseName(args []string) (string, error) {
