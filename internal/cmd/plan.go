@@ -40,6 +40,19 @@ var overagesCommand = &cobra.Command{
 	Hidden: true,
 }
 
+func getCurrentOrg(client *turso.Client, organizationName string) (turso.Organization, error) {
+	orgs, err := client.Organizations.List()
+	if err != nil {
+		return turso.Organization{}, err
+	}
+	for _, org := range orgs {
+		if org.Slug == organizationName {
+			return org, nil
+		}
+	}
+	return turso.Organization{}, fmt.Errorf("could not find organization %s", organizationName)
+}
+
 var planShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show your current organization plan",
@@ -60,38 +73,61 @@ var planShowCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		var organizationName string
 		if organizationName = client.Org; organizationName == "" {
 			organizationName = settings.GetUsername()
 		}
 
+		currentOrg, err := getCurrentOrg(client, organizationName)
+		if err != nil {
+			return err
+		}
+
 		fmt.Printf("Organization: %s\n", internal.Emph(organizationName))
 
 		fmt.Printf("Plan: %s\n", internal.Emph(plan))
+		fmt.Print(overagesMessage(currentOrg.Overages))
 		fmt.Println()
 
 		current := getPlan(plan, plans)
-
-		columns := make([]interface{}, 0)
-		columns = append(columns, "RESOURCE")
-		columns = append(columns, "USED")
-		columns = append(columns, "LIMIT")
-		columns = append(columns, "USED %")
-
-		tbl := table.New(columns...)
-
-		columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
-		tbl.WithFirstColumnFormatter(columnFmt)
-
-		addResourceRowBytes(tbl, "storage", orgUsage.Usage.StorageBytesUsed, current.Quotas.Storage)
-		addResourceRowMillions(tbl, "rows read", orgUsage.Usage.RowsRead, current.Quotas.RowsRead)
-		addResourceRowMillions(tbl, "rows written", orgUsage.Usage.RowsWritten, current.Quotas.RowsWritten)
-		addResourceRowCount(tbl, "databases", orgUsage.Usage.Databases, current.Quotas.Databases)
-		addResourceRowCount(tbl, "locations", orgUsage.Usage.Locations, current.Quotas.Locations)
+		tbl := planUsageTable(orgUsage, current, currentOrg)
 		tbl.Print()
 		fmt.Printf("\nQuota will reset on %s\n", getFirstDayOfNextMonth().Local().Format(time.RFC1123))
 		return nil
 	},
+}
+
+func overagesMessage(overages bool) string {
+	status := "disabled"
+	if overages {
+		status = "enabled"
+	}
+	return fmt.Sprintf("Overages %s\n", internal.Emph(status))
+}
+
+func planUsageTable(orgUsage turso.OrgUsage, current turso.Plan, currentOrg turso.Organization) table.Table {
+	columns := make([]interface{}, 0)
+	columns = append(columns, "RESOURCE")
+	columns = append(columns, "USED")
+
+	columns = append(columns, "LIMIT")
+	columns = append(columns, "LIMIT %")
+	if currentOrg.Overages {
+		columns = append(columns, "OVERAGE")
+	}
+
+	tbl := table.New(columns...)
+
+	columnFmt := color.New(color.FgBlue, color.Bold).SprintfFunc()
+	tbl.WithFirstColumnFormatter(columnFmt)
+
+	addResourceRowBytes(tbl, "storage", orgUsage.Usage.StorageBytesUsed, current.Quotas.Storage, currentOrg.Overages)
+	addResourceRowMillions(tbl, "rows read", orgUsage.Usage.RowsRead, current.Quotas.RowsRead, currentOrg.Overages)
+	addResourceRowMillions(tbl, "rows written", orgUsage.Usage.RowsWritten, current.Quotas.RowsWritten, currentOrg.Overages)
+	addResourceRowCount(tbl, "databases", orgUsage.Usage.Databases, current.Quotas.Databases)
+	addResourceRowCount(tbl, "locations", orgUsage.Usage.Locations, current.Quotas.Locations)
+	return tbl
 }
 
 func orgPlanData(client *turso.Client) (sub string, usage turso.OrgUsage, plans []turso.Plan, err error) {
@@ -481,17 +517,27 @@ func printPricingInfoDisclaimer() {
 	fmt.Printf("For information about Turso plans pricing and features, access: %s\n\n", internal.Emph("https://turso.tech/pricing"))
 }
 
-func addResourceRowBytes(tbl table.Table, resource string, used, limit uint64) {
+func addResourceRowBytes(tbl table.Table, resource string, used, limit uint64, overages bool) {
 	if limit == 0 {
 		tbl.AddRow(resource, humanize.Bytes(used), "Unlimited", "")
+		return
+	}
+	exceededValue := uint64(max(int(used)-int(limit), 0))
+	if overages && exceededValue > 0 {
+		tbl.AddRow(resource, humanize.Bytes(used), humanize.Bytes(limit), percentage(float64(used), float64(limit)), humanize.Bytes(exceededValue))
 		return
 	}
 	tbl.AddRow(resource, humanize.Bytes(used), humanize.Bytes(limit), percentage(float64(used), float64(limit)))
 }
 
-func addResourceRowMillions(tbl table.Table, resource string, used, limit uint64) {
+func addResourceRowMillions(tbl table.Table, resource string, used, limit uint64, overages bool) {
 	if limit == 0 {
 		tbl.AddRow(resource, used, "Unlimited", "")
+		return
+	}
+	exceededValue := uint64(max(int(used)-int(limit), 0))
+	if overages && exceededValue > 0 {
+		tbl.AddRow(resource, toM(used), toM(limit), percentage(float64(used), float64(limit)), toM(exceededValue))
 		return
 	}
 	tbl.AddRow(resource, toM(used), toM(limit), percentage(float64(used), float64(limit)))
