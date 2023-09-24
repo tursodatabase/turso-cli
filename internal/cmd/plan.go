@@ -40,6 +40,19 @@ var overagesCommand = &cobra.Command{
 	Hidden: true,
 }
 
+func getCurrentOrg(client *turso.Client, organizationName string) (turso.Organization, error) {
+	orgs, err := client.Organizations.List()
+	if err != nil {
+		return turso.Organization{}, err
+	}
+	for _, org := range orgs {
+		if org.Slug == organizationName {
+			return org, nil
+		}
+	}
+	return turso.Organization{}, fmt.Errorf("could not find organization %s", organizationName)
+}
+
 var planShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show your current organization plan",
@@ -60,24 +73,19 @@ var planShowCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		var organizationName string
 		if organizationName = client.Org; organizationName == "" {
 			organizationName = settings.GetUsername()
 		}
-		orgs, err := client.Organizations.List()
+
+		currentOrg, err := getCurrentOrg(client, organizationName)
 		if err != nil {
 			return err
 		}
-		var currentOrg turso.Organization
-		for _, org := range orgs {
-			if org.Slug == organizationName {
-				currentOrg = org
-				break
-			}
-		}
 
 		fmt.Printf("Organization: %s\n", internal.Emph(organizationName))
-		currentOrg.Overages = true
+
 		fmt.Printf("Plan: %s\n", internal.Emph(plan))
 		fmt.Print(overagesMessage(currentOrg.Overages))
 		fmt.Println()
@@ -91,10 +99,11 @@ var planShowCmd = &cobra.Command{
 }
 
 func overagesMessage(overages bool) string {
+	status := "disabled"
 	if overages {
-		return fmt.Sprintf("Overages %s\n", internal.Emph("enabled"))
+		status = "enabled"
 	}
-	return fmt.Sprintf("Overages %s\n", internal.Emph("disabled"))
+	return fmt.Sprintf("Overages %s\n", internal.Emph(status))
 }
 
 func planUsageTable(orgUsage turso.OrgUsage, current turso.Plan, currentOrg turso.Organization) table.Table {
