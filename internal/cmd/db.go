@@ -194,23 +194,6 @@ func closestLocation(client *turso.Client) (string, error) {
 	return closest, nil
 }
 
-func isNorthAmerica(location string) bool {
-	switch location {
-	case "atl", "bos", "den", "dfw", "ewr", "iad", "lax", "mia", "ord", "sea", "sjc", "yul", "yyz":
-		return true
-	default:
-		return false
-	}
-}
-
-func suggestedLocation(mainLocation string, locations map[string]string) (string, string) {
-	if isNorthAmerica(mainLocation) {
-		return "fra", "Europe"
-	} else {
-		return "iad", "North America"
-	}
-}
-
 func isValidLocation(client *turso.Client, location string) bool {
 	locations, err := locations(client)
 	if err != nil {
@@ -218,14 +201,6 @@ func isValidLocation(client *turso.Client, location string) bool {
 	}
 	_, ok := locations[location]
 	return ok
-}
-
-func locationDescription(client *turso.Client, id string) string {
-	locations, _ := locations(client)
-	if desc, ok := locations[id]; ok {
-		return desc
-	}
-	return fmt.Sprintf("Location ID: %s", id)
 }
 
 func formatLocation(client *turso.Client, id string) string {
