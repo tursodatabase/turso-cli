@@ -85,6 +85,9 @@ var planShowCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Organization: %s\n", internal.Emph(organizationName))
+		if currentOrg.Overages {
+			plan, _ = strings.CutSuffix(plan, "_overages")
+		}
 
 		fmt.Printf("Plan: %s\n", internal.Emph(plan))
 		fmt.Print(overagesMessage(currentOrg.Overages))
@@ -253,7 +256,11 @@ var planEnableOverages = &cobra.Command{
 			fmt.Println("Payment method added successfully.")
 			fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
 		}
-		return client.Organizations.SetOverages(org, true)
+		if err = client.Organizations.SetOverages(org, true); err != nil {
+			return err
+		}
+		fmt.Println("Overages enabled successfully.")
+		return nil
 	},
 }
 
@@ -275,7 +282,11 @@ var planDisableOverages = &cobra.Command{
 			return err
 		}
 
-		return client.Organizations.SetOverages(org, false)
+		if err = client.Organizations.SetOverages(org, false); err != nil {
+			return err
+		}
+		fmt.Println("Overages disabled successfully.")
+		return nil
 	},
 }
 
