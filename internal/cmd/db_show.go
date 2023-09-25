@@ -83,6 +83,9 @@ var showCmd = &cobra.Command{
 		fmt.Println("Name:          ", db.Name)
 		fmt.Println("URL:           ", getDatabaseUrl(&db))
 		fmt.Println("ID:            ", db.ID)
+		if db.Group != "" {
+			fmt.Println("Group:         ", db.Group)
+		}
 		if db.Version != "" {
 			fmt.Println("Version:       ", db.Version)
 		}

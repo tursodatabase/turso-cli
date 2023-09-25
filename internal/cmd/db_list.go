@@ -70,7 +70,7 @@ func dbListTable(databases []turso.Database) (headers []string, data [][]string)
 	}
 
 	sort.Slice(data, func(i, j int) bool {
-		return data[i][0] > data[j][0]
+		return data[i][0] < data[j][0]
 	})
 
 	return []string{"Name", "Locations", "Group", "URL"}, data

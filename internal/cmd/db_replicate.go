@@ -52,7 +52,7 @@ var replicateCmd = &cobra.Command{
 
 		if ok, _ := canReplicate(client, dbName); !ok {
 			cmd := internal.Emph(fmt.Sprintf("turso group locations add %s %s", database.Group, location))
-			return fmt.Errorf("database %s is part of a group.\nUse %s to replicate the group instead.", internal.Emph(dbName), cmd)
+			return fmt.Errorf("database %s is part of a group.\nUse %s to replicate the group instead", internal.Emph(dbName), cmd)
 		}
 
 		instance, err := replicate(client, database, location)

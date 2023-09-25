@@ -273,21 +273,6 @@ func dbNameAndOrgArgs(cmd *cobra.Command, args []string, toComplete string) ([]s
 	return dbNameArg(cmd, args, toComplete)
 }
 
-func isSQLiteFile(file *os.File) (bool, error) {
-	defer file.Seek(0, io.SeekStart)
-	header := make([]byte, 16)
-	_, err := file.Read(header)
-	if err != nil && err != io.EOF {
-		return false, err
-	}
-
-	if string(header) == "SQLite format 3\000" {
-		return true, nil
-	}
-
-	return false, nil
-}
-
 func fetchLatestVersion() (string, error) {
 	client, err := createUnauthenticatedTursoClient()
 	if err != nil {
