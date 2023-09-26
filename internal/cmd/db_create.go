@@ -54,7 +54,7 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		timestamp, err := parseTimestampFlag()
+		seed, err := parseDBSeedFlags()
 		if err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ var createCmd = &cobra.Command{
 		start := time.Now()
 		spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(group)))
 		defer spinner.Stop()
-		if _, err = client.Databases.Create(name, location, "", "", group, fromDBFlag, timestamp); err != nil {
+		if _, err = client.Databases.Create(name, location, "", "", group, seed); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
