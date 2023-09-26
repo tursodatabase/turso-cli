@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -38,9 +39,26 @@ func parseTimestampFlag() (*time.Time, error) {
 		return nil, fmt.Errorf("--timestamp cannot be used without specifying --from-db")
 	}
 
-	ts, err := time.Parse("2006-01-02T15:04:05", timestampFlag)
+	timestamp, err := time.Parse(time.RFC3339, timestampFlag)
 	if err != nil {
 		return nil, fmt.Errorf("provided timestamp was not in 'yyyy-MM-ddThh:mm::ss' format")
 	}
-	return &ts, nil
+	return &timestamp, nil
+}
+
+func parseDBSeedFlags() (*turso.DBSeed, error) {
+	timestamp, err := parseTimestampFlag()
+	if err != nil {
+		return nil, err
+	}
+
+	if fromDBFlag != "" {
+		return &turso.DBSeed{
+			Type:      "database",
+			Name:      fromDBFlag,
+			Timestamp: timestamp,
+		}, nil
+	}
+
+	return nil, nil
 }

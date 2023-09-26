@@ -76,25 +76,23 @@ type CreateDatabaseResponse struct {
 }
 
 type DBSeed struct {
-	Value string `json:"value"`
-	Type  string `json:"type"`
+	Type      string     `json:"type"`
+	Name      string     `json:"value,omitempty"`
+	URL       string     `json:"url,omitempty"`
+	Timestamp *time.Time `json:"timestamp,omitempty"`
 }
 
 type CreateDatabaseBody struct {
-	Name       string     `json:"name"`
-	Location   string     `json:"location"`
-	Image      string     `json:"image,omitempty"`
-	Extensions string     `json:"extensions,omitempty"`
-	Group      string     `json:"group,omitempty"`
-	Seed       *DBSeed    `json:"seed,omitempty"`
-	Timestamp  *time.Time `json:"timestamp,omitempty"`
+	Name       string  `json:"name"`
+	Location   string  `json:"location"`
+	Image      string  `json:"image,omitempty"`
+	Extensions string  `json:"extensions,omitempty"`
+	Group      string  `json:"group,omitempty"`
+	Seed       *DBSeed `json:"seed,omitempty"`
 }
 
-func (d *DatabasesClient) Create(name, location, image, extensions, group, fromDB string, timestamp *time.Time) (*CreateDatabaseResponse, error) {
-	params := CreateDatabaseBody{name, location, image, extensions, group, nil, timestamp}
-	if fromDB != "" {
-		params.Seed = &DBSeed{fromDB, "database"}
-	}
+func (d *DatabasesClient) Create(name, location, image, extensions, group string, seed *DBSeed) (*CreateDatabaseResponse, error) {
+	params := CreateDatabaseBody{name, location, image, extensions, group, seed}
 
 	body, err := marshal(params)
 	if err != nil {
