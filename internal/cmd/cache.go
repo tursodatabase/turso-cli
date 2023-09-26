@@ -84,6 +84,10 @@ func dbTokenCache(dbID string) string {
 	return token
 }
 
+func invalidateDbTokenCache() {
+	settings.SetCacheRaw(DATABASE_TOKEN_KEY_PREFIX[:len(DATABASE_TOKEN_KEY_PREFIX)-1], struct{}{})
+}
+
 const ORG_CACHE_KEY = "organizations"
 const GROUP_CACHE_KEY = "groups"
 const GROUP_CACHE_TTL_SECONDS = 30 * 60

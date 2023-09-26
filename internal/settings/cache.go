@@ -20,6 +20,15 @@ func cacheKey(key string) string {
 	return "cache." + key
 }
 
+func SetCacheRaw[T any](key string, value T) error {
+	if _, err := ReadSettings(); err != nil {
+		return err
+	}
+	viper.Set(cacheKey(key), value)
+	settings.changed = true
+	return nil
+}
+
 func SetCache[T any](key string, ttl int64, value T) error {
 	exp := time.Now().Unix() + ttl
 	return SetCacheWithExp(key, exp, value)
