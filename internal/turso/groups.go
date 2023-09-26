@@ -28,7 +28,7 @@ func (d *GroupsClient) List() ([]Group, error) {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get database groups: received status code %s", r.Status)
+		return nil, fmt.Errorf("failed to get database groups: received status code%w", parseResponseError(r))
 	}
 
 	type ListResponse struct {
@@ -55,7 +55,7 @@ func (d *GroupsClient) Get(name string) (Group, error) {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return Group{}, fmt.Errorf("failed to get database group: received status code %s", r.Status)
+		return Group{}, fmt.Errorf("failed to get database group: received status code%w", parseResponseError(r))
 	}
 
 	type Response struct {
@@ -83,7 +83,7 @@ func (d *GroupsClient) Delete(group string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to delete group: received status code %s", r.Status)
+		return fmt.Errorf("failed to delete group: received status code%w", parseResponseError(r))
 	}
 
 	return nil
