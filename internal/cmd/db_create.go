@@ -117,6 +117,22 @@ func groupFromFlag(client *turso.Client) (string, error) {
 		return groupFlag, nil
 	}
 
+	if fromDBFlag != "" {
+		db, err := getDatabase(client, fromDBFlag)
+		if err != nil {
+			return "", err
+		}
+
+		if db.Group == "" {
+			return "", fmt.Errorf("database %s must belong to a group. Use %s to create a group from it", fromDBFlag, internal.Emph("turso db update "+fromDBFlag))
+		}
+
+		if !groupExists(groups, db.Group) {
+			return "", fmt.Errorf("could not find group %s from database %s", db.Group, db.Name)
+		}
+		return db.Group, nil
+	}
+
 	switch {
 	case len(groups) == 0:
 		return "default", nil
@@ -124,7 +140,6 @@ func groupFromFlag(client *turso.Client) (string, error) {
 		return groups[0].Name, nil
 	default:
 		return "", fmt.Errorf("you have more than one database group. Please specify one with %s", internal.Emph("--group"))
-
 	}
 }
 
