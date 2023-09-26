@@ -15,7 +15,7 @@ func (c *TokensClient) Validate(token string) (int64, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("failed to validate token: %s", r.Status)
+		return 0, fmt.Errorf("failed to validate token: %w", parseResponseError(r))
 	}
 
 	data, err := unmarshal[struct{ Exp int64 }](r)

@@ -21,7 +21,7 @@ func (d *FeedbackClient) Submit(summary, feedback string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to post feedback: %s", r.Status)
+		return fmt.Errorf("failed to post feedback: %w", parseResponseError(r))
 	}
 
 	return nil

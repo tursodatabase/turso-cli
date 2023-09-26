@@ -26,7 +26,7 @@ func (c *OrganizationsClient) List() ([]Organization, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to list organizations: %s", r.Status)
+		return nil, fmt.Errorf("failed to list organizations: %w", parseResponseError(r))
 	}
 
 	type ListResponse struct {
@@ -62,7 +62,7 @@ func (c *OrganizationsClient) Create(name string, stripeId string, dryRun bool) 
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return Organization{}, fmt.Errorf("failed to create organization: %s", r.Status)
+		return Organization{}, fmt.Errorf("failed to create organization: %w", parseResponseError(r))
 	}
 
 	data, err := unmarshal[struct{ Org Organization }](r)
@@ -92,7 +92,7 @@ func (c *OrganizationsClient) Delete(slug string) error {
 	case http.StatusForbidden:
 		return fmt.Errorf("you do not have permission to delete organization %s", slug)
 	default:
-		return fmt.Errorf("failed to delete organization: %s", r.Status)
+		return fmt.Errorf("failed to delete organization: %w", parseResponseError(r))
 	}
 }
 
@@ -151,7 +151,7 @@ func (c *OrganizationsClient) SetOverages(slug string, toggle bool) error {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to set overages: %s", r.Status)
+		return fmt.Errorf("failed to set overages: %w", parseResponseError(r))
 	}
 
 	return nil
@@ -184,7 +184,7 @@ func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to list organization members: %s", r.Status)
+		return nil, fmt.Errorf("failed to list organization members: %w", parseResponseError(r))
 	}
 
 	data, err := unmarshal[struct{ Members []Member }](r)
@@ -217,7 +217,7 @@ func (c *OrganizationsClient) AddMember(username, role string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to add organization member: %s", r.Status)
+		return fmt.Errorf("failed to add organization member: %w", parseResponseError(r))
 	}
 
 	return nil
@@ -245,7 +245,7 @@ func (c *OrganizationsClient) InviteMember(email, role string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to invite organization member: %s", r.Status)
+		return fmt.Errorf("failed to invite organization member: %w", parseResponseError(r))
 	}
 
 	return nil
@@ -268,7 +268,7 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to remove organization member: %s", r.Status)
+		return fmt.Errorf("failed to remove organization member: %w", parseResponseError(r))
 	}
 
 	return nil

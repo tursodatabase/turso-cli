@@ -36,7 +36,7 @@ func (d *DatabasesClient) List() ([]Database, error) {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get database listing: %s", r.Status)
+		return nil, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
 	}
 
 	type ListResponse struct {
@@ -64,7 +64,7 @@ func (d *DatabasesClient) Delete(database string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to delete database: %s", r.Status)
+		return fmt.Errorf("failed to delete database: %w", parseResponseError(r))
 	}
 
 	return nil

@@ -35,7 +35,7 @@ func (c *LocationsClient) List() (map[string]string, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get locations: %s", r.Status)
+		return nil, fmt.Errorf("failed to get locations: %w", parseResponseError(r))
 
 	}
 
@@ -81,7 +81,7 @@ func (c *LocationsClient) Closest() (string, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to get closest location: %s", r.Status)
+		return "", fmt.Errorf("failed to get closest location: %w", parseResponseError(r))
 
 	}
 
