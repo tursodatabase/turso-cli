@@ -28,12 +28,13 @@ var dbInvalidateTokensCmd = &cobra.Command{
 		}
 		name := args[0]
 
-		if _, err := getDatabase(client, name, true); err != nil {
+		database, err := getDatabase(client, name, true)
+		if err != nil {
 			return err
 		}
 
 		if yesFlag {
-			return rotate(client, name)
+			return rotateAndNotify(client, database)
 		}
 
 		fmt.Printf("To invalidate %s database tokens, all its replicas must be restarted.\n", internal.Emph(name))
@@ -49,21 +50,27 @@ var dbInvalidateTokensCmd = &cobra.Command{
 			return nil
 		}
 
-		return rotate(client, name)
+		return rotateAndNotify(client, database)
 	},
 }
 
-func rotate(turso *turso.Client, name string) error {
+func rotateAndNotify(turso *turso.Client, database turso.Database) error {
 	s := prompt.Spinner("Invalidating db auth tokens... ")
 	defer s.Stop()
 
-	if err := turso.Databases.Rotate(name); err != nil {
-		s.Stop()
-		return fmt.Errorf("your database does not support tokens")
+	if err := rotate(turso, database); err != nil {
+		return err
 	}
 
 	s.Stop()
 	fmt.Println("✔  Success! Tokens invalidated successfully. ")
 	fmt.Printf("Run %s to get a new one!\n", internal.Emph("turso db tokens create database_name [flags]"))
 	return nil
+}
+
+func rotate(turso *turso.Client, database turso.Database) error {
+	if database.Group != "" {
+		return turso.Groups.Rotate(database.Group)
+	}
+	return turso.Databases.Rotate(database.Name)
 }

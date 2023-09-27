@@ -153,6 +153,57 @@ func (d *GroupsClient) RemoveLocation(name, location string) error {
 	return nil
 }
 
+func (d *GroupsClient) Token(group string, expiration string, readOnly bool) (string, error) {
+	authorization := ""
+	if readOnly {
+		authorization = "&authorization=read-only"
+	}
+	url := d.URL(fmt.Sprintf("/%s/auth/tokens?expiration=%s%s", group, expiration, authorization))
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to get database token: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return "", notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return "", fmt.Errorf("failed to get database token: %d %s", r.StatusCode, err)
+	}
+
+	type JwtResponse struct{ Jwt string }
+	data, err := unmarshal[JwtResponse](r)
+	if err != nil {
+		return "", err
+	}
+	return data.Jwt, nil
+}
+
+func (d *GroupsClient) Rotate(group string) error {
+	url := d.URL(fmt.Sprintf("/%s/auth/rotate", group))
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to rotate database keys: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return fmt.Errorf("failed to rotate database keys: %d %s", r.StatusCode, err)
+	}
+
+	return nil
+}
+
 func (d *GroupsClient) URL(suffix string) string {
 	prefix := "/v1"
 	if d.client.Org != "" {
