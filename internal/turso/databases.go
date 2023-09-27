@@ -149,6 +149,31 @@ func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
 	return nil
 }
 
+func (d *DatabasesClient) UploadDump(dbFile *os.File) (string, error) {
+	url := d.URL(fmt.Sprintf("/dumps"))
+	res, err := d.client.Upload(url, dbFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload the dump file: %w", err)
+	}
+	defer res.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(res.StatusCode, org) {
+		return "", notMemberErr(org)
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", parseResponseError(res)
+	}
+	type response struct {
+		DumpURL string `json:"dump_url"`
+	}
+	data, err := unmarshal[response](res)
+	if err != nil {
+		return "", err
+	}
+	return data.DumpURL, nil
+}
+
 func (d *DatabasesClient) Token(database string, expiration string, readOnly bool) (string, error) {
 	authorization := ""
 	if readOnly {
