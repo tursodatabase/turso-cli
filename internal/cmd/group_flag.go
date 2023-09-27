@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
@@ -46,7 +47,11 @@ func parseTimestampFlag() (*time.Time, error) {
 	return &timestamp, nil
 }
 
-func parseDBSeedFlags() (*turso.DBSeed, error) {
+func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
+	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag) > 1 {
+		return nil, fmt.Errorf("only one of --from-db, --from-dump, or --from-file can be used at a time")
+	}
+
 	timestamp, err := parseTimestampFlag()
 	if err != nil {
 		return nil, err
@@ -60,5 +65,52 @@ func parseDBSeedFlags() (*turso.DBSeed, error) {
 		}, nil
 	}
 
+	if fromDumpFlag != "" {
+		return handleDumpFile(client, fromDumpFlag)
+	}
+
 	return nil, nil
+}
+
+func handleDumpFile(client *turso.Client, file string) (*turso.DBSeed, error) {
+	dump, err := validateDumpFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	dumpURL, err := client.Databases.UploadDump(dump)
+	if err != nil {
+		return nil, fmt.Errorf("could not upload dump: %w", err)
+	}
+	return &turso.DBSeed{
+		Type: "dump",
+		URL:  dumpURL,
+	}, nil
+}
+
+func validateDumpFile(name string) (*os.File, error) {
+	file, err := os.Open(name)
+	if err != nil {
+		return nil, fmt.Errorf("could not open file %s: %w", name, err)
+	}
+	fileStat, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("could not stat file %s: %w", name, err)
+	}
+	if fileStat.Size() == 0 {
+		return nil, fmt.Errorf("dump file is empty")
+	}
+	if fileStat.Size() > MaxDumpFileSizeBytes {
+		return nil, fmt.Errorf("dump file is too large. max allowed size is 2GB")
+	}
+	return file, nil
+}
+
+func countFlags(flags ...string) (count int) {
+	for _, flag := range flags {
+		if flag != "" {
+			count++
+		}
+	}
+	return
 }

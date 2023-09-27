@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/athoscouto/codename"
@@ -58,7 +57,7 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		seed, err := parseDBSeedFlags()
+		seed, err := parseDBSeedFlags(client)
 		if err != nil {
 			return err
 		}
@@ -67,28 +66,9 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		var dump *os.File
-		if fromDumpFlag != "" {
-			dump, err = validateDumpFile()
-			if err != nil {
-				return err
-			}
-		}
-
 		start := time.Now()
 		spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(group)))
 		defer spinner.Stop()
-
-		if dump != nil {
-			dumpURL, err := client.Databases.UploadDump(dump)
-			if err != nil {
-				return fmt.Errorf("could not upload dump: %w", err)
-			}
-			seed = &turso.DBSeed{
-				Type: "dump",
-				URL:  dumpURL,
-			}
-		}
 
 		if _, err = client.Databases.Create(name, location, "", "", group, seed); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
@@ -179,22 +159,4 @@ func shouldCreateGroup(client *turso.Client, name, location string) (bool, error
 	}
 	// we only create the default group automatically
 	return name == "default" && len(groups) == 0, nil
-}
-
-func validateDumpFile() (*os.File, error) {
-	file, err := os.Open(fromDumpFlag)
-	if err != nil {
-		return nil, fmt.Errorf("could not open file %s: %w", fromDumpFlag, err)
-	}
-	fileStat, err := file.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("could not stat file %s: %w", fromDumpFlag, err)
-	}
-	if fileStat.Size() == 0 {
-		return nil, fmt.Errorf("dump file is empty")
-	}
-	if fileStat.Size() > MaxDumpFileSizeBytes {
-		return nil, fmt.Errorf("dump file is too large. max allowed size is 2GB")
-	}
-	return file, nil
 }
