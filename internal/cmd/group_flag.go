@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
@@ -78,10 +79,19 @@ func handleDumpFile(client *turso.Client, file string) (*turso.DBSeed, error) {
 		return nil, err
 	}
 
+	start := time.Now()
+	spinner := prompt.Spinner("Uploading data...")
+	defer spinner.Stop()
+
 	dumpURL, err := client.Databases.UploadDump(dump)
 	if err != nil {
 		return nil, fmt.Errorf("could not upload dump: %w", err)
 	}
+
+	spinner.Stop()
+	elapsed := time.Since(start)
+	fmt.Printf("Uploaded data in %d seconds.\n\n", int(elapsed.Seconds()))
+
 	return &turso.DBSeed{
 		Type: "dump",
 		URL:  dumpURL,
