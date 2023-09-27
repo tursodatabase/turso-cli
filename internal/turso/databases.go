@@ -150,7 +150,7 @@ func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
 }
 
 func (d *DatabasesClient) UploadDump(dbFile *os.File) (string, error) {
-	url := d.URL(fmt.Sprintf("/dumps"))
+	url := d.URL("/dumps")
 	res, err := d.client.Upload(url, dbFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to upload the dump file: %w", err)
