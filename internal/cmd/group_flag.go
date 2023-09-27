@@ -7,6 +7,7 @@ import (
 
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/schollz/sqlite3dump"
 	"github.com/spf13/cobra"
 )
 
@@ -59,11 +60,11 @@ func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
 	}
 
 	if fromDBFlag != "" {
-		return &turso.DBSeed{
-			Type:      "database",
-			Name:      fromDBFlag,
-			Timestamp: timestamp,
-		}, nil
+		return &turso.DBSeed{Type: "database", Name: fromDBFlag, Timestamp: timestamp}, nil
+	}
+
+	if fromFileFlag != "" {
+		return handleDBFile(client, fromFileFlag)
 	}
 
 	if fromDumpFlag != "" {
@@ -123,4 +124,16 @@ func countFlags(flags ...string) (count int) {
 		}
 	}
 	return
+}
+
+func handleDBFile(client *turso.Client, file string) (*turso.DBSeed, error) {
+	f, err := os.CreateTemp("", "")
+	if err != nil {
+		return nil, fmt.Errorf("could not create temporary file to dump database file: %w", err)
+	}
+	if err := sqlite3dump.Dump(file, f); err != nil {
+		return nil, fmt.Errorf("could not dump database file: %w", err)
+	}
+
+	return handleDumpFile(client, f.Name())
 }
