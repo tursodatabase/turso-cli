@@ -132,6 +132,10 @@ func printTable(header []string, data [][]string) {
 }
 
 func destroyDatabase(client *turso.Client, name string) error {
+	invalidateDatabasesCache()
+	invalidateDbTokenCache()
+	settings.PersistChanges()
+
 	start := time.Now()
 	s := prompt.Spinner(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
 	defer s.Stop()
@@ -143,7 +147,6 @@ func destroyDatabase(client *turso.Client, name string) error {
 	elapsed := time.Since(start)
 
 	fmt.Printf("Destroyed database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
-	invalidateDatabasesCache()
 	return nil
 }
 
