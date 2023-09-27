@@ -35,9 +35,8 @@ var planCmd = &cobra.Command{
 }
 
 var overagesCommand = &cobra.Command{
-	Use:    "overages",
-	Short:  "Manage your current organization overages",
-	Hidden: true,
+	Use:   "overages",
+	Short: "Manage your current organization overages",
 }
 
 func getCurrentOrg(client *turso.Client, organizationName string) (turso.Organization, error) {
