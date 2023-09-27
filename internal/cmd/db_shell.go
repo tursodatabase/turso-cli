@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -157,6 +159,9 @@ var shellCmd = &cobra.Command{
 			if len(args[1]) == 0 {
 				return fmt.Errorf("no SQL command to execute")
 			}
+			if args[1] == ".dump" {
+				return dump(dbUrl, authToken)
+			}
 			return shell.RunShellLine(shellConfig, args[1])
 		}
 
@@ -247,4 +252,29 @@ func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
 func pipeOrRedirect() bool {
 	stat, err := os.Stdin.Stat()
 	return err == nil && (stat.Mode()&os.ModeCharDevice) == 0
+}
+
+func dump(dbURL, authToken string) error {
+	req, err := http.NewRequest("GET", dbURL+"/dump", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", "Bearer "+authToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	reader := bufio.NewReader(resp.Body)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return err
+		}
+		fmt.Print(line)
+		if err == io.EOF {
+			return nil
+		}
+	}
 }
