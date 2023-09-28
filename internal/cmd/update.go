@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
-
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -60,7 +59,7 @@ var updateCmd = &cobra.Command{
 		}
 
 		if IsUnderHomebrew() {
-			updateCmd = "brew upgrade turso"
+			updateCmd = "brew update && brew upgrade turso"
 		} else {
 			updateCmd = "curl -sSfL \"https://get.tur.so/install.sh\" | sh"
 		}
