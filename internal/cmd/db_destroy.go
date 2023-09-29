@@ -30,7 +30,7 @@ var destroyCmd = &cobra.Command{
 
 		if instanceFlag != "" || locationFlag != "" {
 			for _, name := range args {
-				db, err := getDatabase(client, args[0])
+				db, err := getDatabase(client, name)
 				if err != nil {
 					return nil
 				}
