@@ -6,14 +6,19 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 )
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(autoupdateCmd)
+	autoupdateCmd.AddCommand(autoupdateEnableCmd)
+	autoupdateCmd.AddCommand(autoupdateDisableCmd)
 }
 
 func IsUnderHomebrew() bool {
@@ -36,6 +41,46 @@ func IsUnderHomebrew() bool {
 	return strings.HasPrefix(binary, brewBinPrefix)
 }
 
+var autoupdateCmd = &cobra.Command{
+	Use:   "autoupdate",
+	Short: "Manage your CLI autoupdate settings",
+}
+
+var autoupdateEnableCmd = &cobra.Command{
+	Use:               "enable",
+	Short:             "Enable autoupdates for the CLI",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return fmt.Errorf("failed to read settings: %w", err)
+		}
+		settings.SetAutoupdate(true)
+		settings.SetLastUpdateCheck(time.Now().Unix())
+		fmt.Println("Autoupdates enabled")
+		return nil
+	},
+}
+
+var autoupdateDisableCmd = &cobra.Command{
+	Use:               "disable",
+	Short:             "Disable autoupdates for the CLI",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return fmt.Errorf("failed to read settings: %w", err)
+		}
+		settings.SetAutoupdate(false)
+		fmt.Println("Autoupdates disabled")
+		return nil
+	},
+}
+
 var updateCmd = &cobra.Command{
 	Use:               "update",
 	Short:             "Update the CLI to the latest version",
@@ -43,7 +88,6 @@ var updateCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		var updateCmd string
 		latest, err := fetchLatestVersion()
 		if err != nil {
 			return fmt.Errorf("failed to get version information: %w", err)
@@ -58,18 +102,24 @@ var updateCmd = &cobra.Command{
 			return nil
 		}
 
-		if IsUnderHomebrew() {
-			updateCmd = "brew update && brew upgrade turso"
-		} else {
-			updateCmd = "curl -sSfL \"https://get.tur.so/install.sh\" | sh"
-		}
-		command := exec.Command("sh", "-c", updateCmd)
-		command.Stdout = os.Stdout
-		command.Stderr = os.Stderr
-		err = command.Run()
-		if err != nil {
-			return fmt.Errorf("failed to execute update command: %w", err)
-		}
-		return nil
+		return Update()
 	},
+}
+
+func Update() error {
+	var updateCmd string
+
+	if IsUnderHomebrew() {
+		updateCmd = "brew update && brew upgrade turso"
+	} else {
+		updateCmd = "curl -sSfL \"https://get.tur.so/install.sh\" | sh"
+	}
+	command := exec.Command("sh", "-c", updateCmd)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	err := command.Run()
+	if err != nil {
+		return fmt.Errorf("failed to execute update command: %w", err)
+	}
+	return nil
 }

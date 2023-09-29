@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal/flags"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -36,7 +37,26 @@ func init() {
 		settings.PersistChanges()
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
-
+	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to read settings: %s\n", err)
+			os.Exit(1)
+		}
+		if settings.GetAutoupdate() && time.Now().Unix() > settings.GetLastUpdateCheck()+int64(24*60*60) {
+			fmt.Println("Checking for updates...")
+			latest, err := fetchLatestVersion()
+			settings.SetLastUpdateCheck(time.Now().Unix())
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to get latest version: %s\n", err)
+				return
+			}
+			if version != "dev" && version < latest {
+				Update()
+				return
+			}
+		}
+	}
 	flags.AddDebugFlag(rootCmd)
 	flags.AddResetConfigFlag(rootCmd)
 }

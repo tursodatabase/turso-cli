@@ -1,11 +1,10 @@
 package settings
 
 import (
-	"path/filepath"
-	"sync"
-
 	"fmt"
 	"path"
+	"path/filepath"
+	"sync"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/flags"
@@ -17,8 +16,10 @@ type Settings struct {
 	changed bool
 }
 
-var settings *Settings
-var mu sync.Mutex
+var (
+	settings *Settings
+	mu       sync.Mutex
+)
 
 func ReadSettings() (*Settings, error) {
 	mu.Lock()
@@ -114,6 +115,24 @@ func (s *Settings) GetToken() string {
 func (s *Settings) SetUsername(username string) {
 	viper.Set("username", username)
 	s.changed = true
+}
+
+func (s *Settings) SetAutoupdate(autoupdate bool) {
+	viper.Set("autoupdate", autoupdate)
+	s.changed = true
+}
+
+func (s *Settings) SetLastUpdateCheck(t int64) {
+	viper.Set("lastUpdateCheck", t)
+	s.changed = true
+}
+
+func (s *Settings) GetLastUpdateCheck() int64 {
+	return viper.GetInt64("lastUpdateCheck")
+}
+
+func (s *Settings) GetAutoupdate() bool {
+	return viper.GetBool("autoupdate")
 }
 
 func (s *Settings) GetUsername() string {
