@@ -131,23 +131,33 @@ func printTable(header []string, data [][]string) {
 	table.Render()
 }
 
-func destroyDatabase(client *turso.Client, name string) error {
+func destroyDatabases(client *turso.Client, names []string) error {
 	invalidateDatabasesCache()
 	invalidateDbTokenCache()
 	settings.PersistChanges()
 
-	start := time.Now()
-	s := prompt.Spinner(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
-	defer s.Stop()
+	destroy := func(name string) error {
+		start := time.Now()
+		s := prompt.Spinner("Destroying databases... ")
+		defer s.Stop()
 
-	if err := client.Databases.Delete(name); err != nil {
-		return err
+		if err := client.Databases.Delete(name); err != nil {
+			return err
+		}
+		elapsed := time.Since(start)
+
+		fmt.Printf("Destroyed database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+		return nil
 	}
-	s.Stop()
-	elapsed := time.Since(start)
 
-	fmt.Printf("Destroyed database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
-	return nil
+	var g errgroup.Group
+
+	for _, name := range names {
+		name := name
+		g.Go(func() error { return destroy(name) })
+	}
+
+	return g.Wait()
 }
 
 func destroyDatabaseRegion(client *turso.Client, database, region string) error {
