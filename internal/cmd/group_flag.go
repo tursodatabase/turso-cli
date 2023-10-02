@@ -31,7 +31,7 @@ var timestampFlag string
 func addFromDBFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&fromDBFlag, "from-db", "", "Select another database to copy data from. To use data from a past version of the selected database, see the 'timestamp' flag.")
 	cmd.RegisterFlagCompletionFunc("from-db", dbNameArg)
-	cmd.Flags().StringVar(&timestampFlag, "timestamp", "", "Set a point in time in the past to copy data from the selected database. Must be used with the 'from-db' flag. Must be in the format 'yyyy-MM-ddThh:mm::ss'")
+	cmd.Flags().StringVar(&timestampFlag, "timestamp", "", "Set a point in time in the past to copy data from the selected database. Must be used with the 'from-db' flag. Must be in RFC3339 format like '2023-09-29T10:16:13-03:00'")
 }
 
 func parseTimestampFlag() (*time.Time, error) {
@@ -44,7 +44,7 @@ func parseTimestampFlag() (*time.Time, error) {
 
 	timestamp, err := time.Parse(time.RFC3339, timestampFlag)
 	if err != nil {
-		return nil, fmt.Errorf("provided timestamp was not in 'yyyy-MM-ddThh:mm::ss' format")
+		return nil, fmt.Errorf("provided timestamp was not in RFC3339 format like '2023-09-29T10:16:13-03:00'")
 	}
 	return &timestamp, nil
 }
