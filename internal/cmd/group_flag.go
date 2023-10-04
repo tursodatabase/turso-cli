@@ -11,6 +11,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var groupBoolFlag bool
+
+func addGroupBoolFlag(cmd *cobra.Command, description string) {
+	cmd.Flags().BoolVar(&groupBoolFlag, "group", false, description)
+}
+
 var groupFlag string
 
 func addGroupFlag(cmd *cobra.Command) {

@@ -12,6 +12,7 @@ import (
 func init() {
 	dbCmd.AddCommand(dbUpdateCmd)
 	dbUpdateCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Confirms the update of the database.")
+	addGroupBoolFlag(dbUpdateCmd, "Update database to use groups. Only effective if the database is not already using groups.")
 }
 
 var dbUpdateCmd = &cobra.Command{
@@ -57,7 +58,7 @@ func update(client *turso.Client, name string) error {
 	s := prompt.Spinner(msg)
 	defer s.Stop()
 
-	if err := client.Databases.Update(name); err != nil {
+	if err := client.Databases.Update(name, groupBoolFlag); err != nil {
 		return fmt.Errorf("error updating database")
 	}
 
