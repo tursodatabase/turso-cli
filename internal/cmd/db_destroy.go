@@ -32,10 +32,10 @@ var destroyCmd = &cobra.Command{
 		}
 
 		if len(args) > 1 {
-			return handleDestroySingleDB(args, client)
+			return handleDestroyMultipleDBs(args, client)
 		}
 
-		return handleDestroyMultipleDBs(args, client)
+		return handleDestroySingleDB(args, client)
 	},
 }
 
