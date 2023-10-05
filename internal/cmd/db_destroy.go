@@ -61,7 +61,7 @@ var destroyCmd = &cobra.Command{
 			return destroyDatabases(client, args)
 		}
 
-		if len(args) > 0 {
+		if len(args) > 1 {
 			fmt.Printf("Databases %s and all their data will be destroyed.\n", internal.Emph(strings.Join(args, ", ")))
 		} else {
 			fmt.Printf("Database %s, and all its data will be destroyed.\n", internal.Emph(args[0]))
