@@ -142,7 +142,11 @@ func destroyDatabases(client *turso.Client, names []string) error {
 
 	var g errgroup.Group
 
-	s := prompt.Spinner("Destroying database(s)... ")
+	msg := "Destroying databases..."
+	if len(names) == 1 {
+		msg = fmt.Sprintf("Destroying database %s... ", internal.Emph(names[0]))
+	}
+	s := prompt.Spinner(msg)
 
 	start := time.Now()
 	for _, name := range names {
@@ -161,11 +165,12 @@ func destroyDatabases(client *turso.Client, names []string) error {
 
 	elapsed := time.Since(start)
 
-	if len(names) > 1 {
-		fmt.Printf("Destroyed %d databases in %d seconds.\n", len(names), int(elapsed.Seconds()))
-	} else {
-		fmt.Printf("Destroyed database %s in %d seconds.\n", internal.Emph(names[0]), int(elapsed.Seconds()))
+	msg = fmt.Sprintf("Destroyed %d databases in %d seconds.\n", len(names), int(elapsed.Seconds()))
+	if len(names) == 1 {
+		msg = fmt.Sprintf("Destroyed database %s in %d seconds.\n", internal.Emph(names[0]), int(elapsed.Seconds()))
 	}
+	fmt.Println(msg)
+
 	return nil
 }
 
