@@ -102,11 +102,23 @@ func ProbeLocation(location string) *time.Duration {
 	req.Header.Add("fly-prefer-region", location)
 
 	start := time.Now()
-	_, err = client.Do(req)
+	r, err := client.Do(req)
 	if err != nil {
 		return nil
 	}
+	defer r.Body.Close()
+
 	dur := time.Since(start)
+	if r.StatusCode != http.StatusOK {
+		return nil
+	}
+	data, err := unmarshal[ClosestLocationResponse](r)
+	if err != nil {
+		return nil
+	}
+	if data.Server != location {
+		return nil
+	}
 	return &dur
 }
 
