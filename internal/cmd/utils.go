@@ -143,7 +143,6 @@ func destroyDatabases(client *turso.Client, names []string) error {
 	var g errgroup.Group
 
 	s := prompt.Spinner("Destroying database(s)... ")
-	defer s.Stop()
 
 	start := time.Now()
 	for _, name := range names {
@@ -154,8 +153,11 @@ func destroyDatabases(client *turso.Client, names []string) error {
 	}
 
 	if err := g.Wait(); err != nil {
+		s.Stop()
 		return err
 	}
+
+	s.Stop()
 
 	elapsed := time.Since(start)
 
