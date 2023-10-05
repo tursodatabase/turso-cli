@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
 )
 
@@ -23,60 +25,81 @@ var destroyCmd = &cobra.Command{
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+
 		client, err := createTursoClientFromAccessToken(true)
 		if err != nil {
 			return err
 		}
 
-		if instanceFlag != "" || locationFlag != "" {
-			for _, name := range args {
-				db, err := getDatabase(client, name)
-				if err != nil {
-					return nil
-				}
-
-				if instanceFlag != "" {
-					if db.Group != "" {
-						return fmt.Errorf("group databases do not support instance destruction.\nUse %s instead", internal.Emph("turso group locations rm "+name))
-					}
-
-					if err := destroyDatabaseInstance(client, name, instanceFlag); err != nil {
-						return err
-					}
-				}
-
-				if locationFlag != "" {
-					if db.Group != "" {
-						return fmt.Errorf("group databases do not support location destruction.\nUse %s instead", internal.Emph("turso group locations rm "+name+" "+locationFlag))
-					}
-
-					if err := destroyDatabaseRegion(client, name, locationFlag); err != nil {
-						return err
-					}
-				}
-			}
-		}
-
-		if yesFlag {
-			return destroyDatabases(client, args)
-		}
-
 		if len(args) > 1 {
-			fmt.Printf("Databases %s and all their data will be destroyed.\n", internal.Emph(strings.Join(args, ", ")))
-		} else {
-			fmt.Printf("Database %s, and all its data will be destroyed.\n", internal.Emph(args[0]))
+			return handleDestroySingleDB(args, client)
 		}
 
-		ok, err := promptConfirmation("Are you sure you want to do this?")
-		if err != nil {
-			return fmt.Errorf("could not get prompt confirmed by user: %w", err)
-		}
-
-		if !ok {
-			fmt.Println("Database destruction avoided.")
-			return nil
-		}
-
-		return destroyDatabases(client, args)
+		return handleDestroyMultipleDBs(args, client)
 	},
+}
+
+func handleDestroySingleDB(args []string, client *turso.Client) error {
+	name := args[0]
+
+	db, err := getDatabase(client, name)
+	if err != nil {
+		return nil
+	}
+
+	if instanceFlag != "" {
+		if db.Group != "" {
+			return fmt.Errorf("group databases do not support instance destruction.\nUse %s instead", internal.Emph("turso group locations rm "+name))
+		}
+		return destroyDatabaseInstance(client, name, instanceFlag)
+	}
+
+	if locationFlag != "" {
+		if db.Group != "" {
+			return fmt.Errorf("group databases do not support location destruction.\nUse %s instead", internal.Emph("turso group locations rm "+name+" "+locationFlag))
+		}
+		return destroyDatabaseRegion(client, name, locationFlag)
+	}
+
+	if yesFlag {
+		return destroyDatabases(client, args)
+	}
+
+	fmt.Printf("Database %s, and all its data will be destroyed.\n", internal.Emph(name))
+
+	ok, err := promptConfirmation("Are you sure you want to do this?")
+	if err != nil {
+		return fmt.Errorf("could not get prompt confirmed by user: %w", err)
+	}
+
+	if !ok {
+		fmt.Println("Database destruction avoided.")
+		return nil
+	}
+
+	return destroyDatabases(client, args)
+}
+
+func handleDestroyMultipleDBs(args []string, client *turso.Client) error {
+	if instanceFlag != "" || locationFlag != "" {
+		return errors.New("can not use location nor instance flag when deleting more than 1 database")
+	}
+
+	if yesFlag {
+		return destroyDatabases(client, args)
+	}
+
+	fmt.Printf("Databases %s and all their data will be destroyed.\n", internal.Emph(strings.Join(args, ", ")))
+
+	ok, err := promptConfirmation("Are you sure you want to do this?")
+	if err != nil {
+		return fmt.Errorf("could not get prompt confirmed by user: %w", err)
+	}
+
+	if !ok {
+		fmt.Println("Databases destruction avoided.")
+		return nil
+	}
+
+	return destroyDatabases(client, args)
 }
