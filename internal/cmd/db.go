@@ -149,9 +149,7 @@ func latencies(client *turso.Client) (map[string]int, error) {
 					measure = int(math.Min(float64(d.Milliseconds()), float64(measure)))
 				}
 			}
-			if measure != math.MaxInt {
-				c <- latMap{id: id, lat: measure}
-			}
+			c <- latMap{id: id, lat: measure}
 
 		}(id)
 	}

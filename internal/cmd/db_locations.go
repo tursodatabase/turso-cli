@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"sort"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
@@ -65,7 +66,7 @@ var regionsCmd = &cobra.Command{
 			description := locations[location]
 			lat, ok := lats[location]
 			var latency string
-			if ok {
+			if ok && lat != math.MaxInt {
 				latency = fmt.Sprintf("%dms", lat)
 			} else {
 				latency = "???"
