@@ -65,7 +65,7 @@ func handleDestroySingleDB(args []string, client *turso.Client) error {
 		return destroyDatabases(client, args)
 	}
 
-	fmt.Printf("Database %s, and all its data will be destroyed.\n", internal.Emph(name))
+	fmt.Printf("Database %s and all its data will be destroyed.\n", internal.Emph(name))
 
 	ok, err := promptConfirmation("Are you sure you want to do this?")
 	if err != nil {
