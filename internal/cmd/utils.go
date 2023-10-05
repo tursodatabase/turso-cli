@@ -131,22 +131,46 @@ func printTable(header []string, data [][]string) {
 	table.Render()
 }
 
-func destroyDatabase(client *turso.Client, name string) error {
+func destroyDatabases(client *turso.Client, names []string) error {
+	if len(names) == 0 {
+		return nil
+	}
+
 	invalidateDatabasesCache()
 	invalidateDbTokenCache()
 	settings.PersistChanges()
 
-	start := time.Now()
-	s := prompt.Spinner(fmt.Sprintf("Destroying database %s... ", internal.Emph(name)))
-	defer s.Stop()
+	var g errgroup.Group
 
-	if err := client.Databases.Delete(name); err != nil {
+	msg := "Destroying databases..."
+	if len(names) == 1 {
+		msg = fmt.Sprintf("Destroying database %s... ", internal.Emph(names[0]))
+	}
+	s := prompt.Spinner(msg)
+
+	start := time.Now()
+	for _, name := range names {
+		name := name
+		g.Go(func() error {
+			return client.Databases.Delete(name)
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		s.Stop()
 		return err
 	}
+
 	s.Stop()
+
 	elapsed := time.Since(start)
 
-	fmt.Printf("Destroyed database %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+	msg = fmt.Sprintf("Destroyed %d databases in %d seconds.\n", len(names), int(elapsed.Seconds()))
+	if len(names) == 1 {
+		msg = fmt.Sprintf("Destroyed database %s in %d seconds.\n", internal.Emph(names[0]), int(elapsed.Seconds()))
+	}
+	fmt.Println(msg)
+
 	return nil
 }
 
