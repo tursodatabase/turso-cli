@@ -222,6 +222,7 @@ func beginAuth(port int, headless bool, path string) (string, error) {
 		authUrl.RawQuery = url.Values{
 			"port":     {strconv.Itoa(port)},
 			"redirect": {"true"},
+			"type":     {"cli"},
 		}.Encode()
 		err = browser.OpenURL(authUrl.String())
 		if err != nil {
