@@ -225,8 +225,11 @@ func (d *DatabasesClient) Rotate(database string) error {
 	return nil
 }
 
-func (d *DatabasesClient) Update(database string) error {
+func (d *DatabasesClient) Update(database string, group bool) error {
 	url := d.URL(fmt.Sprintf("/%s/update", database))
+	if group {
+		url += "?group=true"
+	}
 	r, err := d.client.Post(url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to update database: %w", err)
