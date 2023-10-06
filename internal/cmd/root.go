@@ -5,11 +5,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/flags"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	semver "github.com/hashicorp/go-version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tursodatabase/turso-cli/internal/flags"
+	"github.com/tursodatabase/turso-cli/internal/settings"
 )
 
 var rootCmd = &cobra.Command{

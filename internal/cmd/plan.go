@@ -6,16 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
+	"github.com/tursodatabase/turso-cli/internal/settings"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 	"golang.org/x/sync/errgroup"
 )
 

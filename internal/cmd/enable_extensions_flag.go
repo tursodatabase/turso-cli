@@ -3,8 +3,8 @@ package cmd
 import (
 	"strings"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
 )
 
 var enableExtensionsFlag bool

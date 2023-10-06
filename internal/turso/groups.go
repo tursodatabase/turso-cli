@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal"
 )
 
 type GroupsClient client

@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/settings"
 )
 
 //go:embed login.html

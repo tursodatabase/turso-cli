@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
 )
 
 type expirationFlag string

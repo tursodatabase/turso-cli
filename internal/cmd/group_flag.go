@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/schollz/sqlite3dump"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 var groupBoolFlag bool
@@ -31,8 +31,10 @@ func addGroupFlag(cmd *cobra.Command) {
 	})
 }
 
-var fromDBFlag string
-var timestampFlag string
+var (
+	fromDBFlag    string
+	timestampFlag string
+)
 
 func addFromDBFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&fromDBFlag, "from-db", "", "Select another database to copy data from. To use data from a past version of the selected database, see the 'timestamp' flag.")

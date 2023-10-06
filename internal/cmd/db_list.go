@@ -3,8 +3,8 @@ package cmd
 import (
 	"sort"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 	"golang.org/x/exp/slices"
 )
 

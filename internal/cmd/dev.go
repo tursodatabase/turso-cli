@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
 )
 
 func init() {
@@ -43,7 +43,7 @@ var devCmd = &cobra.Command{
 		}
 		defer os.RemoveAll(tempDir)
 
-		if err := os.MkdirAll(filepath.Join(tempDir, "dbs"), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(tempDir, "dbs"), 0o755); err != nil {
 			return fmt.Errorf("Error creating directory: %w", err)
 		}
 		if err = os.Symlink(tempDir, filepath.Join(tempDir, "dbs", "default")); err != nil {
