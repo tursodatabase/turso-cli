@@ -19,8 +19,9 @@ func init() {
 	addFromDBFlag(createCmd)
 	addDbFromDumpFlag(createCmd)
 	addDbFromFileFlag(createCmd)
+	addDbFromCSVFlag(createCmd)
+	addCSVTableNameFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
-
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
 	addCanaryFlag(createCmd)
 	addEnableExtensionsFlag(createCmd)

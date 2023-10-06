@@ -3,8 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
+	"github.com/Clever/csvlint"
 	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/schollz/sqlite3dump"
@@ -56,8 +58,11 @@ func parseTimestampFlag() (*time.Time, error) {
 }
 
 func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
-	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag) > 1 {
-		return nil, fmt.Errorf("only one of --from-db, --from-dump, or --from-file can be used at a time")
+	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromCSVFlag) > 1 {
+		return nil, fmt.Errorf("only one of --from-db, --from-dump, --from-csv, or --from-file can be used at a time")
+	}
+	if fromCSVFlag != "" && csvTableNameFlag == "" {
+		return nil, fmt.Errorf("--csv-table-name must be used with --from-csv")
 	}
 
 	timestamp, err := parseTimestampFlag()
@@ -75,6 +80,10 @@ func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
 
 	if fromDumpFlag != "" {
 		return handleDumpFile(client, fromDumpFlag)
+	}
+
+	if fromCSVFlag != "" {
+		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag)
 	}
 
 	return nil, nil
@@ -142,4 +151,30 @@ func handleDBFile(client *turso.Client, file string) (*turso.DBSeed, error) {
 	}
 
 	return handleDumpFile(client, f.Name())
+}
+
+func handleCSVFile(client *turso.Client, csvFile, csvTableName string) (*turso.DBSeed, error) {
+	csvFd, err := os.Open(csvFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not open CSV file: %w", err)
+	}
+	defer csvFd.Close()
+	errs, invalid, _ := csvlint.Validate(csvFd, ',', false)
+	if invalid {
+		return nil, fmt.Errorf("CSV file is not valid: %+v", errs)
+	}
+	tempDB, err := os.CreateTemp("", "")
+	if err != nil {
+		return nil, fmt.Errorf("could not create temporary file to dump database file: %w", err)
+	}
+	defer os.Remove(tempDB.Name())
+	_, err = exec.Command("sqlite3", "-csv", tempDB.Name(), fmt.Sprintf(".import %s %s", csvFile, csvTableName)).Output()
+	if err != nil {
+		return nil, fmt.Errorf("could not load csv into new database file: %w", err)
+	}
+	seed, err := handleDBFile(client, tempDB.Name())
+	if err != nil {
+		return nil, fmt.Errorf("could not dump database file: %w", err)
+	}
+	return seed, nil
 }
