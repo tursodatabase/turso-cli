@@ -122,31 +122,31 @@ func (s *Settings) GetUsername() string {
 }
 
 func (s *Settings) SetAutoupdate(autoupdate string) {
-	config := viper.Get("config")
+	config := viper.GetStringMap("config")
 	if config == nil {
 		config = make(map[string]interface{})
 	}
-	config.(map[string]interface{})["autoupdate"] = autoupdate
+	config["autoupdate"] = autoupdate
 	viper.Set("config", config)
 	s.changed = true
 }
 
 func (s *Settings) SetLastUpdateCheck(t int64) {
-	config := viper.Get("config")
+	config := viper.GetStringMap("config")
 	if config == nil {
 		config = make(map[string]interface{})
 	}
-	config.(map[string]interface{})["last_update_check"] = t
+	config["last_update_check"] = t
 	viper.Set("config", config)
 	s.changed = true
 }
 
 func (s *Settings) GetLastUpdateCheck() int64 {
-	config := viper.Get("config")
+	config := viper.GetStringMap("config")
 	if config == nil {
 		return 0
 	}
-	lastUpdateCheck, ok := config.(map[string]interface{})["last_update_check"]
+	lastUpdateCheck, ok := config["last_update_check"]
 	if !ok {
 		return 0
 	}
@@ -154,10 +154,10 @@ func (s *Settings) GetLastUpdateCheck() int64 {
 }
 
 func (s *Settings) GetAutoupdate() string {
-	config := viper.Get("config")
+	config := viper.GetStringMap("config")
 	if config == nil {
 		return "on"
 	}
-	value := config.(map[string]interface{})["autoupdate"]
+	value := config["autoupdate"]
 	return value.(string)
 }
