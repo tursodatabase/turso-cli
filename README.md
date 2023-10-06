@@ -1,6 +1,6 @@
 # Turso CLI
 
-[![Go](https://github.com/tursodatabase/turso-cli/actions/workflows/go.yml/badge.svg)](https://github.com/tursodatabase/turso-cli/actions/workflows/go.yml)
+[![goreleaser](https://github.com/tursodatabase/turso-cli/actions/workflows/goreleaser.yml/badge.svg)](https://github.com/tursodatabase/turso-cli/actions/workflows/goreleaser.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/tursodatabase/turso-cli/blob/main/LICENSE)
 
 This is the command line interface (CLI) to Turso.
@@ -122,7 +122,7 @@ turso db destroy <database name>
 
 The `turso` program keeps settings in your local machine in the following base directory in `turso/settings.json` file:
 
-| OS    | Config directory |
-| ----- | -----------------|
-| Linux | `$XDG_CONFIG_HOME` or `$HOME/.config` |
-| macOS | `$HOME/Library/Application Support/turso`  |
+| OS    | Config directory                          |
+| ----- | ----------------------------------------- |
+| Linux | `$XDG_CONFIG_HOME` or `$HOME/.config`     |
+| macOS | `$HOME/Library/Application Support/turso` |
