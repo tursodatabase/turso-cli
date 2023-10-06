@@ -41,7 +41,7 @@ func init() {
 			fmt.Fprintf(os.Stderr, "failed to read settings: %s\n", err)
 			os.Exit(1)
 		}
-		if settings.GetAutoupdate() == "on" && time.Now().Unix() <= settings.GetLastUpdateCheck()+int64(24*60*60) {
+		if settings.GetAutoupdate() == "on" && time.Now().Unix() >= settings.GetLastUpdateCheck()+int64(24*60*60) {
 			fmt.Println("Checking for updates...")
 			latest, err := fetchLatestVersion()
 			settings.SetLastUpdateCheck(time.Now().Unix())

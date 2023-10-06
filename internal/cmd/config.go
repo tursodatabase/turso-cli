@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/settings"
@@ -40,7 +39,8 @@ var configSetCmd = &cobra.Command{
 			}
 			settings.SetAutoupdate(args[1])
 
-			settings.SetLastUpdateCheck(time.Now().Unix())
+			// trigger an update
+			settings.SetLastUpdateCheck(0)
 			fmt.Println("Autoupdate is now", internal.Emph(args[1]))
 		default:
 			return fmt.Errorf("unknown config: %s", args[0])
