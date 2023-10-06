@@ -1,11 +1,10 @@
 package settings
 
 import (
-	"path/filepath"
-	"sync"
-
 	"fmt"
 	"path"
+	"path/filepath"
+	"sync"
 
 	"github.com/chiselstrike/iku-turso-cli/internal"
 	"github.com/chiselstrike/iku-turso-cli/internal/flags"
@@ -17,8 +16,10 @@ type Settings struct {
 	changed bool
 }
 
-var settings *Settings
-var mu sync.Mutex
+var (
+	settings *Settings
+	mu       sync.Mutex
+)
 
 func ReadSettings() (*Settings, error) {
 	mu.Lock()
@@ -118,4 +119,45 @@ func (s *Settings) SetUsername(username string) {
 
 func (s *Settings) GetUsername() string {
 	return viper.GetString("username")
+}
+
+func (s *Settings) SetAutoupdate(autoupdate string) {
+	config := viper.GetStringMap("config")
+	if config == nil {
+		config = make(map[string]interface{})
+	}
+	config["autoupdate"] = autoupdate
+	viper.Set("config", config)
+	s.changed = true
+}
+
+func (s *Settings) SetLastUpdateCheck(t int64) {
+	config := viper.GetStringMap("config")
+	if config == nil {
+		config = make(map[string]interface{})
+	}
+	config["last_update_check"] = t
+	viper.Set("config", config)
+	s.changed = true
+}
+
+func (s *Settings) GetLastUpdateCheck() int64 {
+	config := viper.GetStringMap("config")
+	if config == nil || config["last_update_check"] == nil {
+		return 0
+	}
+	lastUpdateCheck, ok := config["last_update_check"]
+	if !ok {
+		return 0
+	}
+	return lastUpdateCheck.(int64)
+}
+
+func (s *Settings) GetAutoupdate() string {
+	config := viper.GetStringMap("config")
+	if config == nil || config["autoupdate"] == nil || config["autoupdate"] == "" {
+		return "on"
+	}
+	value := config["autoupdate"]
+	return value.(string)
 }

@@ -43,7 +43,6 @@ var updateCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		var updateCmd string
 		latest, err := fetchLatestVersion()
 		if err != nil {
 			return fmt.Errorf("failed to get version information: %w", err)
@@ -58,18 +57,24 @@ var updateCmd = &cobra.Command{
 			return nil
 		}
 
-		if IsUnderHomebrew() {
-			updateCmd = "brew update && brew upgrade turso"
-		} else {
-			updateCmd = "curl -sSfL \"https://get.tur.so/install.sh\" | sh"
-		}
-		command := exec.Command("sh", "-c", updateCmd)
-		command.Stdout = os.Stdout
-		command.Stderr = os.Stderr
-		err = command.Run()
-		if err != nil {
-			return fmt.Errorf("failed to execute update command: %w", err)
-		}
-		return nil
+		return Update()
 	},
+}
+
+func Update() error {
+	var updateCmd string
+
+	if IsUnderHomebrew() {
+		updateCmd = "brew update && brew upgrade turso"
+	} else {
+		updateCmd = "curl -sSfL \"https://get.tur.so/install.sh\" | sh"
+	}
+	command := exec.Command("sh", "-c", updateCmd)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	err := command.Run()
+	if err != nil {
+		return fmt.Errorf("failed to execute update command: %w", err)
+	}
+	return nil
 }
