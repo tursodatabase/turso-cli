@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {
@@ -34,7 +34,6 @@ var dbTransferCmd = &cobra.Command{
 		fmt.Printf("All your active connections to the DB will be dropped and there will be a short downtime.\n\n")
 
 		ok, err := promptConfirmation(fmt.Sprintf("Are you sure you want to transfer database %s to organization %s?", internal.Emph(dbName), internal.Emph(orgName)))
-
 		if err != nil {
 			return fmt.Errorf("could not get prompt confirmed by user: %w", err)
 		}

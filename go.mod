@@ -1,4 +1,4 @@
-module github.com/chiselstrike/iku-turso-cli
+module github.com/tursodatabase/turso-cli
 
 go 1.21
 

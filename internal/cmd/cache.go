@@ -3,12 +3,14 @@ package cmd
 import (
 	"strings"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
+	"github.com/tursodatabase/turso-cli/internal/settings"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
-const DB_CACHE_KEY = "database_names"
-const DB_CACHE_TTL_SECONDS = 30 * 60
+const (
+	DB_CACHE_KEY         = "database_names"
+	DB_CACHE_TTL_SECONDS = 30 * 60
+)
 
 func setDatabasesCache(dbNames []turso.Database) {
 	settings.SetCache(DB_CACHE_KEY, DB_CACHE_TTL_SECONDS, dbNames)
@@ -26,8 +28,10 @@ func invalidateDatabasesCache() {
 	settings.InvalidateCache[[]turso.Database](DB_CACHE_KEY)
 }
 
-const REGIONS_CACHE_KEY = "locations"
-const REGIONS_CACHE_TTL_SECONDS = 8 * 60 * 60
+const (
+	REGIONS_CACHE_KEY         = "locations"
+	REGIONS_CACHE_TTL_SECONDS = 8 * 60 * 60
+)
 
 func setLocationsCache(locations map[string]string) {
 	settings.SetCache(REGIONS_CACHE_KEY, REGIONS_CACHE_TTL_SECONDS, locations)
@@ -88,9 +92,11 @@ func invalidateDbTokenCache() {
 	settings.SetCacheRaw(DATABASE_TOKEN_KEY_PREFIX[:len(DATABASE_TOKEN_KEY_PREFIX)-1], struct{}{})
 }
 
-const ORG_CACHE_KEY = "organizations"
-const GROUP_CACHE_KEY = "groups"
-const GROUP_CACHE_TTL_SECONDS = 30 * 60
+const (
+	ORG_CACHE_KEY           = "organizations"
+	GROUP_CACHE_KEY         = "groups"
+	GROUP_CACHE_TTL_SECONDS = 30 * 60
+)
 
 func orgKey(org, suffix string) string {
 	key := suffix
