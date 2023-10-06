@@ -41,12 +41,8 @@ func init() {
 		}
 		settings, _ := settings.ReadSettings()
 		if settings.GetAutoupdate() == "on" && time.Now().Unix() >= settings.GetLastUpdateCheck()+int64(24*60*60) {
-			latest, err := fetchLatestVersion()
+			latest, _ := fetchLatestVersion()
 			settings.SetLastUpdateCheck(time.Now().Unix())
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to get latest version: %s\n", err)
-				return
-			}
 
 			parsedVersion, _ := semver.NewVersion(version)
 			parsedLatest, _ := semver.NewVersion(latest)
@@ -56,7 +52,6 @@ func init() {
 				Update()
 				return
 			}
-			fmt.Println("You're already on the latest version")
 		}
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
