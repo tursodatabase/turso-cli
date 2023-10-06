@@ -60,7 +60,6 @@ func init() {
 				Update()
 				return
 			}
-			if 
 			fmt.Println("You're already on the latest version")
 		}
 	}
