@@ -143,7 +143,7 @@ func (s *Settings) SetLastUpdateCheck(t int64) {
 
 func (s *Settings) GetLastUpdateCheck() int64 {
 	config := viper.GetStringMap("config")
-	if config == nil {
+	if config == nil || config["last_update_check"] == nil {
 		return 0
 	}
 	lastUpdateCheck, ok := config["last_update_check"]
@@ -155,7 +155,7 @@ func (s *Settings) GetLastUpdateCheck() int64 {
 
 func (s *Settings) GetAutoupdate() string {
 	config := viper.GetStringMap("config")
-	if config == nil {
+	if config == nil || config["autoupdate"] == nil || config["autoupdate"] == "" {
 		return "on"
 	}
 	value := config["autoupdate"]
