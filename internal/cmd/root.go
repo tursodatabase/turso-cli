@@ -39,13 +39,8 @@ func init() {
 		if version == "dev" {
 			return
 		}
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to read settings: %s\n", err)
-			os.Exit(1)
-		}
+		settings, _ := settings.ReadSettings()
 		if settings.GetAutoupdate() == "on" && time.Now().Unix() >= settings.GetLastUpdateCheck()+int64(24*60*60) {
-			fmt.Println("Checking for updates...")
 			latest, err := fetchLatestVersion()
 			settings.SetLastUpdateCheck(time.Now().Unix())
 			if err != nil {
@@ -57,6 +52,7 @@ func init() {
 			parsedLatest, _ := semver.NewVersion(latest)
 
 			if parsedVersion.LessThan(parsedLatest) {
+				fmt.Println("Updating to the latest version")
 				Update()
 				return
 			}
