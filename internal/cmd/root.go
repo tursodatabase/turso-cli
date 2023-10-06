@@ -36,6 +36,9 @@ func init() {
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
 		settings.PersistChanges()
+		if version == "dev" {
+			return
+		}
 		settings, err := settings.ReadSettings()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to read settings: %s\n", err)
@@ -53,10 +56,11 @@ func init() {
 			parsedVersion, _ := semver.NewVersion(version)
 			parsedLatest, _ := semver.NewVersion(latest)
 
-			if version != "dev" && parsedVersion.LessThan(parsedLatest) {
+			if parsedVersion.LessThan(parsedLatest) {
 				Update()
 				return
 			}
+			if 
 			fmt.Println("You're already on the latest version")
 		}
 	}
