@@ -31,7 +31,6 @@ func ReadSettings() (*Settings, error) {
 	settings = &Settings{}
 
 	configPath := configdir.LocalConfig("turso")
-	fmt.Println(configPath)
 	viper.BindEnv("config-path", "TURSO_CONFIG_FOLDER")
 
 	configPathFlag := viper.GetString("config-path")
@@ -144,7 +143,6 @@ func (s *Settings) SetLastUpdateCheck(t int64) {
 
 func (s *Settings) GetLastUpdateCheck() int64 {
 	config := viper.GetStringMap("config")
-	fmt.Println(config)
 	if config == nil || config["last_update_check"] == nil {
 		return 0
 	}
