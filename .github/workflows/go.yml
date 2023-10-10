@@ -31,17 +31,16 @@ jobs:
         #ref: "refs/pull/${{ github.event.number }}/merge" # THIS IS INSECURE
 
     - name: Setup Golang with cache
-      uses: magnetikonline/action-golang-cache@v4
+      uses: actions/setup-go@v4
       with:
         go-version-file: go.mod
+        cache: false
 
     - name: TidyTree
       run: if [ "$(go mod tidy && git diff | wc -l)" -gt 0 ]; then exit 1; fi
+
     - name: Format
       run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
-
-    - name: Install dependencies
-      run: go get -v ./...
 
     - name: Build
       run: go build -v ./...
@@ -67,6 +66,7 @@ jobs:
 
     - name: Build Turso binary
       run:  go build -o turso cmd/turso/main.go
+
     - name: Integration tests checkout
       uses: actions/checkout@v3
       with:
@@ -74,6 +74,7 @@ jobs:
         ref: 'main'
         path: 'tests'
         token: ${{ secrets.ACCESS_TOKEN_TO_TESTS }}
+
     - name: Integration Test
       run:  cd tests && export TURSO_BINARY=../turso && go run cmd/tursotest/main.go -test.v -test.count=1 run integrationtests
 

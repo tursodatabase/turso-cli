@@ -1,15 +1,17 @@
 # Turso CLI
 
-[![goreleaser](https://github.com/tursodatabase/turso-cli/actions/workflows/goreleaser.yml/badge.svg)](https://github.com/tursodatabase/turso-cli/actions/workflows/goreleaser.yml)
+[![Go](https://github.com/tursodatabase/turso-cli/actions/workflows/go.yml/badge.svg)](https://github.com/tursodatabase/turso-cli/actions/workflows/go.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/tursodatabase/turso-cli/blob/main/LICENSE)
 
 This is the command line interface (CLI) to Turso.
 
 ## Documentation
 
-There is [reference documentation](https://docs.turso.tech/reference/turso-cli) available.
+There is [reference documentation](https://docs.turso.tech/reference/turso-cli)
+available.
 
-For a guided walkthrough, follow the [Turso CLI tutorial](https://docs.turso.tech/tutorials/get-started-turso-cli).
+For a guided walkthrough, follow the
+[Turso CLI tutorial](https://docs.turso.tech/tutorials/get-started-turso-cli).
 
 ## Installation
 
@@ -21,7 +23,9 @@ For a guided walkthrough, follow the [Turso CLI tutorial](https://docs.turso.tec
 brew install chiselstrike/tap/turso
 ```
 
-Also remember to configure `homebrew` [shell completions](https://docs.brew.sh/Shell-Completion) if you haven't already done so.
+Also remember to configure `homebrew`
+[shell completions](https://docs.brew.sh/Shell-Completion) if you haven't
+already done so.
 
 To upgrade an existing installation of the CLI, run:
 
@@ -58,7 +62,8 @@ turso auth login
 ```
 
 You are taken to a web page in your default browser to authenticate via GitHub.
-After successfully authenticated, `turso auth login` receives an access token that is stored on your settings file.
+After successfully authenticated, `turso auth login` receives an access token
+that is stored on your settings file.
 
 ### Create database
 
@@ -120,7 +125,8 @@ turso db destroy <database name>
 
 ## Settings
 
-The `turso` program keeps settings in your local machine in the following base directory in `turso/settings.json` file:
+The `turso` program keeps settings in your local machine in the following base
+directory in `turso/settings.json` file:
 
 | OS    | Config directory                          |
 | ----- | ----------------------------------------- |
