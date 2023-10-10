@@ -150,7 +150,15 @@ func (s *Settings) GetLastUpdateCheck() int64 {
 	if !ok {
 		return 0
 	}
-	return lastUpdateCheck.(int64)
+
+	switch lastUpdateCheck := lastUpdateCheck.(type) {
+	case float64:
+		return int64(lastUpdateCheck)
+	case int64:
+		return lastUpdateCheck
+	default:
+		return 0
+	}
 }
 
 func (s *Settings) GetAutoupdate() string {
