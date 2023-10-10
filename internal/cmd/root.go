@@ -41,17 +41,31 @@ func init() {
 		}
 		settings, _ := settings.ReadSettings()
 		if settings.GetAutoupdate() == "on" && time.Now().Unix() >= settings.GetLastUpdateCheck()+int64(24*60*60) {
-			latest, _ := fetchLatestVersion()
-			settings.SetLastUpdateCheck(time.Now().Unix())
+			latest, err := fetchLatestVersion()
+			if err != nil {
+				fmt.Println("Error fetching latest version:", err)
+				return
+			}
 
-			parsedVersion, _ := semver.NewVersion(version)
-			parsedLatest, _ := semver.NewVersion(latest)
+			parsedVersion, err := semver.NewVersion(version)
+			if err != nil {
+				fmt.Println("Error parsing current version:", err)
+				return
+			}
+			parsedLatest, err := semver.NewVersion(latest)
+			if err != nil {
+				fmt.Println("Error parsing latest version:", err)
+				return
+			}
 
 			if parsedVersion.LessThan(parsedLatest) {
 				fmt.Println("Updating to the latest version")
-				Update()
-				return
+				err := Update()
+				if err != nil {
+					fmt.Println("Error updating:", err)
+				}
 			}
+			settings.SetLastUpdateCheck(time.Now().Unix())
 		}
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
