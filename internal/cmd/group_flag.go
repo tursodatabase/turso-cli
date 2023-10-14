@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
-	"github.com/schollz/sqlite3dump"
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -135,13 +137,76 @@ func countFlags(flags ...string) (count int) {
 }
 
 func handleDBFile(client *turso.Client, file string) (*turso.DBSeed, error) {
-	f, err := os.CreateTemp("", "")
+	if err := checkFileExists(file); err != nil {
+		return nil, err
+	}
+	if err := checkSQLiteAvailable(); err != nil {
+		return nil, err
+	}
+
+	if err := checkSQLiteFile(file); err != nil {
+		return nil, err
+	}
+
+	tmp, err := createTempFile()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := dumpSQLiteDatabase(file, tmp); err != nil {
+		return nil, err
+	}
+
+	return handleDumpFile(client, tmp.Name())
+}
+
+func checkFileExists(file string) error {
+	_, err := os.Stat(file)
+	if errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("could not find file %s", file)
+	}
+	return err
+}
+
+func checkSQLiteAvailable() error {
+	_, err := exec.LookPath("sqlite3")
+	if errors.Is(err, exec.ErrNotFound) {
+		return fmt.Errorf("could not find sqlite3 on your system. Please install it to use the --from-file flag or use --from-dump instead")
+	}
+	return err
+}
+
+func checkSQLiteFile(file string) error {
+	output, err := exec.Command("sqlite3", file, "pragma quick_check;").CombinedOutput()
+
+	execErr := &exec.ExitError{}
+	if errors.As(err, &execErr) && execErr.ExitCode() == 26 {
+		return fmt.Errorf("file %s is not a valid SQLite database file", file)
+	}
+
+	if err != nil {
+		return fmt.Errorf("could not check database file: %w: %s", err, output)
+	}
+	return nil
+}
+
+func createTempFile() (*os.File, error) {
+	tmp, err := os.CreateTemp("", "")
 	if err != nil {
 		return nil, fmt.Errorf("could not create temporary file to dump database file: %w", err)
 	}
-	if err := sqlite3dump.Dump(file, f); err != nil {
-		return nil, fmt.Errorf("could not dump database file: %w", err)
+	return tmp, nil
+}
+
+func dumpSQLiteDatabase(database string, dump *os.File) error {
+	stdErr := &bytes.Buffer{}
+	cmd := exec.Command("sqlite3", database, ".dump")
+	cmd.Stdout = dump
+	cmd.Stderr = stdErr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("could not dump database file: %w: %x", err, stdErr.Bytes())
 	}
 
-	return handleDumpFile(client, f.Name())
+	return nil
 }
