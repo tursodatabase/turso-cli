@@ -137,6 +137,7 @@ func destroyDatabases(client *turso.Client, names []string) error {
 	}
 
 	invalidateDatabasesCache()
+	invalidateGroupsCache(client.Org)
 	invalidateDbTokenCache()
 	settings.PersistChanges()
 
