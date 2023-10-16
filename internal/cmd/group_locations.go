@@ -19,6 +19,7 @@ func init() {
 	groupCmd.AddCommand(groupLocationsCmd)
 	groupLocationsCmd.AddCommand(groupLocationsListCmd)
 	groupLocationsCmd.AddCommand(groupLocationAddCmd)
+	addWaitFlag(groupLocationAddCmd, "Wait for group location to be ready")
 	groupLocationsCmd.AddCommand(groupsLocationsRmCmd)
 }
 
@@ -89,6 +90,7 @@ var groupLocationAddCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
+		invalidateGroupsCache(client.Org)
 		for _, location := range locations {
 			description := fmt.Sprintf("Replicating group %s to %s...", internal.Emph(groupName), internal.Emph(location))
 			spinner.Text(description)
@@ -96,12 +98,14 @@ var groupLocationAddCmd = &cobra.Command{
 			if err := client.Groups.AddLocation(groupName, location); err != nil {
 				return fmt.Errorf("failed to replicate group %s to %s: %w", groupName, location, err)
 			}
+
+			if err := handleGroupWaitFlag(client, groupName, location); err != nil {
+				return fmt.Errorf("failed to wait for group %s to be ready on location %s: %w", groupName, location, err)
+			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-
-		invalidateGroupsCache(client.Org)
 
 		if len(locations) == 1 {
 			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))
@@ -149,6 +153,7 @@ var groupsLocationsRmCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
+		invalidateGroupsCache(client.Org)
 		for _, location := range locations {
 			description := fmt.Sprintf("Removing group %s from %s...", internal.Emph(groupName), internal.Emph(location))
 			spinner.Text(description)
@@ -160,8 +165,6 @@ var groupsLocationsRmCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-
-		invalidateGroupsCache(client.Org)
 
 		if len(locations) == 1 {
 			fmt.Printf("Group %s removed from %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))

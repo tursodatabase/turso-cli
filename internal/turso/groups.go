@@ -153,6 +153,24 @@ func (d *GroupsClient) RemoveLocation(name, location string) error {
 	return nil
 }
 
+func (d *GroupsClient) WaitLocation(name, location string) error {
+	res, err := d.client.Get(d.URL("/"+name+"/locations/"+location+"/wait"), nil)
+	if err != nil {
+		return fmt.Errorf("failed to send wait location request: %s", err)
+	}
+	defer res.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(res.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+	return nil
+}
+
 func (d *GroupsClient) Token(group string, expiration string, readOnly bool) (string, error) {
 	authorization := ""
 	if readOnly {
