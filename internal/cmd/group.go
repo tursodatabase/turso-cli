@@ -20,6 +20,7 @@ func init() {
 	groupCmd.AddCommand(groupsListCmd)
 	groupCmd.AddCommand(groupsCreateCmd)
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
+	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
 }
@@ -119,6 +120,10 @@ func createGroup(client *turso.Client, name, location string) error {
 		return err
 	}
 
+	if err := handleGroupWaitFlag(client, name, location); err != nil {
+		return err
+	}
+
 	spinner.Stop()
 	elapsed := time.Since(start)
 	fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
@@ -187,4 +192,11 @@ func getGroup(client *turso.Client, name string) (turso.Group, error) {
 		}
 	}
 	return turso.Group{}, fmt.Errorf("group %s was not found", name)
+}
+
+func handleGroupWaitFlag(client *turso.Client, group, location string) error {
+	if !waitFlag {
+		return nil
+	}
+	return client.Groups.WaitLocation(group, location)
 }

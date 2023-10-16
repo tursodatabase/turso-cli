@@ -19,6 +19,7 @@ func init() {
 	groupCmd.AddCommand(groupLocationsCmd)
 	groupLocationsCmd.AddCommand(groupLocationsListCmd)
 	groupLocationsCmd.AddCommand(groupLocationAddCmd)
+	addWaitFlag(groupLocationAddCmd, "Wait for group location to be ready")
 	groupLocationsCmd.AddCommand(groupsLocationsRmCmd)
 }
 
@@ -96,6 +97,10 @@ var groupLocationAddCmd = &cobra.Command{
 
 			if err := client.Groups.AddLocation(groupName, location); err != nil {
 				return fmt.Errorf("failed to replicate group %s to %s: %w", groupName, location, err)
+			}
+
+			if err := handleGroupWaitFlag(client, groupName, location); err != nil {
+				return fmt.Errorf("failed to wait for group %s to be ready on location %s: %w", groupName, location, err)
 			}
 		}
 
