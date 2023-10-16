@@ -114,6 +114,7 @@ func createGroup(client *turso.Client, name, location string) error {
 	spinner := prompt.Spinner(description)
 	defer spinner.Stop()
 
+	invalidateGroupsCache(client.Org)
 	if err := client.Groups.Create(name, location); err != nil {
 		return err
 	}
@@ -122,7 +123,6 @@ func createGroup(client *turso.Client, name, location string) error {
 	elapsed := time.Since(start)
 	fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
 
-	invalidateGroupsCache(client.Org)
 	return nil
 }
 
@@ -131,6 +131,7 @@ func destroyGroup(client *turso.Client, name string) error {
 	s := prompt.Spinner(fmt.Sprintf("Destroying group %s... ", internal.Emph(name)))
 	defer s.Stop()
 
+	invalidateGroupsCache(client.Org)
 	if err := client.Groups.Delete(name); err != nil {
 		return err
 	}
@@ -138,7 +139,6 @@ func destroyGroup(client *turso.Client, name string) error {
 	elapsed := time.Since(start)
 
 	fmt.Printf("Destroyed group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
-	invalidateGroupsCache(client.Org)
 	return nil
 }
 

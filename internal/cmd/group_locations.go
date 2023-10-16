@@ -89,6 +89,7 @@ var groupLocationAddCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
+		invalidateGroupsCache(client.Org)
 		for _, location := range locations {
 			description := fmt.Sprintf("Replicating group %s to %s...", internal.Emph(groupName), internal.Emph(location))
 			spinner.Text(description)
@@ -100,8 +101,6 @@ var groupLocationAddCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-
-		invalidateGroupsCache(client.Org)
 
 		if len(locations) == 1 {
 			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))
@@ -149,6 +148,7 @@ var groupsLocationsRmCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
+		invalidateGroupsCache(client.Org)
 		for _, location := range locations {
 			description := fmt.Sprintf("Removing group %s from %s...", internal.Emph(groupName), internal.Emph(location))
 			spinner.Text(description)
@@ -160,8 +160,6 @@ var groupsLocationsRmCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-
-		invalidateGroupsCache(client.Org)
 
 		if len(locations) == 1 {
 			fmt.Printf("Group %s removed from %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))
