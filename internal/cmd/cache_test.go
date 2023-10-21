@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/google/uuid"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func Test_setDatabasesCache(t *testing.T) {

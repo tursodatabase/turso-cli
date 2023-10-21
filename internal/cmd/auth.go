@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/settings"
 )
 
 //go:embed login.html
@@ -206,8 +206,8 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 
 		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", internal.Emph("Turso CLI"))
 		fmt.Printf("You're currently using version %s while latest available version is %s.\n", internal.Emph(version), internal.Emph(latestVersion))
-		fmt.Printf("Please consider updating to get new features and more stable experience. To update:\n\n")
-		fmt.Printf("\n\t%s\n", internal.Emph("turso update"))
+		fmt.Printf("Please consider updating to get new features and more stable experience. To update:\n")
+		fmt.Printf("\n\t%s\n\n", internal.Emph("turso update"))
 	}
 
 	return nil

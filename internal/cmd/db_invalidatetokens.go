@@ -3,10 +3,11 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
+	"github.com/tursodatabase/turso-cli/internal/settings"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {
@@ -69,6 +70,8 @@ func rotateAndNotify(turso *turso.Client, database turso.Database) error {
 }
 
 func rotate(turso *turso.Client, database turso.Database) error {
+	invalidateDbTokenCache()
+	settings.PersistChanges()
 	if database.Group != "" {
 		return turso.Groups.Rotate(database.Group)
 	}

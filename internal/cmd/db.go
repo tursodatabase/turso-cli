@@ -6,16 +6,18 @@ import (
 	"os"
 	"sync"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/settings"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
-var showUrlFlag bool
-var showHttpUrlFlag bool
-var showInstanceUrlsFlag bool
-var showInstanceUrlFlag string
+var (
+	showUrlFlag          bool
+	showHttpUrlFlag      bool
+	showInstanceUrlsFlag bool
+	showInstanceUrlFlag  string
+)
 
 func getInstanceNames(client *turso.Client, dbName string) []string {
 	instances, err := client.Instances.List(dbName)
@@ -150,7 +152,6 @@ func latencies(client *turso.Client) (map[string]int, error) {
 				}
 			}
 			c <- latMap{id: id, lat: measure}
-
 		}(id)
 	}
 

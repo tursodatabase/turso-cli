@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"golang.org/x/exp/maps"
 )
 
@@ -19,6 +19,7 @@ func init() {
 	groupCmd.AddCommand(groupLocationsCmd)
 	groupLocationsCmd.AddCommand(groupLocationsListCmd)
 	groupLocationsCmd.AddCommand(groupLocationAddCmd)
+	addWaitFlag(groupLocationAddCmd, "Wait for group location to be ready")
 	groupLocationsCmd.AddCommand(groupsLocationsRmCmd)
 }
 
@@ -55,8 +56,8 @@ var groupLocationAddCmd = &cobra.Command{
 	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: locationsAddArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		group := args[0]
-		if group == "" {
+		groupName := args[0]
+		if groupName == "" {
 			return fmt.Errorf("the first argument must contain a group name")
 		}
 
@@ -66,10 +67,22 @@ var groupLocationAddCmd = &cobra.Command{
 			return err
 		}
 
+		group, err := client.Groups.Get(groupName)
+		if err != nil {
+			return err
+		}
+		alreadyExistingLocations := map[string]bool{}
+		for _, location := range group.Locations {
+			alreadyExistingLocations[location] = true
+		}
+
 		locations := args[1:]
 		for _, location := range locations {
 			if !isValidLocation(client, location) {
 				return fmt.Errorf("location '%s' is not a valid one", location)
+			}
+			if alreadyExistingLocations[location] {
+				return fmt.Errorf("location '%s' is already part of group '%s'", location, groupName)
 			}
 		}
 
@@ -77,26 +90,29 @@ var groupLocationAddCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
+		invalidateGroupsCache(client.Org)
 		for _, location := range locations {
-			description := fmt.Sprintf("Replicating group %s to %s...", internal.Emph(group), internal.Emph(location))
+			description := fmt.Sprintf("Replicating group %s to %s...", internal.Emph(groupName), internal.Emph(location))
 			spinner.Text(description)
 
-			if err := client.Groups.AddLocation(group, location); err != nil {
-				return fmt.Errorf("failed to replicate group %s to %s: %w", group, location, err)
+			if err := client.Groups.AddLocation(groupName, location); err != nil {
+				return fmt.Errorf("failed to replicate group %s to %s: %w", groupName, location, err)
+			}
+
+			if err := handleGroupWaitFlag(client, groupName, location); err != nil {
+				return fmt.Errorf("failed to wait for group %s to be ready on location %s: %w", groupName, location, err)
 			}
 		}
 
 		spinner.Stop()
 		elapsed := time.Since(start)
 
-		invalidateGroupsCache(client.Org)
-
 		if len(locations) == 1 {
-			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(group), internal.Emph(locations[0]), int(elapsed.Seconds()))
+			fmt.Printf("Group %s replicated to %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))
 			return nil
 		}
 
-		fmt.Printf("Group %s replicated to %d locations in %d seconds.\n", internal.Emph(group), len(locations), int(elapsed.Seconds()))
+		fmt.Printf("Group %s replicated to %d locations in %d seconds.\n", internal.Emph(groupName), len(locations), int(elapsed.Seconds()))
 		return nil
 	},
 }
@@ -137,6 +153,7 @@ var groupsLocationsRmCmd = &cobra.Command{
 		spinner := prompt.Spinner("")
 		defer spinner.Stop()
 
+		invalidateGroupsCache(client.Org)
 		for _, location := range locations {
 			description := fmt.Sprintf("Removing group %s from %s...", internal.Emph(groupName), internal.Emph(location))
 			spinner.Text(description)
@@ -148,8 +165,6 @@ var groupsLocationsRmCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-
-		invalidateGroupsCache(client.Org)
 
 		if len(locations) == 1 {
 			fmt.Printf("Group %s removed from %s in %d seconds.\n", internal.Emph(groupName), internal.Emph(locations[0]), int(elapsed.Seconds()))

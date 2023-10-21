@@ -1,6 +1,6 @@
 package main
 
-import "github.com/chiselstrike/iku-turso-cli/internal/cmd"
+import "github.com/tursodatabase/turso-cli/internal/cmd"
 
 func main() {
 	cmd.Execute()

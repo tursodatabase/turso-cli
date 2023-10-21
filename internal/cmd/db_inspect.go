@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/dustin/go-humanize"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {

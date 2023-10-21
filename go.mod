@@ -1,4 +1,4 @@
-module github.com/chiselstrike/iku-turso-cli
+module github.com/tursodatabase/turso-cli
 
 go 1.21
 
@@ -19,12 +19,13 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	github.com/schollz/sqlite3dump v1.3.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/sync v0.3.0
 )
+
+require github.com/hashicorp/go-version v1.6.0
 
 require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9 // indirect

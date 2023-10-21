@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
 )
 
 var accountFeedbackCmd = &cobra.Command{

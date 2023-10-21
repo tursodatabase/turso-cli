@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/chiselstrike/iku-turso-cli/internal/tetris"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal/tetris"
 )
 
 func init() {

@@ -3,11 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal/flags"
-	"github.com/chiselstrike/iku-turso-cli/internal/settings"
+	semver "github.com/hashicorp/go-version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tursodatabase/turso-cli/internal/flags"
+	"github.com/tursodatabase/turso-cli/internal/settings"
 )
 
 var rootCmd = &cobra.Command{
@@ -34,9 +36,39 @@ func init() {
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
 		settings.PersistChanges()
+		if version == "dev" {
+			return
+		}
+		settings, _ := settings.ReadSettings()
+		if settings.GetAutoupdate() == "on" && time.Now().Unix() >= settings.GetLastUpdateCheck()+int64(24*60*60) {
+			latest, err := fetchLatestVersion()
+			if err != nil {
+				fmt.Println("Error fetching latest version:", err)
+				return
+			}
+
+			parsedVersion, err := semver.NewVersion(version)
+			if err != nil {
+				fmt.Println("Error parsing current version:", err)
+				return
+			}
+			parsedLatest, err := semver.NewVersion(latest)
+			if err != nil {
+				fmt.Println("Error parsing latest version:", err)
+				return
+			}
+
+			if parsedVersion.LessThan(parsedLatest) {
+				fmt.Println("Updating to the latest version")
+				err := Update()
+				if err != nil {
+					fmt.Println("Error updating:", err)
+				}
+			}
+			settings.SetLastUpdateCheck(time.Now().Unix())
+		}
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
-
 	flags.AddDebugFlag(rootCmd)
 	flags.AddResetConfigFlag(rootCmd)
 }

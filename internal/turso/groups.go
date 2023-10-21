@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal"
 )
 
 type GroupsClient client
@@ -139,6 +139,24 @@ func (d *GroupsClient) RemoveLocation(name, location string) error {
 	res, err := d.client.Delete(d.URL("/"+name+"/locations/"+location), nil)
 	if err != nil {
 		return fmt.Errorf("failed to post group location request: %s", err)
+	}
+	defer res.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(res.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+	return nil
+}
+
+func (d *GroupsClient) WaitLocation(name, location string) error {
+	res, err := d.client.Get(d.URL("/"+name+"/locations/"+location+"/wait"), nil)
+	if err != nil {
+		return fmt.Errorf("failed to send wait location request: %s", err)
 	}
 	defer res.Body.Close()
 

@@ -5,14 +5,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
-var expFlag expirationFlag
-var readOnlyFlag bool
-var groupTokenFlag bool
+var (
+	expFlag        expirationFlag
+	readOnlyFlag   bool
+	groupTokenFlag bool
+)
 
 func init() {
 	dbTokensCmd.AddCommand(dbGenerateTokenCmd)
@@ -64,7 +66,6 @@ func getToken(client *turso.Client, database turso.Database, expiration string, 
 		return "", fmt.Errorf("--group flag can only be set with group databases")
 	}
 	return client.Groups.Token(database.Group, expiration, readOnly)
-
 }
 
 func validateExpiration(expiration string) error {

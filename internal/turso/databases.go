@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal"
 )
 
 type Database struct {

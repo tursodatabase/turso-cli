@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chiselstrike/iku-turso-cli/internal"
-	"github.com/chiselstrike/iku-turso-cli/internal/prompt"
-	"github.com/chiselstrike/iku-turso-cli/internal/turso"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 var groupCmd = &cobra.Command{
@@ -20,6 +20,7 @@ func init() {
 	groupCmd.AddCommand(groupsListCmd)
 	groupCmd.AddCommand(groupsCreateCmd)
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
+	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
 }
@@ -114,7 +115,12 @@ func createGroup(client *turso.Client, name, location string) error {
 	spinner := prompt.Spinner(description)
 	defer spinner.Stop()
 
+	invalidateGroupsCache(client.Org)
 	if err := client.Groups.Create(name, location); err != nil {
+		return err
+	}
+
+	if err := handleGroupWaitFlag(client, name, location); err != nil {
 		return err
 	}
 
@@ -122,7 +128,6 @@ func createGroup(client *turso.Client, name, location string) error {
 	elapsed := time.Since(start)
 	fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
 
-	invalidateGroupsCache(client.Org)
 	return nil
 }
 
@@ -131,6 +136,7 @@ func destroyGroup(client *turso.Client, name string) error {
 	s := prompt.Spinner(fmt.Sprintf("Destroying group %s... ", internal.Emph(name)))
 	defer s.Stop()
 
+	invalidateGroupsCache(client.Org)
 	if err := client.Groups.Delete(name); err != nil {
 		return err
 	}
@@ -138,7 +144,6 @@ func destroyGroup(client *turso.Client, name string) error {
 	elapsed := time.Since(start)
 
 	fmt.Printf("Destroyed group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
-	invalidateGroupsCache(client.Org)
 	return nil
 }
 
@@ -187,4 +192,11 @@ func getGroup(client *turso.Client, name string) (turso.Group, error) {
 		}
 	}
 	return turso.Group{}, fmt.Errorf("group %s was not found", name)
+}
+
+func handleGroupWaitFlag(client *turso.Client, group, location string) error {
+	if !waitFlag {
+		return nil
+	}
+	return client.Groups.WaitLocation(group, location)
 }
