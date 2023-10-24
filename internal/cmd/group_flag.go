@@ -60,8 +60,8 @@ func parseTimestampFlag() (*time.Time, error) {
 }
 
 func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
-	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag) > 1 {
-		return nil, fmt.Errorf("only one of --from-db, --from-dump, or --from-file can be used at a time")
+	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag) > 1 {
+		return nil, fmt.Errorf("only one of --from prefixed flags can be used at a time")
 	}
 
 	timestamp, err := parseTimestampFlag()
@@ -81,7 +81,18 @@ func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
 		return handleDumpFile(client, fromDumpFlag)
 	}
 
+	if fromDumpURLFlag != "" {
+		return handleDumpURL(fromDumpURLFlag)
+	}
+
 	return nil, nil
+}
+
+func handleDumpURL(url string) (*turso.DBSeed, error) {
+	return &turso.DBSeed{
+		Type: "dump",
+		URL:  url,
+	}, nil
 }
 
 func handleDumpFile(client *turso.Client, file string) (*turso.DBSeed, error) {
@@ -103,10 +114,7 @@ func handleDumpFile(client *turso.Client, file string) (*turso.DBSeed, error) {
 	elapsed := time.Since(start)
 	fmt.Printf("Uploaded data in %d seconds.\n\n", int(elapsed.Seconds()))
 
-	return &turso.DBSeed{
-		Type: "dump",
-		URL:  dumpURL,
-	}, nil
+	return handleDumpURL(dumpURL)
 }
 
 func validateDumpFile(name string) (*os.File, error) {

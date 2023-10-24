@@ -18,6 +18,7 @@ func init() {
 	addGroupFlag(createCmd)
 	addFromDBFlag(createCmd)
 	addDbFromDumpFlag(createCmd)
+	addDbFromDumpURLFlag(createCmd)
 	addDbFromFileFlag(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 
