@@ -112,7 +112,7 @@ func getAccessToken(warnMultipleAccessTokenSources bool) (string, error) {
 		return envToken, nil
 	}
 	if !isJwtTokenValid(settingsToken) {
-		return "", fmt.Errorf("You are not logged in, please login with %s before running other commands.", internal.Emph("turso auth login"))
+		return "", fmt.Printf("You are not logged in, please login with %s before running other commands.", internal.Emph("turso auth login"))
 	}
 
 	return settingsToken, nil
