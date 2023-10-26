@@ -18,6 +18,7 @@ func init() {
 	addGroupFlag(createCmd)
 	addFromDBFlag(createCmd)
 	addDbFromDumpFlag(createCmd)
+	addDbFromDumpURLFlag(createCmd)
 	addDbFromFileFlag(createCmd)
 	addDbFromCSVFlag(createCmd)
 	addCSVTableNameFlag(createCmd)
