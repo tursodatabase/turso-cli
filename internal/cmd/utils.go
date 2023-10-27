@@ -21,6 +21,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	tursoDefaultBaseURL = "https://api.turso.tech"
+)
+
 func createTursoClientFromAccessToken(warnMultipleAccessTokenSources bool) (*turso.Client, error) {
 	token, err := getAccessToken(warnMultipleAccessTokenSources)
 	if err != nil {
@@ -248,11 +252,12 @@ func deleteDatabaseInstance(client *turso.Client, database, instance string) err
 }
 
 func getTursoUrl() string {
-	host := os.Getenv("TURSO_API_BASEURL")
-	if host == "" {
-		host = "https://api.turso.tech"
+	config, _ := settings.ReadSettings() // ok to ignore, we'll fallback to default
+	url := config.GetBaseURL()
+	if url == "" {
+		url = tursoDefaultBaseURL
 	}
-	return host
+	return url
 }
 
 func promptConfirmation(prompt string) (bool, error) {
