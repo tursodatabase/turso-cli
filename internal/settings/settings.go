@@ -32,6 +32,7 @@ func ReadSettings() (*Settings, error) {
 
 	configPath := configdir.LocalConfig("turso")
 	viper.BindEnv("config-path", "TURSO_CONFIG_FOLDER")
+	viper.BindEnv("baseURL", "TURSO_API_BASEURL")
 
 	configPathFlag := viper.GetString("config-path")
 	if len(configPathFlag) > 0 {
@@ -119,6 +120,10 @@ func (s *Settings) SetUsername(username string) {
 
 func (s *Settings) GetUsername() string {
 	return viper.GetString("username")
+}
+
+func (s *Settings) GetBaseURL() string {
+	return viper.GetString("baseURL")
 }
 
 func (s *Settings) SetAutoupdate(autoupdate string) {
