@@ -13,6 +13,7 @@ import (
 func init() {
 	dbCmd.AddCommand(dbInspectCmd)
 	addVerboseFlag(dbInspectCmd)
+	addQueriesFlag(dbInspectCmd)
 }
 
 type InspectInstanceInfo struct {
@@ -100,6 +101,10 @@ var dbInspectCmd = &cobra.Command{
 			return err
 		}
 
+		if queriesFlag {
+			return handleInspectQueries(client, name)
+		}
+
 		db, err := getDatabase(client, name, true)
 		if err != nil {
 			return err
@@ -148,4 +153,18 @@ func getInstanceUsageMap(usages []turso.InstanceUsage) map[string]turso.Usage {
 		m[usg.UUID] = usg.Usage
 	}
 	return m
+}
+
+func handleInspectQueries(client *turso.Client, database string) error {
+	stats, err := client.Databases.Stats(database)
+	if err != nil {
+		return err
+	}
+	tbl := table.New("QUERY", "ROWS WRITTEN", "ROWS READ")
+	for _, query := range stats.TopQueries {
+		tbl.AddRow(query.Query, query.RowsWritten, query.RowsRead)
+	}
+	tbl.Print()
+	fmt.Println()
+	return nil
 }

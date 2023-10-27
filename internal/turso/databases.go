@@ -249,6 +249,35 @@ func (d *DatabasesClient) Update(database string, group bool) error {
 	return nil
 }
 
+type Stats struct {
+	TopQueries []struct {
+		Query       string `json:"query"`
+		RowsRead    int    `json:"rows_read"`
+		RowsWritten int    `json:"rows_written"`
+	} `json:"top_queries,omitempty"`
+}
+
+func (d *DatabasesClient) Stats(database string) (Stats, error) {
+	url := d.URL(fmt.Sprintf("/%s/stats", database))
+	r, err := d.client.Get(url, nil)
+	if err != nil {
+		return Stats{}, fmt.Errorf("failed to update database: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return Stats{}, notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err = parseResponseError(r)
+		return Stats{}, fmt.Errorf("failed to get stats for database: %d %s", r.StatusCode, err)
+	}
+
+	return unmarshal[Stats](r)
+}
+
 type Body struct {
 	Org string `json:"org"`
 }
