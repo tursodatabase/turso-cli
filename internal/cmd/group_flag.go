@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/Clever/csvlint"
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -60,13 +61,19 @@ func parseTimestampFlag() (*time.Time, error) {
 }
 
 func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
-	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag) > 1 {
+	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag, fromCSVFlag) > 1 {
 		return nil, fmt.Errorf("only one of --from prefixed flags can be used at a time")
 	}
 
 	timestamp, err := parseTimestampFlag()
 	if err != nil {
 		return nil, err
+	}
+	if fromCSVFlag != "" && csvTableNameFlag == "" {
+		return nil, fmt.Errorf("--csv-table-name must be used with --from-csv")
+	}
+	if csvTableNameFlag != "" && fromCSVFlag == "" {
+		return nil, fmt.Errorf("--from-csv must be used with --csv-table-name")
 	}
 
 	if fromDBFlag != "" {
@@ -81,6 +88,9 @@ func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
 		return handleDumpFile(client, fromDumpFlag)
 	}
 
+	if fromCSVFlag != "" {
+		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag)
+	}
 	if fromDumpURLFlag != "" {
 		return handleDumpURL(fromDumpURLFlag)
 	}
@@ -216,5 +226,53 @@ func dumpSQLiteDatabase(database string, dump *os.File) error {
 		return fmt.Errorf("could not dump database file: %w: %x", err, stdErr.Bytes())
 	}
 
+	return nil
+}
+
+func handleCSVFile(client *turso.Client, file, csvTableName string) (*turso.DBSeed, error) {
+	if err := checkFileExists(file); err != nil {
+		return nil, err
+	}
+	if err := checkSQLiteAvailable(); err != nil {
+		return nil, err
+	}
+
+	csvFile, err := os.Open(file)
+	if err != nil {
+		return nil, fmt.Errorf("could not open CSV file: %w", err)
+	}
+	defer csvFile.Close()
+
+	errs, invalid, _ := csvlint.Validate(csvFile, ',', false)
+	if invalid {
+		return nil, fmt.Errorf("CSV file is not valid: %+v", errs)
+	}
+
+	tempDB, err := os.CreateTemp("", "")
+	if err != nil {
+		return nil, fmt.Errorf("could not create temporary file to dump database file: %w", err)
+	}
+	defer os.Remove(tempDB.Name())
+
+	err = importCSVIntoSQLite(tempDB, csvFile.Name(), csvTableName)
+	if err != nil {
+		return nil, err
+	}
+
+	seed, err := handleDBFile(client, tempDB.Name())
+	if err != nil {
+		return nil, err
+	}
+	return seed, nil
+}
+
+func importCSVIntoSQLite(tempDB *os.File, csvFile, csvTableName string) error {
+	stdErr := &bytes.Buffer{}
+	cmd := exec.Command("sqlite3", "-csv", tempDB.Name(), fmt.Sprintf(".import %s %s", csvFile, csvTableName))
+	cmd.Stderr = stdErr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("could not load csv into new database file: %w: %x", err, stdErr.Bytes())
+	}
 	return nil
 }
