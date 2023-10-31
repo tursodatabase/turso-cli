@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"sync"
@@ -78,8 +79,12 @@ func ReadSettings() (*Settings, error) {
 }
 
 func PersistChanges() {
-	if settings != nil && settings.changed {
-		viper.WriteConfig()
+	if settings == nil || !settings.changed {
+		return
+	}
+
+	if err := viper.WriteConfig(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error persisting turso settings file: ", err.Error())
 	}
 }
 
