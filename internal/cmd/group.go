@@ -21,6 +21,7 @@ func init() {
 	groupCmd.AddCommand(groupsCreateCmd)
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
 	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
+	addCanaryFlag(groupsCreateCmd)
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
 }
@@ -72,7 +73,12 @@ var groupsCreateCmd = &cobra.Command{
 			return fmt.Errorf("location '%s' is not a valid one", location)
 		}
 
-		return createGroup(client, name, location)
+		version := "latest"
+		if canaryFlag {
+			version = "canary"
+		}
+
+		return createGroup(client, name, location, version)
 	},
 }
 
@@ -109,14 +115,14 @@ var groupsDestroyCmd = &cobra.Command{
 	},
 }
 
-func createGroup(client *turso.Client, name, location string) error {
+func createGroup(client *turso.Client, name, location, version string) error {
 	start := time.Now()
 	description := fmt.Sprintf("Creating group %s at %s...", internal.Emph(name), internal.Emph(location))
 	spinner := prompt.Spinner(description)
 	defer spinner.Stop()
 
 	invalidateGroupsCache(client.Org)
-	if err := client.Groups.Create(name, location); err != nil {
+	if err := client.Groups.Create(name, location, version); err != nil {
 		return err
 	}
 

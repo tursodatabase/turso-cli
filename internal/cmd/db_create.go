@@ -64,7 +64,12 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		if err := ensureGroup(client, group, location); err != nil {
+		version := "latest"
+		if canaryFlag {
+			version = "canary"
+		}
+
+		if err := ensureGroup(client, group, location, version); err != nil {
 			return err
 		}
 
@@ -91,11 +96,11 @@ var createCmd = &cobra.Command{
 	},
 }
 
-func ensureGroup(client *turso.Client, group, location string) error {
+func ensureGroup(client *turso.Client, group, location, version string) error {
 	if ok, err := shouldCreateGroup(client, group, location); !ok {
 		return err
 	}
-	return createGroup(client, group, location)
+	return createGroup(client, group, location, version)
 }
 
 func getDatabaseName(args []string) (string, error) {
