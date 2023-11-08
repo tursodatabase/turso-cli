@@ -89,9 +89,9 @@ func (d *GroupsClient) Delete(group string) error {
 	return nil
 }
 
-func (d *GroupsClient) Create(name, location string) error {
-	type Body struct{ Name, Location string }
-	body, err := marshal(Body{name, location})
+func (d *GroupsClient) Create(name, location, version string) error {
+	type Body struct{ Name, Location, Version string }
+	body, err := marshal(Body{name, location, version})
 	if err != nil {
 		return fmt.Errorf("could not serialize request body: %w", err)
 	}
