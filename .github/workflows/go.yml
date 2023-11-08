@@ -70,7 +70,7 @@ jobs:
       - name: Integration tests checkout
         uses: actions/checkout@v3
         with:
-          repository: chiselstrike/tursotest
+          repository: tursodatabase/tursotest
           ref: "main"
           path: "tests"
           token: ${{ secrets.ACCESS_TOKEN_TO_TESTS }}
