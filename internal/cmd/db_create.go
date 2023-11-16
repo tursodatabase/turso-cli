@@ -100,7 +100,10 @@ func ensureGroup(client *turso.Client, group, location, version string) error {
 	if ok, err := shouldCreateGroup(client, group, location); !ok {
 		return err
 	}
-	return createGroup(client, group, location, version)
+	if err := createGroup(client, group, location, version); err != nil {
+		return err
+	}
+	return client.Groups.WaitLocation(group, location)
 }
 
 func getDatabaseName(args []string) (string, error) {
