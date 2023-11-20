@@ -463,10 +463,20 @@ func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
 		planNames = append(planNames, plan.Name)
 	}
 
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return "", err
+	}
+
+	var org string
+	if org = settings.Organization(); org == "" {
+		org = settings.GetUsername()
+	}
+
 	prompt := promptui.Select{
 		CursorPos:    cur,
 		HideHelp:     true,
-		Label:        "Select a plan",
+		Label:        fmt.Sprintf("Select a plan for organization %s", internal.Emph(org)),
 		Items:        planNames,
 		HideSelected: true,
 	}
