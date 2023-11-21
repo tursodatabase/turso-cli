@@ -43,18 +43,18 @@ func init() {
 		if settings.GetAutoupdate() == "on" && time.Now().Unix() >= settings.GetLastUpdateCheck()+int64(24*60*60) {
 			latest, err := fetchLatestVersion()
 			if err != nil {
-				fmt.Println("Error fetching latest version:", err)
+				_, _ = fmt.Fprintln(os.Stderr, "Error fetching latest version:", err)
 				return
 			}
 
 			parsedVersion, err := semver.NewVersion(version)
 			if err != nil {
-				fmt.Println("Error parsing current version:", err)
+				_, _ = fmt.Fprintln(os.Stderr, "Error parsing current version:", err)
 				return
 			}
 			parsedLatest, err := semver.NewVersion(latest)
 			if err != nil {
-				fmt.Println("Error parsing latest version:", err)
+				_, _ = fmt.Fprintln(os.Stderr, "Error parsing latest version:", err)
 				return
 			}
 
@@ -62,7 +62,7 @@ func init() {
 				fmt.Println("Updating to the latest version")
 				err := Update()
 				if err != nil {
-					fmt.Println("Error updating:", err)
+					_, _ = fmt.Fprintln(os.Stderr, "Error updating:", err)
 				}
 			}
 			settings.SetLastUpdateCheck(time.Now().Unix())
