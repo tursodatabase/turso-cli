@@ -75,8 +75,8 @@ var devCmd = &cobra.Command{
 		// Start the server process
 		err = sqld.Start()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s.\no install it, follow the instructions at %s\nAlso make sure %s is on your PATH\n", internal.Warn("Could not start libsql-server"),
-				internal.Emph("https://github.com/tursodatabase/libsql/blob/main/libsql-server/docs/BUILD-RUN.md"),
+			fmt.Fprintf(os.Stderr, "%s.\nTo install it, follow the instructions at %s\nAlso make sure %s is on your PATH\n", internal.Warn("Could not start libsql-server"),
+				internal.Emph("https://github.com/tursodatabase/libsql/blob/main/docs/BUILD-RUN.md"),
 				internal.Emph("sqld"))
 			return err
 		}
