@@ -1,3 +1,5 @@
+Hi
+
 # Turso CLI
 
 [![Go](https://github.com/tursodatabase/turso-cli/actions/workflows/go.yml/badge.svg)](https://github.com/tursodatabase/turso-cli/actions/workflows/go.yml)
