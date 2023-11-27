@@ -19,6 +19,7 @@ func init() {
 	rootCmd.AddCommand(groupCmd)
 	groupCmd.AddCommand(groupsListCmd)
 	groupCmd.AddCommand(groupsCreateCmd)
+	groupCmd.AddCommand(unarchiveGroupCmd)
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
 	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
 	addCanaryFlag(groupsCreateCmd)
@@ -82,6 +83,23 @@ var groupsCreateCmd = &cobra.Command{
 	},
 }
 
+var unarchiveGroupCmd = &cobra.Command{
+	Use:               "unarchive [group]",
+	Short:             "Unarchive a database group",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: groupArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+
+		name := args[0]
+		return unarchiveGroup(client, name)
+	},
+}
+
 var groupsDestroyCmd = &cobra.Command{
 	Use:               "destroy [group]",
 	Short:             "Destroy a database group",
@@ -134,6 +152,21 @@ func createGroup(client *turso.Client, name, location, version string) error {
 	elapsed := time.Since(start)
 	fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
 
+	return nil
+}
+
+func unarchiveGroup(client *turso.Client, name string) error {
+	start := time.Now()
+	s := prompt.Spinner(fmt.Sprintf("Unarchiving group %s... ", internal.Emph(name)))
+	defer s.Stop()
+
+	if err := client.Groups.Unarchive(name); err != nil {
+		return err
+	}
+	s.Stop()
+	elapsed := time.Since(start)
+	invalidateGroupsCache(client.Org)
+	fmt.Printf("Unarchived group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
 	return nil
 }
 
