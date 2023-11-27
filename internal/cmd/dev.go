@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -27,12 +28,16 @@ var devCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+		sqldNotFoundErr := fmt.Sprintf("%s.\nTo install it, follow the instructions at %s\nAlso make sure %s is on your PATH\n", internal.Warn("Could not start libsql-server"),
+			internal.Emph("https://github.com/tursodatabase/libsql/blob/main/docs/BUILD-RUN.md"),
+			internal.Emph("sqld"))
 
+		version, err := getSqldVersion()
+		if err != nil {
+			fmt.Fprint(os.Stderr, sqldNotFoundErr)
+			return err
+		}
 		if sqldVersion {
-			version, err := getSqldVersion()
-			if err != nil {
-				return err
-			}
 			fmt.Println(version)
 			return nil
 		}
@@ -60,6 +65,9 @@ var devCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("Error creating link to file: %w", err)
 			}
+			if err := os.WriteFile(filepath.Join(tempDir, ".version"), []byte(extractSemver(version)), 0644); err != nil {
+				return fmt.Errorf("Error writing version file: %w", err)
+			}
 		}
 
 		addr := fmt.Sprintf("0.0.0.0:%d", devPort)
@@ -75,9 +83,7 @@ var devCmd = &cobra.Command{
 		// Start the server process
 		err = sqld.Start()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s.\no install it, follow the instructions at %s\nAlso make sure %s is on your PATH\n", internal.Warn("Could not start libsql-server"),
-				internal.Emph("https://github.com/tursodatabase/libsql/blob/main/docs/BUILD-RUN.md"),
-				internal.Emph("sqld"))
+			fmt.Fprint(os.Stderr, sqldNotFoundErr)
 			return err
 		}
 		fmt.Printf("sqld listening on port %s.\n", internal.Emph(devPort))
@@ -103,4 +109,9 @@ var devCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func extractSemver(version string) string {
+	regex := regexp.MustCompile(`\b\d+\.\d+\.\d+\b`)
+	return regex.FindString(version)
 }
