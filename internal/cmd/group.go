@@ -132,7 +132,7 @@ func createGroup(client *turso.Client, name, location, version string) error {
 
 	spinner.Stop()
 	elapsed := time.Since(start)
-	fmt.Printf("Created group %s at %s in %d seconds.\n", internal.Emph(name), internal.Emph(location), int(elapsed.Seconds()))
+	fmt.Printf("Created group %s at %s in %s.\n", internal.Emph(name), internal.Emph(location), elapsed.Round(time.Millisecond).String())
 
 	return nil
 }
@@ -149,7 +149,7 @@ func destroyGroup(client *turso.Client, name string) error {
 	s.Stop()
 	elapsed := time.Since(start)
 
-	fmt.Printf("Destroyed group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+	fmt.Printf("Destroyed group %s in %s.\n", internal.Emph(name), elapsed.Round(time.Millisecond).String())
 	return nil
 }
 

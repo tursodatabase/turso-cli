@@ -172,7 +172,7 @@ func destroyDatabases(client *turso.Client, names []string) error {
 
 	msg = fmt.Sprintf("Destroyed %d databases in %d seconds.\n", len(names), int(elapsed.Seconds()))
 	if len(names) == 1 {
-		msg = fmt.Sprintf("Destroyed database %s in %d seconds.\n", internal.Emph(names[0]), int(elapsed.Seconds()))
+		msg = fmt.Sprintf("Destroyed database %s in %s.\n", internal.Emph(names[0]), elapsed.Round(time.Millisecond).String())
 	}
 	fmt.Println(msg)
 
