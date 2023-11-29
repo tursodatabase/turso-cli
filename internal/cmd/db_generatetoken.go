@@ -23,7 +23,6 @@ func init() {
 	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
 	dbGenerateTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
 	dbGenerateTokenCmd.Flags().BoolVar(&groupTokenFlag, "group", false, "create a token that is valid for all databases in the group")
-	dbGenerateTokenCmd.Flags().MarkHidden("group")
 
 	dbGenerateTokenCmd.Flags().BoolVarP(&readOnlyFlag, "read-only", "r", false, "Token with read-only access")
 }
