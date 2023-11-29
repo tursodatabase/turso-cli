@@ -83,7 +83,7 @@ var createCmd = &cobra.Command{
 
 		spinner.Stop()
 		elapsed := time.Since(start)
-		fmt.Printf("Created database %s at group %s in %d seconds.\n\n", internal.Emph(name), internal.Emph(group), int(elapsed.Seconds()))
+		fmt.Printf("Created database %s at group %s in %s.\n\n", internal.Emph(name), internal.Emph(group), elapsed.Round(time.Millisecond).String())
 
 		fmt.Printf("Start an interactive SQL shell with:\n\n")
 		fmt.Printf("   %s\n\n", internal.Emph("turso db shell "+name))
