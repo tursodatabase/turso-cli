@@ -45,7 +45,7 @@ jobs:
       - name: Update Turso backoffice
         uses: fjogeleit/http-request-action@v1
         with:
-            url: 'https://api.chiseledge.com/releases'
+            url: 'https://api.turso.tech/releases'
             method: 'POST'
             data: ${{ steps.get_version.outputs.VERSION }}
             bearerToken: ${{ secrets.TURSOSTAFF_TOKEN }}
