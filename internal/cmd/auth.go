@@ -224,6 +224,7 @@ func beginAuth(port int, headless bool, path string) (string, error) {
 			"redirect": {"true"},
 			"type":     {"cli"},
 		}.Encode()
+		browser.Stderr = nil
 		err = browser.OpenURL(authUrl.String())
 		if err != nil {
 			fmt.Println("error: Unable to open browser.")
