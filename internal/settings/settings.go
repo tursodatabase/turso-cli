@@ -69,6 +69,7 @@ func ReadSettings() (*Settings, error) {
 			flag := internal.Emph("--reset-config")
 			fmt.Printf("%s: could not parse JSON config from file %s\n", warning, internal.Emph(configFile))
 			fmt.Printf("Fix the syntax errors on the file, or use the %s flag to replace it with a fresh one.\n", flag)
+			fmt.Printf("E.g. turso auth login --reset-config\n")
 			return nil, err
 		default:
 			return nil, err
