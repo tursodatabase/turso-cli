@@ -157,7 +157,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		if err != nil {
 			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
 		}
-		fmt.Println("Visit this URL on this device to log in:")
+		fmt.Println("Visit the following URL to obtain an authentication token for login:")
 		fmt.Println(url)
 	} else {
 		ch := make(chan string, 1)
