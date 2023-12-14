@@ -227,7 +227,7 @@ func beginAuth(port int, headless bool, path string) (string, error) {
 		browser.Stderr = nil
 		err = browser.OpenURL(authUrl.String())
 		if err != nil {
-			return "", fmt.Errorf("failed to open browser, please use the `--headless` command line option")
+			return "", fmt.Errorf("failed to open browser, please use the `--headless` command line option\n E.g. turso auth login --headless")
 		}
 	} else {
 		authUrl.RawQuery = url.Values{
