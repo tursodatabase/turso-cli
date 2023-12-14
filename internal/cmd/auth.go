@@ -157,7 +157,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		if err != nil {
 			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
 		}
-		fmt.Println("Visit this URL on this device to log in:")
+		fmt.Println("Visit the following URL to obtain an authentication token for login:")
 		fmt.Println(url)
 	} else {
 		ch := make(chan string, 1)
@@ -173,7 +173,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 
 		url, err := beginAuth(port, headlessFlag, path)
 		if err != nil {
-			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
+			return err
 		}
 		fmt.Println("Visit this URL on this device to log in:")
 		fmt.Println(url)
@@ -224,9 +224,10 @@ func beginAuth(port int, headless bool, path string) (string, error) {
 			"redirect": {"true"},
 			"type":     {"cli"},
 		}.Encode()
+		browser.Stderr = nil
 		err = browser.OpenURL(authUrl.String())
 		if err != nil {
-			fmt.Println("error: Unable to open browser.")
+			return "", fmt.Errorf("failed to open browser, please use the `--headless` command line option\n E.g. turso auth login --headless")
 		}
 	} else {
 		authUrl.RawQuery = url.Values{
