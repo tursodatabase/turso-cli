@@ -138,14 +138,29 @@ func login(cmd *cobra.Command, args []string) error {
 	return auth(cmd, "")
 }
 
+func exitOnValidAuth(settings *settings.Settings, path string) {
+	username := settings.GetUsername()
+	if len(username) <= 0 {
+		fmt.Println("✔  Success! Existing JWT still valid")
+		return
+	}
+	if path == "/signup" {
+		fmt.Printf("Already signed up as %s\n", username)
+		return
+	}
+	fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, internal.Emph("turso auth logout"))
+}
+
 func auth(cmd *cobra.Command, path string) error {
+	cmd.SilenceUsage = true
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
 
 	if isJwtTokenValid(settings.GetToken()) {
-		return alreadySignedInError(settings)
+		exitOnValidAuth(settings, path)
+		return nil
 	}
 
 	if flags.Headless() {
@@ -219,15 +234,6 @@ func printHeadlessLoginInstructions(path string) error {
 	fmt.Println("Visit the following URL to login:")
 	fmt.Println(url)
 	return nil
-}
-
-func alreadySignedInError(config *settings.Settings) error {
-	username := config.GetUsername()
-	extraInfo := ""
-	if len(username) > 0 {
-		extraInfo = " as " + internal.Emph(username)
-	}
-	return fmt.Errorf("already signed in%s.\nUse %s to log out of this account", extraInfo, internal.Emph("turso auth logout"))
 }
 
 func signupHint(config *settings.Settings) {
