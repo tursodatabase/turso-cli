@@ -174,7 +174,17 @@ func (s *Settings) GetLastUpdateCheck() int64 {
 
 func (s *Settings) GetAutoupdate() string {
 	config := viper.GetStringMap("config")
-	if config == nil || config["autoupdate"] == nil || config["autoupdate"] == "" {
+	if config == nil {
+		config := make(map[string]interface{})
+		config["autoupdate"] = "on"
+		viper.Set("config", config)
+		s.changed = true
+		return "on"
+	}
+	if config["autoupdate"] == nil || config["autoupdate"] == "" {
+		config["autoupdate"] = "on"
+		viper.Set("config", config)
+		s.changed = true
 		return "on"
 	}
 	value := config["autoupdate"]
