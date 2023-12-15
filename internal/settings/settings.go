@@ -144,6 +144,7 @@ func (s *Settings) SetAutoupdate(autoupdate string) {
 
 func (s *Settings) SetLastUpdateCheck(t int64) {
 	config := viper.GetStringMap("config")
+	fmt.Println(config)
 	if config == nil {
 		config = make(map[string]interface{})
 	}
