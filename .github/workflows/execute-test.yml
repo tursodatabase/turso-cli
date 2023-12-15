@@ -1,0 +1,22 @@
+name: Workflow to test execute
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  install:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Buidl
+        run: go build -o turso cmd/turso/main.go
+
+      - name: Verify CLI installation
+        run: ./turso quickstart
