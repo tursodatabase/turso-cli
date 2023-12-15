@@ -76,6 +76,8 @@ func ReadSettings() (*Settings, error) {
 		}
 	}
 
+	settings.changed = true
+
 	return settings, nil
 }
 
@@ -179,8 +181,4 @@ func (s *Settings) GetAutoupdate() string {
 	}
 	value := config["autoupdate"]
 	return value.(string)
-}
-
-func (s *Settings) SetChanged() {
-	s.changed = true
 }
