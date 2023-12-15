@@ -39,6 +39,7 @@ func init() {
 		settings.PersistChanges()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error reading settings:", err)
+			return
 		}
 
 		if version == "dev" {
