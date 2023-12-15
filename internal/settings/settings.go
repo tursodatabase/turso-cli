@@ -76,8 +76,6 @@ func ReadSettings() (*Settings, error) {
 		}
 	}
 
-	settings.changed = true
-
 	return settings, nil
 }
 
