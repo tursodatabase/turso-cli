@@ -71,6 +71,7 @@ func init() {
 				}
 			}
 			configSettings.SetLastUpdateCheck(time.Now().Unix())
+			settings.PersistChanges()
 		}
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
