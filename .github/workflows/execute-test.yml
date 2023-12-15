@@ -15,6 +15,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Setup Golang with cache
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: false
+
       - name: Buidl
         run: go build -o turso cmd/turso/main.go
 
