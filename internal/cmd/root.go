@@ -35,9 +35,12 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&noMultipleTokenSourcesWarning, "no-multiple-token-sources-warning", false, "Don't warn about multiple access token sources")
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
-		settingsV, _ := settings.ReadSettings()
-
+		settingsV, err := settings.ReadSettings()
 		settings.PersistChanges()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error reading settings:", err)
+		}
+
 		if version == "dev" {
 			return
 		}
