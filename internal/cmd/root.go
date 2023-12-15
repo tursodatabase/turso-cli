@@ -35,12 +35,13 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&noMultipleTokenSourcesWarning, "no-multiple-token-sources-warning", false, "Don't warn about multiple access token sources")
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+		settingsV, _ := settings.ReadSettings()
+
 		settings.PersistChanges()
 		if version == "dev" {
 			return
 		}
-		settings, _ := settings.ReadSettings()
-		if settings.GetAutoupdate() == "on" && time.Now().Unix() >= settings.GetLastUpdateCheck()+int64(24*60*60) {
+		if settingsV.GetAutoupdate() == "on" && time.Now().Unix() >= settingsV.GetLastUpdateCheck()+int64(24*60*60) {
 			latest, err := fetchLatestVersion()
 			if err != nil {
 				_, _ = fmt.Fprintln(os.Stderr, "Error fetching latest version:", err)
@@ -65,7 +66,7 @@ func init() {
 					_, _ = fmt.Fprintln(os.Stderr, "Error updating:", err)
 				}
 			}
-			settings.SetLastUpdateCheck(time.Now().Unix())
+			settingsV.SetLastUpdateCheck(time.Now().Unix())
 		}
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
