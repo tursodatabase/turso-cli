@@ -36,11 +36,11 @@ func init() {
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
 		configSettings, err := settings.ReadSettings()
-		settings.PersistChanges()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error reading settings:", err)
 			return
 		}
+		settings.PersistChanges()
 
 		if version == "dev" {
 			return
