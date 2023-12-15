@@ -33,15 +33,15 @@ func init() {
 		fmt.Fprintf(os.Stderr, "error binding token flag: %s", err)
 	}
 	rootCmd.PersistentFlags().BoolVar(&noMultipleTokenSourcesWarning, "no-multiple-token-sources-warning", false, "Don't warn about multiple access token sources")
-	settingsV, err := settings.ReadSettings()
-	settingsV.SetChanged()
+	configSettings, err := settings.ReadSettings()
+	configSettings.SetChanged()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error reading settings:", err)
 		return
 	}
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
-		settingsV, err := settings.ReadSettings()
+		configSettings, err := settings.ReadSettings()
 		settings.PersistChanges()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error reading settings:", err)
@@ -51,7 +51,7 @@ func init() {
 		if version == "dev" {
 			return
 		}
-		if settingsV.GetAutoupdate() == "on" && time.Now().Unix() >= settingsV.GetLastUpdateCheck()+int64(24*60*60) {
+		if configSettings.GetAutoupdate() == "on" && time.Now().Unix() >= configSettings.GetLastUpdateCheck()+int64(24*60*60) {
 			latest, err := fetchLatestVersion()
 			if err != nil {
 				_, _ = fmt.Fprintln(os.Stderr, "Error fetching latest version:", err)
@@ -76,7 +76,7 @@ func init() {
 					_, _ = fmt.Fprintln(os.Stderr, "Error updating:", err)
 				}
 			}
-			settingsV.SetLastUpdateCheck(time.Now().Unix())
+			configSettings.SetLastUpdateCheck(time.Now().Unix())
 		}
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
