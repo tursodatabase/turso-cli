@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/libsql/libsql-shell-go/pkg/shell"
@@ -101,7 +102,7 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			urlString = dbUrl
+			urlString = strings.ReplaceAll(dbUrl, "https", "libsql")
 		} else {
 			u, err := url.Parse(dbUrl)
 			if err != nil {
@@ -166,7 +167,7 @@ var shellCmd = &cobra.Command{
 		}
 
 		if pipeOrRedirect() {
-			// TODO: read chunks when iteractive transactions are available
+			// TODO: read chunks when interactive transactions are available
 			b, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				return fmt.Errorf("error reading from stdin: %w", err)
