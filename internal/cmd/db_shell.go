@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/libsql/libsql-shell-go/pkg/shell"
@@ -102,7 +101,7 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			urlString = strings.ReplaceAll(dbUrl, "https", "libsql")
+			urlString = dbUrl
 		} else {
 			u, err := url.Parse(dbUrl)
 			if err != nil {
@@ -241,7 +240,7 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
 	msg := fmt.Sprintf("Connected to %s", internal.Emph(nameOrUrl))
 	if db != nil && nameOrUrl != "" {
-		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), internal.Emph(nameOrUrl))
+		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), internal.Emph(getDatabaseUrl(db)))
 	}
 
 	msg += "\n\n"
