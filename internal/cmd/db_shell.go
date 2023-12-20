@@ -180,9 +180,9 @@ var shellCmd = &cobra.Command{
 			shellErr := strings.Split(err.Error(), "\n")
 			var serverErr string
 			if 1 < len(shellErr) {
-				serverErr = "\n" + shellErr[1]
+				serverErr = shellErr[1]
 			}
-			return fmt.Errorf("connection to %s failed. Is this a valid URI?%s", internal.Emph(shellConfig.DbUri), serverErr)
+			return fmt.Errorf("connection to %s failed. %s", internal.Emph(shellConfig.DbUri), serverErr)
 		}
 
 		return nil
