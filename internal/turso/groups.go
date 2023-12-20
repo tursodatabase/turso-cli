@@ -135,6 +135,24 @@ func (d *GroupsClient) Unarchive(name string) error {
 	return nil
 }
 
+func (d *GroupsClient) Update(group string) error {
+	res, err := d.client.Post(d.URL("/"+group+"/update"), nil)
+	if err != nil {
+		return fmt.Errorf("failed to update group: %s", err)
+	}
+	defer res.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(res.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+	return nil
+}
+
 func (d *GroupsClient) AddLocation(name, location string) error {
 	res, err := d.client.Post(d.URL("/"+name+"/locations/"+location), nil)
 	if err != nil {
