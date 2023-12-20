@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/libsql/libsql-shell-go/pkg/shell"
@@ -174,7 +175,17 @@ var shellCmd = &cobra.Command{
 			return shell.RunShellLine(shellConfig, string(b))
 		}
 
-		return shell.RunShell(shellConfig)
+		err := shell.RunShell(shellConfig)
+		if err != nil {
+			shellErr := strings.Split(err.Error(), "\n")
+			var serverErr string
+			if 1 < len(shellErr) {
+				serverErr = "\n" + shellErr[1]
+			}
+			return fmt.Errorf("connection to %s failed. Is this a valid URI?%s", internal.Emph(shellConfig.DbUri), serverErr)
+		}
+
+		return nil
 	},
 }
 
