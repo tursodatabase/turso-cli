@@ -166,7 +166,7 @@ var shellCmd = &cobra.Command{
 		}
 
 		if pipeOrRedirect() {
-			// TODO: read chunks when iteractive transactions are available
+			// TODO: read chunks when interactive transactions are available
 			b, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				return fmt.Errorf("error reading from stdin: %w", err)
@@ -240,7 +240,7 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 func getConnectionInfo(nameOrUrl string, db *turso.Database) string {
 	msg := fmt.Sprintf("Connected to %s", internal.Emph(nameOrUrl))
 	if db != nil && nameOrUrl != "" {
-		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), internal.Emph(nameOrUrl))
+		msg = fmt.Sprintf("Connected to %s at %s", internal.Emph(db.Name), internal.Emph(getDatabaseUrl(db)))
 	}
 
 	msg += "\n\n"
