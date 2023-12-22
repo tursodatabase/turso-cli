@@ -53,6 +53,14 @@ var logoutCmd = &cobra.Command{
 	RunE:              logout,
 }
 
+var whoAmICmd = &cobra.Command{
+	Use:               "whoami",
+	Short:             "Show the currently logged in user.",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE:              whoAmI,
+}
+
 var tokenCmd = &cobra.Command{
 	Use:   "token",
 	Short: "Shows the token used to authenticate you to Turso platform API.",
@@ -95,6 +103,7 @@ func init() {
 	authCmd.AddCommand(logoutCmd)
 	authCmd.AddCommand(tokenCmd)
 	authCmd.AddCommand(apiTokensCmd)
+	authCmd.AddCommand(whoAmICmd)
 	loginCmd.Flags().BoolVar(&headlessFlag, "headless", false, "Show access token on the website instead of updating the CLI.")
 }
 
@@ -289,7 +298,25 @@ func logout(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func whoAmI(cmd *cobra.Command, _ []string) error {
+	cmd.SilenceUsage = true
+	client, err := createTursoClientFromAccessToken(false)
+	if err != nil {
+		return err
+	}
+	user, err := client.Users.GetUser()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s\n", user.Username)
+	return nil
+}
+
 func verifyIfTokenIsSetInEnv(cmd *cobra.Command, args []string) error {
+	// we want to override this for `turso auth whoami`
+	if cmd.Use == whoAmICmd.Use {
+		return nil
+	}
 	cmd.SilenceUsage = true
 	envToken := os.Getenv(ENV_ACCESS_TOKEN)
 	if envToken != "" {
