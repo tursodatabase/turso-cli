@@ -240,6 +240,33 @@ func (d *GroupsClient) Rotate(group string) error {
 	return nil
 }
 
+func (d *GroupsClient) Update(group string, version, extensions string) error {
+	type Body struct{ Version, Extensions string }
+	body, err := marshal(Body{version, extensions})
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	url := d.URL(fmt.Sprintf("/%s/update", group))
+	r, err := d.client.Post(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to rotate database keys: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return fmt.Errorf("failed to rotate database keys: %d %s", r.StatusCode, err)
+	}
+
+	return nil
+}
+
 func (d *GroupsClient) URL(suffix string) string {
 	prefix := "/v1"
 	if d.client.Org != "" {
