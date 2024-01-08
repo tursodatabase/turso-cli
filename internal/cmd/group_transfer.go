@@ -16,7 +16,7 @@ func init() {
 }
 
 var groupTransferCmd = &cobra.Command{
-	Use:               "transfer [group] [organization]",
+	Use:               "transfer <group-name> <organization-name>",
 	Short:             "Transfers the group to the specified organization",
 	Args:              cobra.ExactArgs(2),
 	ValidArgsFunction: groupTransferArgs,
