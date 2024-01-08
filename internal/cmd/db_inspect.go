@@ -84,6 +84,7 @@ func (curr *InspectInfo) TotalRowsReadCount() uint64 {
 
 var dbInspectCmd = &cobra.Command{
 	Use:               "inspect {database_name}",
+	Aliases:           []string{"usage {database_name}"},
 	Short:             "Inspect database.",
 	Example:           "turso db inspect name-of-my-amazing-db",
 	Args:              cobra.RangeArgs(1, 2),
