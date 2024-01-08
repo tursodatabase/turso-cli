@@ -223,7 +223,7 @@ var orgSwitchCmd = &cobra.Command{
 	Use:               "switch <slug>",
 	Short:             "Switch to an organization as the context for your commands.",
 	Args:              cobra.ExactArgs(1),
-	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete
+	ValidArgsFunction: orgSwitchArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		slug := args[0]
@@ -235,6 +235,13 @@ var orgSwitchCmd = &cobra.Command{
 
 		return switchToOrg(client, slug)
 	},
+}
+
+func orgSwitchArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return organizationArgs(cmd, args, toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
 
 func findOrgWithSlug(orgs []turso.Organization, slug string) (turso.Organization, error) {
