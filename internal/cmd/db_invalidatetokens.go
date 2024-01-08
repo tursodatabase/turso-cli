@@ -17,7 +17,7 @@ func init() {
 }
 
 var dbInvalidateTokensCmd = &cobra.Command{
-	Use:               "invalidate database_name",
+	Use:               "invalidate <database-name>",
 	Short:             "Rotates the keys used to create and verify database tokens making existing tokens invalid",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,
@@ -65,7 +65,7 @@ func rotateAndNotify(turso *turso.Client, database turso.Database) error {
 
 	s.Stop()
 	fmt.Println("✔  Success! Tokens invalidated successfully. ")
-	fmt.Printf("Run %s to get a new one!\n", internal.Emph("turso db tokens create database_name [flags]"))
+	fmt.Printf("Run %s to get a new one!\n", internal.Emph("turso db tokens create <database-name> [flags]"))
 	return nil
 }
 

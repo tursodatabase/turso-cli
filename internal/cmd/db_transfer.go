@@ -14,7 +14,7 @@ func init() {
 }
 
 var dbTransferCmd = &cobra.Command{
-	Use:               "db-transfer database_name org_name",
+	Use:               "db-transfer <database-name> <organization-name>",
 	Short:             "Transfers a database to another organization",
 	Args:              cobra.ExactArgs(2),
 	ValidArgsFunction: dbNameAndOrgArgs,

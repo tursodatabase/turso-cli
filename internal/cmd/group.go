@@ -50,7 +50,7 @@ var groupsListCmd = &cobra.Command{
 }
 
 var groupsCreateCmd = &cobra.Command{
-	Use:               "create [group]",
+	Use:               "create <group-name>",
 	Short:             "Create a database group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
@@ -84,7 +84,7 @@ var groupsCreateCmd = &cobra.Command{
 }
 
 var unarchiveGroupCmd = &cobra.Command{
-	Use:               "wakeup [group]",
+	Use:               "wakeup <group-name>",
 	Short:             "Wake up a database group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: groupArgs,
@@ -101,7 +101,7 @@ var unarchiveGroupCmd = &cobra.Command{
 }
 
 var groupsDestroyCmd = &cobra.Command{
-	Use:               "destroy [group]",
+	Use:               "destroy <group-name>",
 	Short:             "Destroy a database group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: groupArgs,

@@ -22,7 +22,7 @@ func init() {
 }
 
 var replicateCmd = &cobra.Command{
-	Use:               "replicate database_name location_id",
+	Use:               "replicate <database-name> location_id",
 	Short:             "Replicate a database.",
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: replicateArgs,

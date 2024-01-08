@@ -28,7 +28,7 @@ func init() {
 }
 
 var dbGenerateTokenCmd = &cobra.Command{
-	Use:               "create database_name",
+	Use:               "create <database-name>",
 	Short:             "Creates a bearer token to authenticate requests to the database",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,

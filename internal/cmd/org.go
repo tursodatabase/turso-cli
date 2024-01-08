@@ -121,7 +121,7 @@ var orgListCmd = &cobra.Command{
 }
 
 var orgCreateCmd = &cobra.Command{
-	Use:               "create <name>",
+	Use:               "create <organization-name>",
 	Short:             "Create a new organization",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
@@ -220,7 +220,7 @@ var orgDestroyCmd = &cobra.Command{
 }
 
 var orgSwitchCmd = &cobra.Command{
-	Use:               "switch <slug>",
+	Use:               "switch <organization-slug>",
 	Short:             "Switch to an organization as the context for your commands.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg, // TODO: add orgs autocomplete

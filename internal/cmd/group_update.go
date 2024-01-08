@@ -18,7 +18,7 @@ func init() {
 }
 
 var groupUpdateCmd = &cobra.Command{
-	Use:               "update group_name",
+	Use:               "update <group-name>",
 	Short:             "Updates the group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: groupArg,

@@ -13,7 +13,7 @@ func init() {
 }
 
 var revokeApiTokensCmd = &cobra.Command{
-	Use:   "revoke api-token-name",
+	Use:   "revoke <api-token-name>",
 	Short: "Revoke an API token.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
