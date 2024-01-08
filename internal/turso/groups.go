@@ -13,6 +13,7 @@ type Group struct {
 	Name      string   `json:"name"`
 	Locations []string `json:"locations"`
 	Primary   string   `json:"primary"`
+	Archived  bool     `json:"archived"`
 }
 
 func (d *GroupsClient) List() ([]Group, error) {
