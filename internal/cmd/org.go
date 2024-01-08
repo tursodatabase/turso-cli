@@ -438,3 +438,16 @@ var orgBillingCmd = &cobra.Command{
 		return billingPortal(client)
 	},
 }
+
+func listOrganizations(client *turso.Client, fresh ...bool) ([]turso.Organization, error) {
+	skipCache := len(fresh) > 0 && fresh[0]
+	if cache := getOrgsCache(); !skipCache && cache != nil {
+		return cache, nil
+	}
+	orgs, err := client.Organizations.List()
+	if err != nil {
+		return nil, err
+	}
+	setOrgsCache(orgs)
+	return orgs, nil
+}
