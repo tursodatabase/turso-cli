@@ -19,7 +19,7 @@ var groupTransferCmd = &cobra.Command{
 	Use:               "transfer [group] [organization]",
 	Short:             "Transfers the group to the specified organization",
 	Args:              cobra.ExactArgs(2),
-	ValidArgsFunction: nil, // TODO
+	ValidArgsFunction: groupTransferArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		client, err := createTursoClientFromAccessToken(true)
@@ -69,4 +69,28 @@ func transferGroup(client *turso.Client, group, organization string) error {
 	s.Stop()
 	fmt.Printf("✔  Success! Group %s was transfered successfully to organization %s\n", internal.Emph(group), internal.Emph(organization))
 	return nil
+}
+
+func groupTransferArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	switch len(args) {
+	case 0:
+		return groupArgs(cmd, args, toComplete)
+	case 1:
+		return organizationArgs(cmd, args, toComplete)
+	default:
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+}
+
+func organizationArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := createTursoClientFromAccessToken(false)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+	}
+	orgs, _ := listOrganizations(client)
+	slugs := make([]string, 0, len(orgs))
+	for _, org := range orgs {
+		slugs = append(slugs, org.Slug)
+	}
+	return slugs, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
