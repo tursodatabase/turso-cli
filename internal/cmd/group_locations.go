@@ -118,7 +118,7 @@ var groupLocationAddCmd = &cobra.Command{
 }
 
 var groupsLocationsRmCmd = &cobra.Command{
-	Use:               "remove <group-name> [...locations]",
+	Use:               "remove <group-name> <...location-code>",
 	Short:             "Remove locations from a database group",
 	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: locationsRmArgs,
