@@ -51,7 +51,7 @@ var groupLocationsListCmd = &cobra.Command{
 }
 
 var groupLocationAddCmd = &cobra.Command{
-	Use:               "add <group-name> [...locations]",
+	Use:               "add <group-name> <...location-code>",
 	Short:             "Add locations to a database group",
 	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: locationsAddArgs,
