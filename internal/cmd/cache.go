@@ -121,3 +121,20 @@ func getGroupsCache(org string) []turso.Group {
 func invalidateGroupsCache(org string) {
 	settings.InvalidateCache[[]turso.Group](orgKey(org, GROUP_CACHE_KEY))
 }
+
+const (
+	ORGS_CACHE_KEY         = "organizations"
+	ORGS_CACHE_TTL_SECONDS = 30 * 60
+)
+
+func setOrgsCache(orgs []turso.Organization) {
+	settings.SetCache(ORGS_CACHE_KEY, ORGS_CACHE_TTL_SECONDS, orgs)
+}
+
+func getOrgsCache() []turso.Organization {
+	data, err := settings.GetCache[[]turso.Organization](ORGS_CACHE_KEY)
+	if err != nil {
+		return nil
+	}
+	return data
+}

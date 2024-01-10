@@ -268,6 +268,35 @@ func (d *GroupsClient) Update(group string, version, extensions string) error {
 	return nil
 }
 
+func (d *GroupsClient) Transfer(group string, to string) error {
+	type Body struct {
+		Organization string `json:"organization"`
+	}
+	body, err := marshal(Body{to})
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	url := d.URL(fmt.Sprintf("/%s/transfer", group))
+	r, err := d.client.Post(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to transfer group: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err := parseResponseError(r)
+		return fmt.Errorf("failed to transfer group: %w", err)
+	}
+
+	return nil
+}
+
 func (d *GroupsClient) URL(suffix string) string {
 	prefix := "/v1"
 	if d.client.Org != "" {
