@@ -81,3 +81,35 @@ func rotateGroup(turso *turso.Client, group turso.Group) error {
 	fmt.Printf("Run %s to get a new one.\n", internal.Emph("turso group tokens create <group-name>"))
 	return nil
 }
+
+func init() {
+	groupTokensCmd.AddCommand(groupCreateTokenCmd)
+}
+
+var groupCreateTokenCmd = &cobra.Command{
+	Use:               "create <group-name>",
+	Short:             "Creates a bearer token to authenticate to group databases",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: groupArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		client, err := createTursoClientFromAccessToken(true)
+		if err != nil {
+			return err
+		}
+		name := args[0]
+
+		group, err := getGroup(client, name)
+		if err != nil {
+			return err
+		}
+
+		token, err := client.Groups.Token(group.Name, "", false)
+		if err != nil {
+			return fmt.Errorf("error creating token: %w", err)
+		}
+
+		fmt.Println(token)
+		return nil
+	},
+}
