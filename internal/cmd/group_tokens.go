@@ -84,6 +84,7 @@ func rotateGroup(turso *turso.Client, group turso.Group) error {
 
 func init() {
 	groupTokensCmd.AddCommand(groupCreateTokenCmd)
+	flags.AddExpiration(groupCreateTokenCmd)
 }
 
 var groupCreateTokenCmd = &cobra.Command{
@@ -104,7 +105,12 @@ var groupCreateTokenCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := client.Groups.Token(group.Name, "", false)
+		expiration, err := flags.Expiration()
+		if err != nil {
+			return err
+		}
+
+		token, err := client.Groups.Token(group.Name, expiration, false)
 		if err != nil {
 			return fmt.Errorf("error creating token: %w", err)
 		}
