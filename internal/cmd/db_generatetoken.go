@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	readOnlyFlag   bool
 	groupTokenFlag bool
 )
 
@@ -17,8 +16,8 @@ func init() {
 	dbTokensCmd.AddCommand(dbGenerateTokenCmd)
 
 	flags.AddExpiration(dbGenerateTokenCmd)
+	flags.AddReadOnly(dbGenerateTokenCmd)
 	dbGenerateTokenCmd.Flags().BoolVar(&groupTokenFlag, "group", false, "create a token that is valid for all databases in the group")
-	dbGenerateTokenCmd.Flags().BoolVarP(&readOnlyFlag, "read-only", "r", false, "Token with read-only access")
 }
 
 var dbGenerateTokenCmd = &cobra.Command{
@@ -44,7 +43,7 @@ var dbGenerateTokenCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := getToken(client, database, expiration, readOnlyFlag, groupTokenFlag)
+		token, err := getToken(client, database, expiration, flags.ReadOnly(), groupTokenFlag)
 		if err != nil {
 			return fmt.Errorf("your database does not support token generation")
 		}
