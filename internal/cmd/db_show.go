@@ -22,7 +22,7 @@ func init() {
 }
 
 var showCmd = &cobra.Command{
-	Use:               "show database_name",
+	Use:               "show <database-name>",
 	Short:             "Show information from a database.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,

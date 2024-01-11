@@ -56,9 +56,9 @@ func getURL(db *turso.Database, client *turso.Client) (string, error) {
 }
 
 var shellCmd = &cobra.Command{
-	Use:               "shell {database_name | replica_url} [sql]",
+	Use:               "shell <database-name | replica-url> [sql]",
 	Short:             "Start a SQL shell.",
-	Long:              "Start a SQL shell.\nWhen database_name is provided, the shell will connect the closest replica of the specified database.\nWhen the --instance flag is provided with a specific instance name, the shell will connect to that instance directly.",
+	Long:              "Start a SQL shell.\nWhen database-name is provided, the shell will connect the closest replica of the specified database.\nWhen the --instance flag is provided with a specific instance name, the shell will connect to that instance directly.",
 	Example:           "  turso db shell http://127.0.0.1:8080\n  turso db shell name-of-my-amazing-db\n  turso db shell name-of-my-amazing-db --location yyz\n  turso db shell name-of-my-amazing-db --instance a-specific-instance\n  turso db shell name-of-my-amazing-db \"select * from users;\"",
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: dbNameArg,

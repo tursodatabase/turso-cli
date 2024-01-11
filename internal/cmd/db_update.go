@@ -16,7 +16,7 @@ func init() {
 }
 
 var dbUpdateCmd = &cobra.Command{
-	Use:               "update database_name",
+	Use:               "update <database-name>",
 	Short:             "Updates the database to the latest turso version",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,

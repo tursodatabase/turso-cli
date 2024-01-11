@@ -29,7 +29,7 @@ func init() {
 }
 
 var createCmd = &cobra.Command{
-	Use:               "create [flags] [database_name]",
+	Use:               "create [flags] [database-name]",
 	Short:             "Create a database.",
 	Args:              cobra.MaximumNArgs(1),
 	ValidArgsFunction: noFilesArg,

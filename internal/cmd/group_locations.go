@@ -24,7 +24,7 @@ func init() {
 }
 
 var groupLocationsListCmd = &cobra.Command{
-	Use:               "list [group]",
+	Use:               "list <group-name>",
 	Short:             "List database group locations",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
@@ -51,7 +51,7 @@ var groupLocationsListCmd = &cobra.Command{
 }
 
 var groupLocationAddCmd = &cobra.Command{
-	Use:               "add [group] [...locations]",
+	Use:               "add <group-name> <...location-code>",
 	Short:             "Add locations to a database group",
 	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: locationsAddArgs,
@@ -118,7 +118,7 @@ var groupLocationAddCmd = &cobra.Command{
 }
 
 var groupsLocationsRmCmd = &cobra.Command{
-	Use:               "remove [group] [...locations]",
+	Use:               "remove <group-name> <...location-code>",
 	Short:             "Remove locations from a database group",
 	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: locationsRmArgs,

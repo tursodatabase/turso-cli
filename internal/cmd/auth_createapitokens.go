@@ -15,7 +15,7 @@ func init() {
 }
 
 var createApiTokensCmd = &cobra.Command{
-	Use:   "mint api-token-name",
+	Use:   "mint <api-token-name>",
 	Short: "Mint an API token.",
 	Long: "" +
 		"API tokens are revocable non-expiring tokens that authenticate holders as the user who minted them.\n" +
