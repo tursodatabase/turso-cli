@@ -34,6 +34,10 @@ var dbInvalidateTokensCmd = &cobra.Command{
 			return err
 		}
 
+		if database.Group != "" {
+			return fmt.Errorf("database %s is part of group %s, use %s instead", internal.Emph(name), internal.Emph(database.Group), internal.Emph("turso group tokens invalidate <group-name>"))
+		}
+
 		if yesFlag {
 			return rotateAndNotify(client, database)
 		}

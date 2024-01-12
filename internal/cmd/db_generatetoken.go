@@ -2,29 +2,22 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 var (
-	expFlag        expirationFlag
-	readOnlyFlag   bool
 	groupTokenFlag bool
 )
 
 func init() {
 	dbTokensCmd.AddCommand(dbGenerateTokenCmd)
 
-	usage := fmt.Sprintf("Token expiration. Possible values are %s (default) or expiration time in days (e.g. %s).", internal.Emph("never"), internal.Emph("7d"))
-	dbGenerateTokenCmd.Flags().VarP(&expFlag, "expiration", "e", usage)
-	dbGenerateTokenCmd.RegisterFlagCompletionFunc("expiration", expirationFlagCompletion)
+	flags.AddExpiration(dbGenerateTokenCmd)
+	flags.AddReadOnly(dbGenerateTokenCmd)
 	dbGenerateTokenCmd.Flags().BoolVar(&groupTokenFlag, "group", false, "create a token that is valid for all databases in the group")
-
-	dbGenerateTokenCmd.Flags().BoolVarP(&readOnlyFlag, "read-only", "r", false, "Token with read-only access")
 }
 
 var dbGenerateTokenCmd = &cobra.Command{
@@ -44,11 +37,13 @@ var dbGenerateTokenCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		expiration := expFlag.String()
-		if err := validateExpiration(expiration); err != nil {
+
+		expiration, err := flags.Expiration()
+		if err != nil {
 			return err
 		}
-		token, err := getToken(client, database, expiration, readOnlyFlag, groupTokenFlag)
+
+		token, err := getToken(client, database, expiration, flags.ReadOnly(), groupTokenFlag)
 		if err != nil {
 			return fmt.Errorf("your database does not support token generation")
 		}
@@ -65,25 +60,4 @@ func getToken(client *turso.Client, database turso.Database, expiration string, 
 		return "", fmt.Errorf("--group flag can only be set with group databases")
 	}
 	return client.Groups.Token(database.Group, expiration, readOnly)
-}
-
-func validateExpiration(expiration string) error {
-	if len(expiration) == 0 {
-		return nil
-	}
-	if expiration == "none" || expiration == "default" || expiration == "never" {
-		return nil
-	}
-	if !strings.HasSuffix(expiration, "d") {
-		return nil
-	}
-	daysStr := strings.TrimSuffix(expiration, "d")
-	days, err := strconv.Atoi(daysStr)
-	if err != nil {
-		return err
-	}
-	if days < 1 {
-		return fmt.Errorf("expiration must be at least 1 day")
-	}
-	return nil
 }
