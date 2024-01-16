@@ -70,7 +70,7 @@ func init() {
 				if err != nil {
 					_, _ = fmt.Fprintln(os.Stderr, "Error updating:", err)
 				}
-				fmt.Printf("You can disable automatic updates with %s", internal.Emph("turso config set autoupdate off"))
+				fmt.Printf("\nYou can disable automatic updates with %s\n", internal.Emph("turso config set autoupdate off"))
 			}
 			configSettings.SetLastUpdateCheck(time.Now().Unix())
 			settings.PersistChanges()
