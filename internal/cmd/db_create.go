@@ -11,7 +11,7 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
-const MaxDumpFileSizeBytes = 2 << 30
+const MaxDumpFileSizeBytes = 8 << 30
 
 func init() {
 	dbCmd.AddCommand(createCmd)
