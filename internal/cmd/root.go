@@ -8,6 +8,7 @@ import (
 	semver "github.com/hashicorp/go-version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 )
@@ -69,6 +70,7 @@ func init() {
 				if err != nil {
 					_, _ = fmt.Fprintln(os.Stderr, "Error updating:", err)
 				}
+				fmt.Printf("\nYou can disable automatic updates with %s\n", internal.Emph("turso config set autoupdate off"))
 			}
 			configSettings.SetLastUpdateCheck(time.Now().Unix())
 			settings.PersistChanges()
