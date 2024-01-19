@@ -320,7 +320,7 @@ func verifyIfTokenIsSetInEnv(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	envToken := os.Getenv(ENV_ACCESS_TOKEN)
 	if envToken != "" {
-		return fmt.Errorf("auth commands aren't effective when a token is set in the environment variable")
+		return fmt.Errorf("auth commands aren't effective when a token is set in the %q environment variable", ENV_ACCESS_TOKEN)
 	}
 
 	return nil

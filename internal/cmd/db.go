@@ -106,7 +106,7 @@ func getAccessToken(warnMultipleAccessTokenSources bool) (string, error) {
 	settingsToken := settings.GetToken()
 
 	if !noMultipleTokenSourcesWarning && envToken != "" && settingsToken != "" && warnMultipleAccessTokenSources {
-		fmt.Printf("Warning: User logged in as %s but TURSO_API_TOKEN environment variable is set so proceeding to use it instead\n\n", settings.GetUsername())
+		fmt.Printf("Warning: User logged in as %s but %q environment variable is set so proceeding to use it instead\n\n", settings.GetUsername(), ENV_ACCESS_TOKEN)
 	}
 	if envToken != "" {
 		return envToken, nil
