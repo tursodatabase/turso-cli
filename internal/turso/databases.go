@@ -265,13 +265,10 @@ func (d *DatabasesClient) Transfer(database, org string) error {
 		return fmt.Errorf("failed to transfer database")
 	}
 	defer r.Body.Close()
-	if r.StatusCode == http.StatusForbidden {
-		err = parseResponseError(r)
-		return fmt.Errorf("%v", err)
-	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to transfer database to org %s", org)
+		err := parseResponseError(r)
+		return fmt.Errorf("failed to transfer %s database to org %s: %w", database, org, err)
 	}
 
 	return nil
