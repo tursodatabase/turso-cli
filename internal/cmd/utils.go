@@ -46,7 +46,7 @@ func tursoClient(token string) (*turso.Client, error) {
 
 	config, err := settings.ReadSettings()
 	if err != nil {
-		return nil, fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", urlStr, err)
+		return nil, fmt.Errorf("error creating turso client: could not read settings file: %w", err)
 	}
 
 	org := config.Organization()
