@@ -48,6 +48,9 @@ func getCurrentOrg(client *turso.Client, organizationName string) (turso.Organiz
 		if org.Slug == organizationName {
 			return org, nil
 		}
+		if organizationName == "" && org.Type == "personal" {
+			return org, nil
+		}
 	}
 	return turso.Organization{}, fmt.Errorf("could not find organization %s", organizationName)
 }
@@ -83,7 +86,7 @@ var planShowCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Organization: %s\n", internal.Emph(organizationName))
+		fmt.Printf("Organization: %s\n", internal.Emph(currentOrg.Name))
 		if currentOrg.Overages {
 			plan, _ = strings.CutSuffix(plan, "_overages")
 		}
