@@ -90,7 +90,7 @@ var orgListCmd = &cobra.Command{
 			return err
 		}
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ var orgCreateCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 		name := args[0]
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -173,7 +173,7 @@ var orgCreateCmd = &cobra.Command{
 		fmt.Printf("\nCreated organization %s.\n", internal.Emph(org.Name))
 		switchToOrg(client, org.Name)
 		fmt.Println()
-		client, err = createTursoClientFromAccessToken(true)
+		client, err = createTursoClientFromAccessToken()
 		if err != nil {
 			client.Organizations.Delete(org.Slug)
 			return err
@@ -196,7 +196,7 @@ var orgDestroyCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 		slug := args[0]
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ var orgSwitchCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 		slug := args[0]
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -287,7 +287,7 @@ var membersListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -330,7 +330,7 @@ var membersAddCmd = &cobra.Command{
 			return fmt.Errorf("username cannot be empty")
 		}
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -373,7 +373,7 @@ var membersInviteCmd = &cobra.Command{
 			return fmt.Errorf("email cannot be empty")
 		}
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -416,7 +416,7 @@ var membersRemoveCmd = &cobra.Command{
 			return fmt.Errorf("username cannot be empty")
 		}
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -437,7 +437,7 @@ var orgBillingCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}

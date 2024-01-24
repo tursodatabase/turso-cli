@@ -35,7 +35,7 @@ var groupLocationsListCmd = &cobra.Command{
 		}
 
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ var groupLocationAddCmd = &cobra.Command{
 		}
 
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ var groupsLocationsRmCmd = &cobra.Command{
 		}
 
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -181,7 +181,7 @@ func locationsAddArgs(cmd *cobra.Command, args []string, toComplete string) ([]s
 		return groupArgs(cmd, args, toComplete)
 	}
 
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := createTursoClientFromAccessToken()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
@@ -206,7 +206,7 @@ func locationsRmArgs(cmd *cobra.Command, args []string, toComplete string) ([]st
 		return groupArgs(cmd, args, toComplete)
 	}
 
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := createTursoClientFromAccessToken()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
@@ -226,7 +226,7 @@ func locationsRmArgs(cmd *cobra.Command, args []string, toComplete string) ([]st
 }
 
 func groupArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := createTursoClientFromAccessToken()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}

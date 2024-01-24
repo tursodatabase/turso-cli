@@ -20,7 +20,7 @@ var dbTransferCmd = &cobra.Command{
 	ValidArgsFunction: dbNameAndOrgArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}

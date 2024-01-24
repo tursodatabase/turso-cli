@@ -76,7 +76,7 @@ func getDatabaseNames(client *turso.Client) []string {
 }
 
 func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := createTursoClientFromAccessToken()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}

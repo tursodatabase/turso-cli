@@ -25,7 +25,7 @@ const (
 	tursoDefaultBaseURL = "https://api.turso.tech"
 )
 
-func createTursoClientFromAccessToken(warnMultipleAccessTokenSources bool) (*turso.Client, error) {
+func createTursoClientFromAccessToken() (*turso.Client, error) {
 	token, err := getAccessToken()
 	if err != nil {
 		return nil, err
@@ -284,7 +284,7 @@ func promptConfirmation(prompt string) (bool, error) {
 }
 
 func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := createTursoClientFromAccessToken()
 	if err != nil {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -295,7 +295,7 @@ func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 }
 
 func dbNameAndOrgArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := createTursoClientFromAccessToken()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}

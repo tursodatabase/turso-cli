@@ -27,7 +27,7 @@ var replicateCmd = &cobra.Command{
 	Args:              cobra.RangeArgs(1, 2),
 	ValidArgsFunction: replicateArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := createTursoClientFromAccessToken()
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func createInstance(client *turso.Client, database turso.Database, location stri
 }
 
 func replicateArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := createTursoClientFromAccessToken()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
