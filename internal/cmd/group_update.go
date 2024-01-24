@@ -24,7 +24,7 @@ var groupUpdateCmd = &cobra.Command{
 	ValidArgsFunction: groupArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func groupArg(cmd *cobra.Command, args []string, toComplete string) ([]string, c
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
 
-	client, err := createTursoClientFromAccessToken()
+	client, err := authedTursoClient()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}

@@ -22,7 +22,7 @@ var groupTransferCmd = &cobra.Command{
 	ValidArgsFunction: groupTransferArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func groupTransferArgs(cmd *cobra.Command, args []string, toComplete string) ([]
 }
 
 func organizationArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken()
+	client, err := authedTursoClient()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}

@@ -61,7 +61,7 @@ var planShowCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ var planSelectCmd = &cobra.Command{
 	Short: "Change your current organization plan",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ var planUpgradeCmd = &cobra.Command{
 	Short: "Upgrade your current organization plan",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -238,7 +238,7 @@ var planEnableOverages = &cobra.Command{
 		if org = settings.Organization(); org == "" {
 			org = settings.GetUsername()
 		}
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -279,7 +279,7 @@ var planDisableOverages = &cobra.Command{
 		if org = settings.Organization(); org == "" {
 			org = settings.GetUsername()
 		}
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}

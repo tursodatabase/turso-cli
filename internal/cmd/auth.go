@@ -199,7 +199,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 		firstTime := settings.RegisterUse("auth_login")
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -300,7 +300,7 @@ func logout(cmd *cobra.Command, args []string) error {
 
 func whoAmI(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
-	client, err := createTursoClientFromAccessToken()
+	client, err := authedTursoClient()
 	if err != nil {
 		return err
 	}

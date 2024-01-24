@@ -95,7 +95,7 @@ var dbInspectCmd = &cobra.Command{
 		}
 		cmd.SilenceUsage = true
 
-		client, err := createTursoClientFromAccessToken()
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
