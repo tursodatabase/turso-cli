@@ -26,7 +26,7 @@ const (
 )
 
 func createTursoClientFromAccessToken(warnMultipleAccessTokenSources bool) (*turso.Client, error) {
-	token, err := getAccessToken(warnMultipleAccessTokenSources)
+	token, err := getAccessToken()
 	if err != nil {
 		return nil, err
 	}
