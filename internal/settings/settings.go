@@ -84,9 +84,16 @@ func PersistChanges() {
 		return
 	}
 
-	if err := viper.WriteConfig(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error persisting turso settings file: ", err.Error())
+	if err := TryToPersistChanges(); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
 	}
+}
+
+func TryToPersistChanges() error {
+	if err := viper.WriteConfig(); err != nil {
+		return fmt.Errorf("failed to persist turso settings file: %w", err)
+	}
+	return nil
 }
 
 func (s *Settings) RegisterUse(cmd string) bool {

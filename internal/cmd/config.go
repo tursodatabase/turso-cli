@@ -64,7 +64,7 @@ var configSetTokenCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		settings, err := settings.ReadSettings()
+		config, err := settings.ReadSettings()
 		if err != nil {
 			return fmt.Errorf("failed to read settings: %w", err)
 		}
@@ -74,7 +74,10 @@ var configSetTokenCmd = &cobra.Command{
 			return fmt.Errorf("invalid token")
 		}
 
-		settings.SetToken(token)
+		config.SetToken(token)
+		if err := settings.TryToPersistChanges(); err != nil {
+			return fmt.Errorf("%w\nIf the issue persists, set your token to the %s environment variable instead", err, internal.Emph(ENV_ACCESS_TOKEN))
+		}
 		fmt.Println("Token set succesfully.")
 		return nil
 	},
