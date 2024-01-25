@@ -134,6 +134,19 @@ func login(cmd *cobra.Command, args []string) error {
 	return auth(cmd, args, "")
 }
 
+func exitOnValidAuth(settings *settings.Settings, path string) {
+	username := settings.GetUsername()
+	if len(username) <= 0 {
+		fmt.Println("✔  Success! Existing JWT still valid")
+		return
+	}
+	if path == "/signup" {
+		fmt.Printf("Already signed up as %s\n", username)
+		return
+	}
+	fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, internal.Emph("turso auth logout"))
+}
+
 func auth(cmd *cobra.Command, args []string, path string) error {
 	cmd.SilenceUsage = true
 	settings, err := settings.ReadSettings()
@@ -141,12 +154,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
 	if isJwtTokenValid(settings.GetToken()) {
-		username := settings.GetUsername()
-		if len(username) > 0 {
-			fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, internal.Emph("turso auth logout"))
-		} else {
-			fmt.Println("✔  Success! Existing JWT still valid")
-		}
+		exitOnValidAuth(settings, path)
 		return nil
 	}
 	versionChannel := make(chan string, 1)
