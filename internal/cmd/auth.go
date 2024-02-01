@@ -150,12 +150,13 @@ func auth(cmd *cobra.Command, path string) error {
 		return printHeadlessLoginInstructions(path)
 	}
 
-	callbackServer, err := authCallbackServer()
+	state := randString(32)
+	callbackServer, err := authCallbackServer(state)
 	if err != nil {
 		return suggestHeadless(cmd, err)
 	}
 
-	url, err := authURL(callbackServer.Port, path)
+	url, err := authURL(callbackServer.Port, path, state)
 	if err != nil {
 		return fmt.Errorf("failed to get auth URL: %w", err)
 	}
@@ -209,7 +210,7 @@ func suggestHeadless(cmd *cobra.Command, err error) error {
 }
 
 func printHeadlessLoginInstructions(path string) error {
-	url, err := authURL(0, path)
+	url, err := authURL(0, path, "")
 	if err != nil {
 		return err
 	}
@@ -246,7 +247,7 @@ func signupHint(config *settings.Settings) {
 	fmt.Printf("\n✏️  We are so happy you are here!\nNow that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
 }
 
-func authURL(port int, path string) (string, error) {
+func authURL(port int, path, state string) (string, error) {
 	base, err := url.Parse(getTursoUrl())
 	if err != nil {
 		return "", fmt.Errorf("error parsing auth URL: %w", err)
@@ -263,6 +264,9 @@ func authURL(port int, path string) (string, error) {
 			"type":     {"cli"},
 		}
 	}
+	if state != "" {
+		values["state"] = []string{state}
+	}
 	authURL.RawQuery = values.Encode()
 	return authURL.String(), nil
 }
@@ -273,9 +277,9 @@ type authCallback struct {
 	Port   int
 }
 
-func authCallbackServer() (authCallback, error) {
-	ch := make(chan string, 2)
-	server, err := createCallbackServer(ch)
+func authCallbackServer(state string) (authCallback, error) {
+	ch := make(chan string, 1)
+	server, err := createCallbackServer(ch, state)
 	if err != nil {
 		return authCallback{}, fmt.Errorf("cannot create callback server: %w", err)
 	}
@@ -298,7 +302,7 @@ func (a authCallback) Result() string {
 	return result
 }
 
-func createCallbackServer(ch chan string) (*http.Server, error) {
+func createCallbackServer(ch chan string, state string) (*http.Server, error) {
 	tmpl, err := template.New("login.html").Parse(LOGIN_HTML)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse login callback template: %w", err)
@@ -306,8 +310,12 @@ func createCallbackServer(ch chan string) (*http.Server, error) {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
+		if q.Get("state") != state {
+			w.WriteHeader(400)
+			return
+		}
+
 		ch <- q.Get("jwt")
-		ch <- q.Get("username")
 
 		w.WriteHeader(200)
 		tmpl.Execute(w, map[string]string{
