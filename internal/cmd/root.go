@@ -34,7 +34,7 @@ func init() {
 		fmt.Fprintf(os.Stderr, "error binding token flag: %s", err)
 	}
 	rootCmd.PersistentFlags().BoolVar(&noMultipleTokenSourcesWarning, "no-multiple-token-sources-warning", false, "Don't warn about multiple access token sources")
-	rootCmd.PersistentFlags().MarkHidden("no-multiple-token-sources-warning")
+	_ = rootCmd.PersistentFlags().MarkHidden("no-multiple-token-sources-warning")
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
 		configSettings, err := settings.ReadSettings()
