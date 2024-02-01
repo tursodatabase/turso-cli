@@ -169,7 +169,11 @@ func auth(cmd *cobra.Command, path string) error {
 	fmt.Println(url)
 	fmt.Println("Waiting for authentication...")
 
-	jwt, username := callbackServer.Result()
+	jwt := callbackServer.Result()
+	username, err := validateToken(jwt)
+	if err != nil {
+		return suggestHeadless(cmd, err)
+	}
 
 	settings.SetToken(jwt)
 	settings.SetUsername(username)
@@ -179,6 +183,21 @@ func auth(cmd *cobra.Command, path string) error {
 	signupHint(settings)
 
 	return nil
+}
+
+func validateToken(token string) (string, error) {
+	client, err := tursoClient(token)
+	if err != nil {
+		return "", fmt.Errorf("could not create client to validate token: %w", err)
+	}
+
+	user, err := client.Users.GetUser()
+	if err != nil {
+		return "", fmt.Errorf("could not validate token: %w", err)
+
+	}
+
+	return user.Username, nil
 }
 
 func suggestHeadless(cmd *cobra.Command, err error) error {
@@ -273,11 +292,10 @@ func authCallbackServer() (authCallback, error) {
 	}, nil
 }
 
-func (a authCallback) Result() (jwt, username string) {
-	jwt = <-a.ch
-	username = <-a.ch
+func (a authCallback) Result() string {
+	result := <-a.ch
 	_ = a.server.Shutdown(context.Background())
-	return
+	return result
 }
 
 func createCallbackServer(ch chan string) (*http.Server, error) {
