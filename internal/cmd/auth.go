@@ -129,122 +129,155 @@ func isJwtTokenValid(token string) bool {
 }
 
 func signup(cmd *cobra.Command, args []string) error {
-	return auth(cmd, args, "/signup")
+	return auth(cmd, "/signup")
 }
 
 func login(cmd *cobra.Command, args []string) error {
-	return auth(cmd, args, "")
+	return auth(cmd, "")
 }
 
-func auth(cmd *cobra.Command, args []string, path string) error {
-	cmd.SilenceUsage = true
+func auth(cmd *cobra.Command, path string) error {
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
-	if isJwtTokenValid(settings.GetToken()) {
-		username := settings.GetUsername()
-		if len(username) > 0 {
-			fmt.Printf("Already signed in as %s. Use %s to log out of this account\n", username, internal.Emph("turso auth logout"))
-		} else {
-			fmt.Println("✔  Success! Existing JWT still valid")
-		}
-		return nil
-	}
-	versionChannel := make(chan string, 1)
 
-	go func() {
-		latestVersion, err := fetchLatestVersion()
-		if err != nil {
-			// On error we just behave as the version check has never happend
-			versionChannel <- version
-			return
-		}
-		versionChannel <- latestVersion
-	}()
+	if isJwtTokenValid(settings.GetToken()) {
+		return alreadySignedInError(settings)
+	}
 
 	if headlessFlag {
-		url, err := beginAuth(0, headlessFlag, path)
-		if err != nil {
-			return fmt.Errorf("internal error. Cannot initiate auth flow: %w", err)
-		}
-		fmt.Println("Visit the following URL to obtain an authentication token for login:")
-		fmt.Println(url)
-	} else {
-		ch := make(chan string, 1)
-		server, err := createCallbackServer(ch)
-		if err != nil {
-			return fmt.Errorf("internal error. Cannot create callback: %w", err)
-		}
-
-		port, err := runServer(server)
-		if err != nil {
-			return fmt.Errorf("internal error. Cannot run authentication server: %w", err)
-		}
-
-		url, err := beginAuth(port, headlessFlag, path)
-		if err != nil {
-			return err
-		}
-		fmt.Println("Visit this URL on this device to log in:")
-		fmt.Println(url)
-		fmt.Println("Waiting for authentication...")
-
-		jwt := <-ch
-		username := <-ch
-
-		server.Shutdown(context.Background())
-
-		settings.SetToken(jwt)
-		settings.SetUsername(username)
-
-		fmt.Printf("✔  Success! Logged in as %s\n", username)
-
-		firstTime := settings.RegisterUse("auth_login")
-		client, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-		dbs, err := client.Databases.List()
-		if firstTime && err == nil && len(dbs) == 0 {
-			fmt.Printf("✏️  We are so happy you are here! Now that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
-		}
+		return printHeadlessLoginInstructions(path)
 	}
 
-	latestVersion := <-versionChannel
-
-	if version != "dev" && version != latestVersion {
-		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", internal.Emph("Turso CLI"))
-		fmt.Printf("You're currently using version %s while latest available version is %s.\n", internal.Emph(version), internal.Emph(latestVersion))
-		fmt.Printf("Please consider updating to get new features and more stable experience. To update:\n")
-		fmt.Printf("\n\t%s\n\n", internal.Emph("turso update"))
+	callbackServer, err := authCallbackServer()
+	if err != nil {
+		return suggestHeadless(cmd, err)
 	}
+
+	url, err := authURL(callbackServer.Port, path)
+	if err != nil {
+		return fmt.Errorf("failed to get auth URL: %w", err)
+	}
+
+	if err := browser.OpenURL(url); err != nil {
+		err := fmt.Errorf("failed to open auth URL: %w", err)
+		return suggestHeadless(cmd, err)
+	}
+
+	fmt.Println("Opening your browser at:")
+	fmt.Println(url)
+	fmt.Println("Waiting for authentication...")
+
+	jwt, username := callbackServer.Result()
+
+	settings.SetToken(jwt)
+	settings.SetUsername(username)
+
+	fmt.Printf("✔  Success! Logged in as %s\n", username)
+
+	signupHint(settings)
 
 	return nil
 }
 
-func beginAuth(port int, headless bool, path string) (string, error) {
-	authUrl, err := url.Parse(fmt.Sprintf("%s%s", getTursoUrl(), path))
+func suggestHeadless(cmd *cobra.Command, err error) error {
+	if err == nil {
+		return nil
+	}
+	cmdWithFlag := cmd.CommandPath() + " --headless"
+	return fmt.Errorf("%w\nIf the issue persists, try running %s", err, internal.Emph(cmdWithFlag))
+}
+
+func printHeadlessLoginInstructions(path string) error {
+	url, err := authURL(0, path)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Visit the following URL to login:")
+	fmt.Println(url)
+	return nil
+}
+
+func alreadySignedInError(config *settings.Settings) error {
+	username := config.GetUsername()
+	extraInfo := ""
+	if len(username) > 0 {
+		extraInfo = " as " + internal.Emph(username)
+	}
+	return fmt.Errorf("already signed in%s.\nUse %s to log out of this account", extraInfo, internal.Emph("turso auth logout"))
+}
+
+func signupHint(config *settings.Settings) {
+	client, err := authedTursoClient()
+	if err != nil {
+		return
+	}
+
+	firstTime := config.RegisterUse("auth_login")
+	if !firstTime {
+		return
+	}
+
+	dbs, err := client.Databases.List()
+	if err != nil || len(dbs) != 0 {
+		return
+	}
+
+	fmt.Printf("\n✏️  We are so happy you are here!\nNow that you are authenticated, it is time to create a database:\n\t%s\n", internal.Emph("turso db create"))
+}
+
+func authURL(port int, path string) (string, error) {
+	base, err := url.Parse(getTursoUrl())
 	if err != nil {
 		return "", fmt.Errorf("error parsing auth URL: %w", err)
 	}
-	if !headless {
-		authUrl.RawQuery = url.Values{
+	authURL := base.JoinPath(path)
+
+	values := url.Values{
+		"redirect": {"false"},
+	}
+	if port != 0 {
+		values = url.Values{
 			"port":     {strconv.Itoa(port)},
 			"redirect": {"true"},
 			"type":     {"cli"},
-		}.Encode()
-		browser.Stderr = nil
-		err = browser.OpenURL(authUrl.String())
-		if err != nil {
-			return "", fmt.Errorf("failed to open browser, please use the `--headless` command line option\n E.g. turso auth login --headless")
 		}
-	} else {
-		authUrl.RawQuery = url.Values{
-			"redirect": {"false"},
-		}.Encode()
 	}
-	return authUrl.String(), nil
+	authURL.RawQuery = values.Encode()
+	return authURL.String(), nil
+}
+
+type authCallback struct {
+	ch     chan string
+	server *http.Server
+	Port   int
+}
+
+func authCallbackServer() (authCallback, error) {
+	ch := make(chan string, 2)
+	server, err := createCallbackServer(ch)
+	if err != nil {
+		return authCallback{}, fmt.Errorf("cannot create callback server: %w", err)
+	}
+
+	port, err := runServer(server)
+	if err != nil {
+		return authCallback{}, fmt.Errorf("cannot run authentication server: %w", err)
+	}
+
+	return authCallback{
+		ch:     ch,
+		server: server,
+		Port:   port,
+	}, nil
+}
+
+func (a authCallback) Result() (jwt, username string) {
+	jwt = <-a.ch
+	username = <-a.ch
+	_ = a.server.Shutdown(context.Background())
+	return
 }
 
 func createCallbackServer(ch chan string) (*http.Server, error) {
