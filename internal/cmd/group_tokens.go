@@ -33,7 +33,7 @@ var groupTokensInvalidateCmd = &cobra.Command{
 	ValidArgsFunction: groupArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -95,7 +95,7 @@ var groupCreateTokenCmd = &cobra.Command{
 	ValidArgsFunction: groupArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		client, err := createTursoClientFromAccessToken(true)
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}

@@ -26,7 +26,6 @@ var authCmd = &cobra.Command{
 	Use:               "auth",
 	Short:             "Authenticate with Turso",
 	ValidArgsFunction: noSpaceArg,
-	PersistentPreRunE: verifyIfTokenIsSetInEnv,
 }
 
 var signupCmd = &cobra.Command{
@@ -35,6 +34,7 @@ var signupCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE:              signup,
+	PersistentPreRunE: checkEnvAuth,
 }
 
 var loginCmd = &cobra.Command{
@@ -43,6 +43,7 @@ var loginCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE:              login,
+	PersistentPreRunE: checkEnvAuth,
 }
 
 var logoutCmd = &cobra.Command{
@@ -51,6 +52,7 @@ var logoutCmd = &cobra.Command{
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE:              logout,
+	PersistentPreRunE: checkEnvAuth,
 }
 
 var whoAmICmd = &cobra.Command{
@@ -199,7 +201,7 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 		fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 		firstTime := settings.RegisterUse("auth_login")
-		client, err := createTursoClientFromAccessToken(false)
+		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
@@ -212,7 +214,6 @@ func auth(cmd *cobra.Command, args []string, path string) error {
 	latestVersion := <-versionChannel
 
 	if version != "dev" && version != latestVersion {
-
 		fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", internal.Emph("Turso CLI"))
 		fmt.Printf("You're currently using version %s while latest available version is %s.\n", internal.Emph(version), internal.Emph(latestVersion))
 		fmt.Printf("Please consider updating to get new features and more stable experience. To update:\n")
@@ -300,7 +301,7 @@ func logout(cmd *cobra.Command, args []string) error {
 
 func whoAmI(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := authedTursoClient()
 	if err != nil {
 		return err
 	}
@@ -312,16 +313,11 @@ func whoAmI(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func verifyIfTokenIsSetInEnv(cmd *cobra.Command, args []string) error {
-	// we want to override this for `turso auth whoami`
-	if cmd.Use == whoAmICmd.Use {
-		return nil
-	}
+func checkEnvAuth(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
-	envToken := os.Getenv(ENV_ACCESS_TOKEN)
-	if envToken != "" {
-		return fmt.Errorf("auth commands aren't effective when a token is set in the %q environment variable", ENV_ACCESS_TOKEN)
+	token := os.Getenv(ENV_ACCESS_TOKEN)
+	if token != "" {
+		return fmt.Errorf("a token is set in the %q environment variable, please unset it before running %s", ENV_ACCESS_TOKEN, internal.Emph(cmd.CommandPath()))
 	}
-
 	return nil
 }

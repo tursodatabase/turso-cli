@@ -25,7 +25,7 @@ var groupFlag string
 func addGroupFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&groupFlag, "group", "", "create the database in the specified group")
 	cmd.RegisterFlagCompletionFunc("group", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		client, err := createTursoClientFromAccessToken(false)
+		client, err := authedTursoClient()
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}

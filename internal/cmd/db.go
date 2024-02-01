@@ -76,7 +76,7 @@ func getDatabaseNames(client *turso.Client) []string {
 }
 
 func completeInstanceName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := authedTursoClient()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -97,25 +97,37 @@ var dbCmd = &cobra.Command{
 
 const ENV_ACCESS_TOKEN = "TURSO_API_TOKEN"
 
-func getAccessToken(warnMultipleAccessTokenSources bool) (string, error) {
-	envToken := os.Getenv(ENV_ACCESS_TOKEN)
+func getAccessToken() (string, error) {
+	token, err := envAccessToken()
+	if err != nil {
+		return "", err
+	}
+	if token != "" {
+		return token, nil
+	}
+
 	settings, err := settings.ReadSettings()
 	if err != nil {
-		return "", fmt.Errorf("could not read local settings")
+		return "", fmt.Errorf("could not read token from settings file: %w", err)
 	}
-	settingsToken := settings.GetToken()
 
-	if !noMultipleTokenSourcesWarning && envToken != "" && settingsToken != "" && warnMultipleAccessTokenSources {
-		fmt.Printf("Warning: User logged in as %s but %q environment variable is set so proceeding to use it instead\n\n", settings.GetUsername(), ENV_ACCESS_TOKEN)
-	}
-	if envToken != "" {
-		return envToken, nil
-	}
-	if !isJwtTokenValid(settingsToken) {
+	token = settings.GetToken()
+	if !isJwtTokenValid(token) {
 		return "", fmt.Errorf("user not logged in, please login with %s", internal.Emph("turso auth login"))
 	}
 
-	return settingsToken, nil
+	return token, nil
+}
+
+func envAccessToken() (string, error) {
+	token := os.Getenv(ENV_ACCESS_TOKEN)
+	if token == "" {
+		return "", nil
+	}
+	if !isJwtTokenValid(token) {
+		return "", fmt.Errorf("token in %s env var is invalid. Update the env var with a valid value, or unset it to use a token from the configuration file", ENV_ACCESS_TOKEN)
+	}
+	return token, nil
 }
 
 type latMap struct {

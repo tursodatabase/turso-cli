@@ -25,15 +25,15 @@ const (
 	tursoDefaultBaseURL = "https://api.turso.tech"
 )
 
-func createTursoClientFromAccessToken(warnMultipleAccessTokenSources bool) (*turso.Client, error) {
-	token, err := getAccessToken(warnMultipleAccessTokenSources)
+func authedTursoClient() (*turso.Client, error) {
+	token, err := getAccessToken()
 	if err != nil {
 		return nil, err
 	}
 	return tursoClient(token)
 }
 
-func createUnauthenticatedTursoClient() (*turso.Client, error) {
+func unauthedTursoClient() (*turso.Client, error) {
 	return tursoClient("")
 }
 
@@ -46,7 +46,7 @@ func tursoClient(token string) (*turso.Client, error) {
 
 	config, err := settings.ReadSettings()
 	if err != nil {
-		return nil, fmt.Errorf("error creating turso client: could not parse turso URL %s: %w", urlStr, err)
+		return nil, fmt.Errorf("error creating turso client: could not read settings file: %w", err)
 	}
 
 	org := config.Organization()
@@ -284,7 +284,7 @@ func promptConfirmation(prompt string) (bool, error) {
 }
 
 func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := authedTursoClient()
 	if err != nil {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -295,7 +295,7 @@ func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 }
 
 func dbNameAndOrgArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := createTursoClientFromAccessToken(false)
+	client, err := authedTursoClient()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 	}
@@ -307,7 +307,7 @@ func dbNameAndOrgArgs(cmd *cobra.Command, args []string, toComplete string) ([]s
 }
 
 func fetchLatestVersion() (string, error) {
-	client, err := createUnauthenticatedTursoClient()
+	client, err := unauthedTursoClient()
 	if err != nil {
 		return "", err
 	}
