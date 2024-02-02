@@ -19,6 +19,7 @@ type Database struct {
 	Hostname      string
 	Version       string
 	Group         string
+	Sleeping      bool
 }
 
 type DatabasesClient client
@@ -298,6 +299,28 @@ func (d *DatabasesClient) Transfer(database, org string) error {
 	if r.StatusCode != http.StatusOK {
 		err := parseResponseError(r)
 		return fmt.Errorf("failed to transfer %s database to org %s: %w", database, org, err)
+	}
+
+	return nil
+}
+
+func (d *DatabasesClient) Wakeup(database string) error {
+	url := d.URL(fmt.Sprintf("/%s/wakeup", database))
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to wakeup database: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+
+		err, _ := unmarshal[string](r)
+		return fmt.Errorf("failed to wakeup database: %d %s", r.StatusCode, err)
 	}
 
 	return nil

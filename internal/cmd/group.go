@@ -195,13 +195,6 @@ func groupsTable(groups []turso.Group) [][]string {
 	return data
 }
 
-func formatBool(b bool) string {
-	if b {
-		return "Yes"
-	}
-	return "No"
-}
-
 func getGroups(client *turso.Client, fresh ...bool) ([]turso.Group, error) {
 	skipCache := len(fresh) > 0 && fresh[0]
 	if cached := getGroupsCache(client.Org); !skipCache && cached != nil {
