@@ -43,6 +43,11 @@ func printDBListTable(databases []turso.Database) {
 	if !shouldPrintGroups(databases) {
 		headers, data = removeColumn(headers, data, "Group")
 	}
+
+	if !shouldPrintSleeping(databases) {
+		headers, data = removeColumn(headers, data, "Sleeping")
+	}
+
 	printTable(headers, data)
 }
 
@@ -61,6 +66,15 @@ func shouldPrintGroups(databases []turso.Database) bool {
 		mp[database.Group] = true
 	}
 	return len(mp) > 1
+}
+
+func shouldPrintSleeping(databases []turso.Database) bool {
+	for _, database := range databases {
+		if database.Sleeping {
+			return true
+		}
+	}
+	return false
 }
 
 func dbListTable(databases []turso.Database) (headers []string, data [][]string) {
