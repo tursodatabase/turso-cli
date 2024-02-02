@@ -65,7 +65,7 @@ func shouldPrintGroups(databases []turso.Database) bool {
 
 func dbListTable(databases []turso.Database) (headers []string, data [][]string) {
 	for _, database := range databases {
-		row := []string{database.Name, getDatabaseLocations(database), formatGroup(database.Group), getDatabaseUrl(&database)}
+		row := []string{database.Name, getDatabaseLocations(database), formatGroup(database.Group), getDatabaseUrl(&database), formatBool(database.Sleeping)}
 		data = append(data, row)
 	}
 
@@ -73,7 +73,7 @@ func dbListTable(databases []turso.Database) (headers []string, data [][]string)
 		return data[i][0] < data[j][0]
 	})
 
-	return []string{"Name", "Locations", "Group", "URL"}, data
+	return []string{"Name", "Locations", "Group", "URL", "Sleeping"}, data
 }
 
 func removeColumn(headers []string, data [][]string, column string) ([]string, [][]string) {

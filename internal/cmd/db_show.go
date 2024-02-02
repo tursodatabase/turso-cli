@@ -92,6 +92,7 @@ var showCmd = &cobra.Command{
 		}
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
 		fmt.Println("Size:          ", humanize.Bytes(dbUsage.Usage.StorageBytesUsed))
+		fmt.Println("Sleeping:      ", formatBool(db.Sleeping))
 		fmt.Println()
 
 		if len(instances) == 0 {

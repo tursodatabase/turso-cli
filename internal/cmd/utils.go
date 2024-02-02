@@ -99,6 +99,13 @@ func getUrl(db *turso.Database, inst *turso.Instance, scheme string) string {
 	return fmt.Sprintf("%s://%s", scheme, host)
 }
 
+func formatBool(b bool) string {
+	if b {
+		return "Yes"
+	}
+	return "No"
+}
+
 func getDatabaseLocations(db turso.Database) string {
 	return formatLocations(db.Regions, db.PrimaryRegion)
 }
