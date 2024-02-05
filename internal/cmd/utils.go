@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
 	"github.com/olekukonko/tablewriter"
@@ -354,4 +355,12 @@ func instancesAndUsage(client *turso.Client, database string) (instances []turso
 	})
 	err = g.Wait()
 	return
+}
+
+func isInteractive() bool {
+	return isTerminal(os.Stdin) && isTerminal(os.Stdout)
+}
+
+func isTerminal(f *os.File) bool {
+	return isatty.IsTerminal(f.Fd()) || isatty.IsCygwinTerminal(f.Fd())
 }
