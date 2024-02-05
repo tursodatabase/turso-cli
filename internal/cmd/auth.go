@@ -22,8 +22,6 @@ import (
 //go:embed login.html
 var LOGIN_HTML string
 
-var headlessFlag bool
-
 var authCmd = &cobra.Command{
 	Use:               "auth",
 	Short:             "Authenticate with Turso",
@@ -108,7 +106,7 @@ func init() {
 	authCmd.AddCommand(tokenCmd)
 	authCmd.AddCommand(apiTokensCmd)
 	authCmd.AddCommand(whoAmICmd)
-	loginCmd.Flags().BoolVar(&headlessFlag, "headless", false, "Show access token on the website instead of updating the CLI.")
+	flags.AddHeadless(loginCmd)
 	flags.AddAll(logoutCmd, "Invalidate all sessions for the current user")
 }
 
@@ -149,7 +147,7 @@ func auth(cmd *cobra.Command, path string) error {
 		return alreadySignedInError(settings)
 	}
 
-	if headlessFlag {
+	if flags.Headless() {
 		return printHeadlessLoginInstructions(path)
 	}
 
