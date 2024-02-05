@@ -107,6 +107,7 @@ func init() {
 	authCmd.AddCommand(apiTokensCmd)
 	authCmd.AddCommand(whoAmICmd)
 	flags.AddHeadless(loginCmd)
+	flags.AddHeadless(signupCmd)
 	flags.AddAll(logoutCmd, "Invalidate all sessions for the current user")
 }
 
