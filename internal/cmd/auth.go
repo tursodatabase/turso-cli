@@ -354,25 +354,34 @@ func logout(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	if flags.All() {
-		turso, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-
-		from, err := turso.Tokens.Invalidate()
-		if err != nil {
-			return err
-		}
-
-		formatted := time.Unix(from, 0).UTC().Format(time.DateTime)
-		fmt.Printf("Invalidated all sessions started before %s UTC.\n", formatted)
+	if err := invalidateSessionsIfRequested(); err != nil {
+		return err
 	}
 
 	settings.SetToken("")
 	settings.SetUsername("")
 	fmt.Println("Logged out.")
 
+	return nil
+}
+
+func invalidateSessionsIfRequested() error {
+	if !flags.All() {
+		return nil
+	}
+
+	turso, err := authedTursoClient()
+	if err != nil {
+		return err
+	}
+
+	from, err := turso.Tokens.Invalidate()
+	if err != nil {
+		return err
+	}
+
+	formatted := time.Unix(from, 0).UTC().Format(time.DateTime)
+	fmt.Printf("Invalidated all sessions started before %s UTC.\n", formatted)
 	return nil
 }
 
