@@ -10,10 +10,12 @@ import (
 	"os"
 	"strconv"
 	"text/template"
+	"time"
 
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 )
 
@@ -107,6 +109,7 @@ func init() {
 	authCmd.AddCommand(apiTokensCmd)
 	authCmd.AddCommand(whoAmICmd)
 	loginCmd.Flags().BoolVar(&headlessFlag, "headless", false, "Show access token on the website instead of updating the CLI.")
+	flags.AddAll(logoutCmd, "Invalidate all sessions for the current user")
 }
 
 func isJwtTokenValid(token string) bool {
@@ -346,14 +349,29 @@ func logout(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not retrieve local config: %w", err)
 	}
 
-	token := settings.GetToken()
-	if len(token) == 0 {
+	if token := settings.GetToken(); len(token) == 0 {
 		fmt.Println("No user logged in.")
-	} else {
-		settings.SetToken("")
-		settings.SetUsername("")
-		fmt.Println("Logged out.")
+		return nil
 	}
+
+	if flags.All() {
+		turso, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		from, err := turso.Tokens.Invalidate()
+		if err != nil {
+			return err
+		}
+
+		formatted := time.Unix(from, 0).UTC().Format(time.DateTime)
+		fmt.Printf("Invalidated all sessions started before %s UTC.\n", formatted)
+	}
+
+	settings.SetToken("")
+	settings.SetUsername("")
+	fmt.Println("Logged out.")
 
 	return nil
 }

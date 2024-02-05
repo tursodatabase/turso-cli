@@ -25,3 +25,22 @@ func (c *TokensClient) Validate(token string) (int64, error) {
 
 	return data.Exp, nil
 }
+
+func (c *TokensClient) Invalidate() (int64, error) {
+	r, err := c.client.Post("/v1/auth/invalidate", nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to request invalidation: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("failed to invalidate sessions: %w", parseResponseError(r))
+	}
+
+	data, err := unmarshal[struct{ ValidFrom int64 }](r)
+	if err != nil {
+		return 0, fmt.Errorf("failed to deserialize invalidate sessions response: %w", err)
+	}
+
+	return data.ValidFrom, nil
+}
