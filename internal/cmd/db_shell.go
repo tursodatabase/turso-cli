@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/libsql/libsql-shell-go/pkg/shell"
@@ -14,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
+	"github.com/tursodatabase/turso-cli/internal/settings"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
@@ -162,7 +164,7 @@ var shellCmd = &cobra.Command{
 			if args[1] == ".dump" {
 				return dump(dbUrl, authToken)
 			}
-			return shell.RunShellLine(shellConfig, args[1])
+			return runShellLine(db.ID, shellConfig, args[1])
 		}
 
 		if pipeOrRedirect() {
@@ -171,11 +173,41 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("error reading from stdin: %w", err)
 			}
-			return shell.RunShellLine(shellConfig, string(b))
+			return runShellLine(db.ID, shellConfig, string(b))
 		}
 
-		return shell.RunShell(shellConfig)
+		return runShell(db.ID, shellConfig)
 	},
+}
+
+func runShell(dbID string, config shell.ShellConfig) error {
+	err := shell.RunShell(config)
+	if isAuthError(err) {
+		clearDBTokenCache(dbID)
+	}
+	return err
+}
+
+func runShellLine(dbID string, config shell.ShellConfig, line string) error {
+	err := shell.RunShellLine(config, line)
+	if isAuthError(err) {
+		clearDBTokenCache(dbID)
+	}
+	return err
+}
+
+func isAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	// TODO: use a more reliable way to detect auth errors
+	return strings.Contains(msg, "401") || strings.Contains(msg, "403")
+}
+
+func clearDBTokenCache(dbID string) {
+	setDbTokenCache(dbID, "", 0)
+	settings.PersistChanges()
 }
 
 type QueryRequest struct {
