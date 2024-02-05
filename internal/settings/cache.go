@@ -29,6 +29,15 @@ func SetCacheRaw[T any](key string, value T) error {
 	return nil
 }
 
+func ClearCache() error {
+	if _, err := ReadSettings(); err != nil {
+		return err
+	}
+	viper.Set("cache", struct{}{})
+	settings.changed = true
+	return nil
+}
+
 func SetCache[T any](key string, ttl int64, value T) error {
 	exp := time.Now().Unix() + ttl
 	return SetCacheWithExp(key, exp, value)
