@@ -10,6 +10,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(configCmd)
+	configCmd.AddCommand(configPathCmd)
 	configCmd.AddCommand(configSetCmd)
 	configSetCmd.AddCommand(configSetAutoUpdateCmd)
 	configSetCmd.AddCommand(configSetTokenCmd)
@@ -101,6 +102,18 @@ var configCacheClearCmd = &cobra.Command{
 			return fmt.Errorf("failed to clear cache: %w", err)
 		}
 		fmt.Println("Local cache cleared successfully")
+		return nil
+	},
+}
+
+var configPathCmd = &cobra.Command{
+	Use:               "path",
+	Short:             "Get the path to the CLI configuration file",
+	Args:              cobra.ExactArgs(0),
+	ValidArgsFunction: cobra.NoFileCompletions,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		_, _ = settings.ReadSettings()
+		fmt.Println(settings.Path())
 		return nil
 	},
 }
