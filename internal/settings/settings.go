@@ -79,6 +79,10 @@ func ReadSettings() (*Settings, error) {
 	return settings, nil
 }
 
+func Path() string {
+	return viper.ConfigFileUsed()
+}
+
 func PersistChanges() {
 	if settings == nil || !settings.changed {
 		return

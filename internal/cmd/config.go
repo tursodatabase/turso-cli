@@ -10,9 +10,13 @@ import (
 
 func init() {
 	rootCmd.AddCommand(configCmd)
+	configCmd.AddCommand(configPathCmd)
 	configCmd.AddCommand(configSetCmd)
 	configSetCmd.AddCommand(configSetAutoUpdateCmd)
 	configSetCmd.AddCommand(configSetTokenCmd)
+
+	configCmd.AddCommand(configCacheCmd)
+	configCacheCmd.AddCommand(configCacheClearCmd)
 }
 
 var configCmd = &cobra.Command{
@@ -79,6 +83,37 @@ var configSetTokenCmd = &cobra.Command{
 			return fmt.Errorf("%w\nIf the issue persists, set your token to the %s environment variable instead", err, internal.Emph(ENV_ACCESS_TOKEN))
 		}
 		fmt.Println("Token set succesfully.")
+		return nil
+	},
+}
+
+var configCacheCmd = &cobra.Command{
+	Use:   "cache",
+	Short: "Manage your CLI cache",
+}
+
+var configCacheClearCmd = &cobra.Command{
+	Use:               "clear",
+	Short:             "Clear your CLI local cache",
+	Args:              cobra.ExactArgs(0),
+	ValidArgsFunction: cobra.NoFileCompletions,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := settings.ClearCache(); err != nil {
+			return fmt.Errorf("failed to clear cache: %w", err)
+		}
+		fmt.Println("Local cache cleared successfully")
+		return nil
+	},
+}
+
+var configPathCmd = &cobra.Command{
+	Use:               "path",
+	Short:             "Get the path to the CLI configuration file",
+	Args:              cobra.ExactArgs(0),
+	ValidArgsFunction: cobra.NoFileCompletions,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		_, _ = settings.ReadSettings()
+		fmt.Println(settings.Path())
 		return nil
 	},
 }
