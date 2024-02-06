@@ -44,6 +44,10 @@ func init() {
 		}
 		settings.PersistChanges()
 
+		if !isInteractive() {
+			return
+		}
+
 		if version == "dev" {
 			return
 		}
