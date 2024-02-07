@@ -258,12 +258,12 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 		return token, nil
 	}
 
-	token, err := client.Databases.Token(db.Name, "1d", false)
+	token, err := client.Databases.Token(db.Name, "2d", false)
 	if err != nil {
 		return "", err
 	}
 
-	exp := time.Now().Add(time.Hour * 23).Unix()
+	exp := time.Now().Add(time.Hour * 6).Unix()
 	setDbTokenCache(db.ID, token, exp)
 
 	return token, nil
