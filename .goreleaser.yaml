@@ -57,6 +57,8 @@ brews:
     tap:
       owner: tursodatabase
       name: homebrew-tap
+    dependencies:
+      - name: libsql/sqld/libsql-server
     install: |
       bin.install "turso"
       bash_completion.install "completions/turso.bash" => "turso"

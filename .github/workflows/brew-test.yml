@@ -23,3 +23,6 @@ jobs:
 
       - name: Verify CLI installation
         run: turso --version
+
+      - name: Verify libsql server installation
+        run: sqld --version
