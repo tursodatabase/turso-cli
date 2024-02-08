@@ -175,14 +175,17 @@ var shellCmd = &cobra.Command{
 			}
 			return runShellLine(db.ID, shellConfig, string(b))
 		}
-
-		return runShell(db.ID, shellConfig)
+		dbID := ""
+		if db != nil {
+			dbID = db.ID
+		}
+		return runShell(dbID, shellConfig)
 	},
 }
 
 func runShell(dbID string, config shell.ShellConfig) error {
 	err := shell.RunShell(config)
-	if isAuthError(err) {
+	if isAuthError(err) && dbID != "" {
 		clearDBTokenCache(dbID)
 	}
 	return err
