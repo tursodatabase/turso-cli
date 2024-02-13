@@ -157,6 +157,10 @@ var shellCmd = &cobra.Command{
 			DisableAutoCompletion: true,
 		}
 
+		dbID := ""
+		if db != nil {
+			dbID = db.ID
+		}
 		if len(args) == 2 {
 			if len(args[1]) == 0 {
 				return fmt.Errorf("no SQL command to execute")
@@ -164,7 +168,7 @@ var shellCmd = &cobra.Command{
 			if args[1] == ".dump" {
 				return dump(dbUrl, authToken)
 			}
-			return runShellLine(db.ID, shellConfig, args[1])
+			return runShellLine(dbID, shellConfig, args[1])
 		}
 
 		if pipeOrRedirect() {
@@ -173,11 +177,7 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("error reading from stdin: %w", err)
 			}
-			return runShellLine(db.ID, shellConfig, string(b))
-		}
-		dbID := ""
-		if db != nil {
-			dbID = db.ID
+			return runShellLine(dbID, shellConfig, string(b))
 		}
 		return runShell(dbID, shellConfig)
 	},
