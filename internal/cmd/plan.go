@@ -132,6 +132,7 @@ func planUsageTable(orgUsage turso.OrgUsage, current turso.Plan, currentOrg turs
 	addResourceRowMillions(tbl, "rows written", orgUsage.Usage.RowsWritten, current.Quotas.RowsWritten, currentOrg.Overages)
 	addResourceRowCount(tbl, "databases", orgUsage.Usage.Databases, current.Quotas.Databases)
 	addResourceRowCount(tbl, "locations", orgUsage.Usage.Locations, current.Quotas.Locations)
+	addResourceRowCount(tbl, "groups", orgUsage.Usage.Groups, current.Quotas.Groups)
 	return tbl
 }
 
