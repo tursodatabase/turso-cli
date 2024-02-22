@@ -26,6 +26,7 @@ func init() {
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
 	addCanaryFlag(createCmd)
 	addEnableExtensionsFlag(createCmd)
+	addSchemaFlag(createCmd)
 }
 
 var createCmd = &cobra.Command{
@@ -77,7 +78,7 @@ var createCmd = &cobra.Command{
 		spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(group)))
 		defer spinner.Stop()
 
-		if _, err = client.Databases.Create(name, location, "", "", group, seed); err != nil {
+		if _, err = client.Databases.Create(name, location, "", "", group, schemaFlag, seed); err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
