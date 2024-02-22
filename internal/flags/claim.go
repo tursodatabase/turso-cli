@@ -2,12 +2,12 @@ package flags
 
 import "github.com/spf13/cobra"
 
-var claimFlag []string
+var attachFlag []string
 
-func AddClaim(cmd *cobra.Command) {
-	cmd.Flags().StringSliceVar(&claimFlag, "claim", nil, "list of database claims to be added to the token")
+func AddAttachClaim(cmd *cobra.Command) {
+	cmd.Flags().StringSliceVar(&attachFlag, "attach", nil, "list of database names with attach claim to be added to the token")
 }
 
-func Claim() []string {
-	return claimFlag
+func AttachClaim() []string {
+	return attachFlag
 }

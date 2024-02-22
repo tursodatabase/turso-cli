@@ -2,7 +2,6 @@ package turso
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/tursodatabase/turso-cli/internal"
@@ -192,14 +191,14 @@ func (d *GroupsClient) WaitLocation(name, location string) error {
 }
 
 type Entities struct {
-	Namespaces []string `json:"namespaces,omitempty"`
+	DBNames []string `json:"databases,omitempty"`
 }
 
 type PermissionsClaim struct {
 	ReadAttach Entities `json:"read_attach,omitempty"`
 }
 
-type TokenRequest struct {
+type GroupTokenRequest struct {
 	Permissions *PermissionsClaim `json:"permissions,omitempty"`
 }
 
@@ -210,14 +209,10 @@ func (d *GroupsClient) Token(group string, expiration string, readOnly bool, per
 	}
 	url := d.URL(fmt.Sprintf("/%s/auth/tokens?expiration=%s%s", group, expiration, authorization))
 
-	var body io.Reader
-	if permissions != nil {
-		req := TokenRequest{permissions}
-		b, err := marshal(req)
-		if err != nil {
-			return "", fmt.Errorf("could not serialize request body: %w", err)
-		}
-		body = b
+	req := GroupTokenRequest{permissions}
+	body, err := marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("could not serialize request body: %w", err)
 	}
 
 	r, err := d.client.Post(url, body)
