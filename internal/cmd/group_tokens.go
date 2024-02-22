@@ -86,6 +86,7 @@ func init() {
 	groupTokensCmd.AddCommand(groupCreateTokenCmd)
 	flags.AddExpiration(groupCreateTokenCmd)
 	flags.AddReadOnly(groupCreateTokenCmd)
+	flags.AddClaim(groupCreateTokenCmd)
 }
 
 var groupCreateTokenCmd = &cobra.Command{
@@ -110,8 +111,17 @@ var groupCreateTokenCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		token, err := client.Groups.Token(group.Name, expiration, flags.ReadOnly())
+		var claim *turso.PermissionsClaim
+		if len(flags.Claim()) > 0 {
+			namespaces, err := validateDBNames(flags.Claim())
+			if err != nil {
+				return err
+			}
+			claim = &turso.PermissionsClaim{
+				ReadAttach: turso.Entities{Namespaces: namespaces},
+			}
+		}
+		token, err := client.Groups.Token(group.Name, expiration, flags.ReadOnly(), claim)
 		if err != nil {
 			return fmt.Errorf("error creating token: %w", err)
 		}
@@ -119,4 +129,19 @@ var groupCreateTokenCmd = &cobra.Command{
 		fmt.Println(token)
 		return nil
 	},
+}
+
+func validateDBNames(dbNames []string) ([]string, error) {
+	databases := map[string]string{}
+	for _, db := range getDatabasesCache() {
+		databases[db.Name] = db.ID
+	}
+	var validNamespaces []string
+	for _, name := range dbNames {
+		if _, ok := databases[name]; !ok {
+			return nil, fmt.Errorf("database %s does not exist", name)
+		}
+		validNamespaces = append(validNamespaces, databases[name])
+	}
+	return validNamespaces, nil
 }

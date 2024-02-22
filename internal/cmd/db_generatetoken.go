@@ -59,5 +59,5 @@ func getToken(client *turso.Client, database turso.Database, expiration string, 
 	if group && database.Group == "" {
 		return "", fmt.Errorf("--group flag can only be set with group databases")
 	}
-	return client.Groups.Token(database.Group, expiration, readOnly)
+	return client.Groups.Token(database.Group, expiration, readOnly, nil)
 }
