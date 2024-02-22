@@ -261,7 +261,7 @@ func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
 		return token, nil
 	}
 
-	token, err := client.Databases.Token(db.Name, "2d", false)
+	token, err := client.Databases.Token(db.Name, "2d", false, nil)
 	if err != nil {
 		return "", err
 	}
