@@ -102,6 +102,7 @@ type OrgTotal struct {
 	StorageBytesUsed uint64 `json:"storage_bytes,omitempty"`
 	Databases        uint64 `json:"databases,omitempty"`
 	Locations        uint64 `json:"locations,omitempty"`
+	Groups           uint64 `json:"groups,omitempty"`
 }
 
 type OrgUsage struct {
