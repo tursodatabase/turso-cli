@@ -91,10 +91,11 @@ type CreateDatabaseBody struct {
 	Group      string  `json:"group,omitempty"`
 	Seed       *DBSeed `json:"seed,omitempty"`
 	Schema     string  `json:"schema,omitempty"`
+	IsSchema   bool    `json:"is_schema,omitempty"`
 }
 
-func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, seed *DBSeed) (*CreateDatabaseResponse, error) {
-	params := CreateDatabaseBody{name, location, image, extensions, group, seed, schema}
+func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed) (*CreateDatabaseResponse, error) {
+	params := CreateDatabaseBody{name, location, image, extensions, group, seed, schema, isSchema}
 
 	body, err := marshal(params)
 	if err != nil {
