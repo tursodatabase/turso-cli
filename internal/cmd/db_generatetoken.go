@@ -17,7 +17,7 @@ func init() {
 
 	flags.AddExpiration(dbGenerateTokenCmd)
 	flags.AddReadOnly(dbGenerateTokenCmd)
-	flags.AddAttachClaim(dbGenerateTokenCmd)
+	flags.AddAttachClaims(dbGenerateTokenCmd)
 	dbGenerateTokenCmd.Flags().BoolVar(&groupTokenFlag, "group", false, "create a token that is valid for all databases in the group")
 }
 
@@ -45,13 +45,13 @@ var dbGenerateTokenCmd = &cobra.Command{
 		}
 
 		var claim *turso.PermissionsClaim
-		if len(flags.AttachClaim()) > 0 {
-			dbNames, err := validateDBNames(flags.AttachClaim())
+		if len(flags.AttachClaims()) > 0 {
+			err := validateDBNames(flags.AttachClaims())
 			if err != nil {
 				return err
 			}
 			claim = &turso.PermissionsClaim{
-				ReadAttach: turso.Entities{DBNames: dbNames},
+				ReadAttach: turso.Entities{DBNames: flags.AttachClaims()},
 			}
 		}
 		token, err := getToken(client, database, expiration, flags.ReadOnly(), groupTokenFlag, claim)
