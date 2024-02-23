@@ -67,6 +67,11 @@ func (m *spinner) Text(t string) {
 }
 
 func (m *spinner) Start() {
+	if !isInteractive {
+		fmt.Println(m.View())
+		return
+	}
+
 	ch := make(chan bool)
 	m.done = ch
 	m.quitting = false
