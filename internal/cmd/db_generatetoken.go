@@ -17,6 +17,7 @@ func init() {
 
 	flags.AddExpiration(dbGenerateTokenCmd)
 	flags.AddReadOnly(dbGenerateTokenCmd)
+	flags.AddAttachClaims(dbGenerateTokenCmd)
 	dbGenerateTokenCmd.Flags().BoolVar(&groupTokenFlag, "group", false, "create a token that is valid for all databases in the group")
 }
 
@@ -43,7 +44,17 @@ var dbGenerateTokenCmd = &cobra.Command{
 			return err
 		}
 
-		token, err := getToken(client, database, expiration, flags.ReadOnly(), groupTokenFlag)
+		var claim *turso.PermissionsClaim
+		if len(flags.AttachClaims()) > 0 {
+			err := validateDBNames(flags.AttachClaims())
+			if err != nil {
+				return err
+			}
+			claim = &turso.PermissionsClaim{
+				ReadAttach: turso.Entities{DBNames: flags.AttachClaims()},
+			}
+		}
+		token, err := getToken(client, database, expiration, flags.ReadOnly(), groupTokenFlag, claim)
 		if err != nil {
 			return fmt.Errorf("your database does not support token generation")
 		}
@@ -52,12 +63,12 @@ var dbGenerateTokenCmd = &cobra.Command{
 	},
 }
 
-func getToken(client *turso.Client, database turso.Database, expiration string, readOnly, group bool) (string, error) {
+func getToken(client *turso.Client, database turso.Database, expiration string, readOnly, group bool, claim *turso.PermissionsClaim) (string, error) {
 	if !group {
-		return client.Databases.Token(database.Name, expiration, readOnly)
+		return client.Databases.Token(database.Name, expiration, readOnly, claim)
 	}
 	if group && database.Group == "" {
 		return "", fmt.Errorf("--group flag can only be set with group databases")
 	}
-	return client.Groups.Token(database.Group, expiration, readOnly)
+	return client.Groups.Token(database.Group, expiration, readOnly, claim)
 }

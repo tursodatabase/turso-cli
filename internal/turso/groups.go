@@ -190,13 +190,32 @@ func (d *GroupsClient) WaitLocation(name, location string) error {
 	return nil
 }
 
-func (d *GroupsClient) Token(group string, expiration string, readOnly bool) (string, error) {
+type Entities struct {
+	DBNames []string `json:"databases,omitempty"`
+}
+
+type PermissionsClaim struct {
+	ReadAttach Entities `json:"read_attach,omitempty"`
+}
+
+type GroupTokenRequest struct {
+	Permissions *PermissionsClaim `json:"permissions,omitempty"`
+}
+
+func (d *GroupsClient) Token(group string, expiration string, readOnly bool, permissions *PermissionsClaim) (string, error) {
 	authorization := ""
 	if readOnly {
 		authorization = "&authorization=read-only"
 	}
 	url := d.URL(fmt.Sprintf("/%s/auth/tokens?expiration=%s%s", group, expiration, authorization))
-	r, err := d.client.Post(url, nil)
+
+	req := GroupTokenRequest{permissions}
+	body, err := marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	r, err := d.client.Post(url, body)
 	if err != nil {
 		return "", fmt.Errorf("failed to get database token: %w", err)
 	}
