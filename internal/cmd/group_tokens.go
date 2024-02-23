@@ -131,7 +131,7 @@ var groupCreateTokenCmd = &cobra.Command{
 	},
 }
 
-func validateDBNames(dbNames []string) ([]string, error) {
+func validateDBNames(dbNames []string) error {
 	databases := map[string]string{}
 	for _, db := range getDatabasesCache() {
 		databases[db.Name] = db.ID
