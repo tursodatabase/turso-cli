@@ -268,12 +268,16 @@ func tokenFromDb(db *turso.Database, client *turso.Client, claim *turso.Permissi
 	if db == nil {
 		return "", nil
 	}
+	// skip cache and always use token from server when claims are attached
+	if claim != nil {
+		return client.Databases.Token(db.Name, "2d", false, claim)
+	}
 
 	if token := dbTokenCache(db.ID); token != "" {
 		return token, nil
 	}
 
-	token, err := client.Databases.Token(db.Name, "2d", false, claim)
+	token, err := client.Databases.Token(db.Name, "2d", false, nil)
 	if err != nil {
 		return "", err
 	}
