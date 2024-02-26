@@ -14,6 +14,7 @@ import (
 	"github.com/libsql/libsql-shell-go/pkg/shell/enums"
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -29,6 +30,7 @@ func init() {
 	shellCmd.RegisterFlagCompletionFunc("proxy", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	})
+	flags.AddAttachClaims(shellCmd)
 }
 
 func getURL(db *turso.Database, client *turso.Client) (string, error) {
@@ -94,11 +96,21 @@ var shellCmd = &cobra.Command{
 				return err
 			}
 
-			authToken, err = tokenFromDb(db, client)
+			var claim *turso.PermissionsClaim
+			if len(flags.AttachClaims()) > 0 {
+				err := validateDBNames(flags.AttachClaims())
+				if err != nil {
+					return err
+				}
+				claim = &turso.PermissionsClaim{
+					ReadAttach: turso.Entities{DBNames: flags.AttachClaims()},
+				}
+			}
+
+			authToken, err = tokenFromDb(db, client, claim)
 			if err != nil {
 				return err
 			}
-
 			dbUrl, err = getURL(db, client)
 			if err != nil {
 				return err
@@ -252,9 +264,13 @@ func isURL(s string) bool {
 	return err == nil
 }
 
-func tokenFromDb(db *turso.Database, client *turso.Client) (string, error) {
+func tokenFromDb(db *turso.Database, client *turso.Client, claim *turso.PermissionsClaim) (string, error) {
 	if db == nil {
 		return "", nil
+	}
+	// skip cache and always use token from server when claims are attached
+	if claim != nil {
+		return client.Databases.Token(db.Name, "2d", false, claim)
 	}
 
 	if token := dbTokenCache(db.ID); token != "" {
