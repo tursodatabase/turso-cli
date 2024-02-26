@@ -388,3 +388,53 @@ func (d *DatabasesClient) URL(suffix string) string {
 	}
 	return prefix + "/databases" + suffix
 }
+
+type DatabaseConfig struct {
+	AllowAttach bool `json:"allow_attach"`
+}
+
+func (d *DatabasesClient) GetConfig(database string) (DatabaseConfig, error) {
+	url := d.URL(fmt.Sprintf("/%s/configuration", database))
+	r, err := d.client.Get(url, nil)
+	if err != nil {
+		return DatabaseConfig{}, fmt.Errorf("failed to get database: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return DatabaseConfig{}, notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err = parseResponseError(r)
+		return DatabaseConfig{}, fmt.Errorf("failed to get config for database: %d %s", r.StatusCode, err)
+	}
+
+	return unmarshal[DatabaseConfig](r)
+}
+
+func (d *DatabasesClient) UpdateConfig(database string, config DatabaseConfig) error {
+	url := d.URL(fmt.Sprintf("/%s/configuration", database))
+	body, err := marshal(config)
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+	r, err := d.client.Patch(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to update database: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err = parseResponseError(r)
+		return fmt.Errorf("failed to update config for database: %d %s", r.StatusCode, err)
+	}
+
+	return nil
+}
