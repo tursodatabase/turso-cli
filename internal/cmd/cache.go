@@ -138,3 +138,20 @@ func getOrgsCache() []turso.Organization {
 	}
 	return data
 }
+
+const (
+	PLANS_CACHE_KEY = "plans"
+	PLANS_CACHE_TTL = 60
+)
+
+func setPlansCache(plans []turso.Plan) {
+	settings.SetCache(PLANS_CACHE_KEY, PLANS_CACHE_TTL, plans)
+}
+
+func getPlansCache() []turso.Plan {
+	plans, err := settings.GetCache[[]turso.Plan](PLANS_CACHE_KEY)
+	if err != nil {
+		return nil
+	}
+	return plans
+}

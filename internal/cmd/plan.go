@@ -158,9 +158,10 @@ func orgPlanData(client *turso.Client) (sub string, usage turso.OrgUsage, plans 
 }
 
 var planSelectCmd = &cobra.Command{
-	Use:   "select",
-	Short: "Change your current organization plan",
-	Args:  cobra.ExactArgs(0),
+	Use:               "select",
+	Short:             "Change your current organization plan",
+	Args:              cobra.MaximumNArgs(1),
+	ValidArgsFunction: planNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := authedTursoClient()
 		if err != nil {
@@ -171,20 +172,56 @@ var planSelectCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to get plans: %w", err)
 		}
-		selectabledPlans, err := getSelectabledPlans(plans)
-		if err != nil {
-			return err
-		}
-		selected, err := promptPlanSelection(selectabledPlans, current)
+
+		selected, err := selectedPlan(current, plans, args)
 		if err != nil {
 			return err
 		}
 
-		return ChangePlan(client, plans, current, hasPaymentMethod, selected)
+		return changePlan(client, plans, current, hasPaymentMethod, selected)
 	},
 }
 
-func getSelectabledPlans(plans []turso.Plan) ([]turso.Plan, error) {
+func selectedPlan(current string, plans []turso.Plan, args []string) (string, error) {
+	if len(args) > 0 {
+		return args[0], nil
+	}
+
+	selectabledPlans, err := selectabledPlans(plans)
+	if err != nil {
+		return "", err
+	}
+	selected, err := promptPlanSelection(selectabledPlans, current)
+	if err != nil {
+		return "", err
+	}
+
+	return selected, nil
+}
+
+func planNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) != 0 {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	client, err := authedTursoClient()
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	plans, err := getPlans(client)
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	names := make([]string, 0, len(plans))
+	for _, plan := range plans {
+		names = append(names, plan.Name)
+	}
+	return names, cobra.ShellCompDirectiveNoFileComp
+}
+
+func selectabledPlans(plans []turso.Plan) ([]turso.Plan, error) {
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return plans, err
@@ -223,7 +260,7 @@ var planUpgradeCmd = &cobra.Command{
 			return nil
 		}
 
-		return ChangePlan(client, plans, current, hasPaymentMethod, "scaler")
+		return changePlan(client, plans, current, hasPaymentMethod, "scaler")
 	},
 }
 
@@ -294,7 +331,7 @@ var planDisableOverages = &cobra.Command{
 	},
 }
 
-func ChangePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected string) error {
+func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected string) error {
 	if selected == current {
 		fmt.Println("You're all set! No changes are needed.")
 		return nil
@@ -441,7 +478,7 @@ func PaymentMethodHelperWithStripeId(client *turso.Client, stripeId, orgName str
 func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string, hasPaymentMethod bool, err error) {
 	g := errgroup.Group{}
 	g.Go(func() (err error) {
-		plans, err = client.Plans.List()
+		plans, err = getPlans(client)
 		return
 	})
 	g.Go(func() (err error) {
@@ -454,6 +491,18 @@ func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string
 	})
 	err = g.Wait()
 	return
+}
+
+func getPlans(client *turso.Client) ([]turso.Plan, error) {
+	if cached := getPlansCache(); cached != nil {
+		return cached, nil
+	}
+	plans, err := client.Plans.List()
+	if err != nil {
+		return nil, err
+	}
+	setPlansCache(plans)
+	return plans, nil
 }
 
 func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
