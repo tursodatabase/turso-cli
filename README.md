@@ -20,7 +20,7 @@ For a guided walkthrough, follow the
 #### [Homebrew](https://brew.sh) (macOS, Linux, WSL)
 
 ```bash
-brew install chiselstrike/tap/turso
+brew install tursodatabase/tap/turso
 ```
 
 Also remember to configure `homebrew`
