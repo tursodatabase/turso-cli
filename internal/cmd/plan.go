@@ -13,6 +13,7 @@ import (
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -27,6 +28,8 @@ func init() {
 	planCmd.AddCommand(overagesCommand)
 	overagesCommand.AddCommand(planEnableOverages)
 	overagesCommand.AddCommand(planDisableOverages)
+	flags.AddOverages(planSelectCmd)
+	flags.AddTimeline(planSelectCmd)
 }
 
 var planCmd = &cobra.Command{
