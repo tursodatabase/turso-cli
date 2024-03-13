@@ -337,8 +337,8 @@ func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 		return nil
 	}
 
-	upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
-	if !hasPaymentMethod && upgrade {
+	upgrade := planChangeType(getPlan(current, plans), getPlan(selected, plans))
+	if !hasPaymentMethod && requiresPaymentMethod(getPlan(current, plans)) {
 		ok, err := PaymentMethodHelper(client, selected)
 		if err != nil {
 			return fmt.Errorf("failed to check payment method: %w", err)
@@ -350,13 +350,17 @@ func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
 	}
 
-	change := "downgrading"
-	if upgrade {
+	change := "changing"
+	if upgrade > 0 {
 		change = "upgrading"
 	}
+	if upgrade < 0 {
+		change = "downgrading"
+	}
+
 	fmt.Printf("You're %s to the %s plan.\n", change, internal.Emph(selected))
 
-	if upgrade && hasPaymentMethod {
+	if requiresPaymentMethod(getPlan(selected, plans)) {
 		printPricingInfoDisclaimer()
 	}
 
@@ -371,13 +375,21 @@ func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 
 	fmt.Println()
 
-	change = "downgraded"
-	if upgrade {
+	change = "changed"
+	if upgrade > 0 {
 		change = "upgraded"
 	}
+	if upgrade < 0 {
+		change = "downgraded"
+	}
+
 	fmt.Printf("You've been %s to plan %s.\n", change, internal.Emph(selected))
 	fmt.Printf("To see your new quotas, use %s.\n", internal.Emph("turso plan show"))
 	return nil
+}
+
+func requiresPaymentMethod(plan turso.Plan) bool {
+	return plan.Price != "0"
 }
 
 func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
@@ -542,10 +554,18 @@ func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
 	return result, err
 }
 
-func isUpgrade(current, selected turso.Plan) bool {
+func planChangeType(current, selected turso.Plan) int {
 	cp, _ := strconv.Atoi(current.Price)
 	sp, _ := strconv.Atoi(selected.Price)
-	return sp > cp
+	switch {
+	case sp > cp:
+		return 1
+	case sp < cp:
+		return -1
+	default:
+		return 0
+	}
+
 }
 
 func getPlan(name string, plans []turso.Plan) turso.Plan {
