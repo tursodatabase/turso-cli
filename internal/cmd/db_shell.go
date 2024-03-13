@@ -59,6 +59,13 @@ func getURL(db *turso.Database, client *turso.Client) (string, error) {
 	}
 }
 
+func getDbURLForDump(u string) string {
+	if strings.HasPrefix(u, "wss://") || strings.HasPrefix(u, "ws://") {
+		return strings.Replace(u, "ws", "http", 1)
+	}
+	return u
+}
+
 var shellCmd = &cobra.Command{
 	Use:               "shell <database-name | replica-url> [sql]",
 	Short:             "Start a SQL shell.",
@@ -178,7 +185,7 @@ var shellCmd = &cobra.Command{
 				return fmt.Errorf("no SQL command to execute")
 			}
 			if args[1] == ".dump" {
-				return dump(dbUrl, authToken)
+				return dump(getDbURLForDump(dbUrl), authToken)
 			}
 			return runShellLine(dbID, shellConfig, args[1])
 		}

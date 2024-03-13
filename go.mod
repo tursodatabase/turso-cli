@@ -14,7 +14,7 @@ require (
 	github.com/gdamore/tcell v1.4.0
 	github.com/google/uuid v1.3.0
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
-	github.com/libsql/libsql-shell-go v0.9.3
+	github.com/libsql/libsql-shell-go v0.9.4-0.20240313071646-14620be78fd0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
@@ -26,6 +26,8 @@ require (
 )
 
 require github.com/hashicorp/go-version v1.6.0
+
+require github.com/tursodatabase/libsql-client-go v0.0.0-20231216154754-8383a53d618f // indirect
 
 require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9 // indirect
@@ -43,7 +45,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
-	github.com/libsql/libsql-client-go v0.0.0-20231116123136-ff4e46c3d3a1 // indirect
 	github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
