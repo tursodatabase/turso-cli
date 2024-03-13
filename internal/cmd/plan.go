@@ -166,6 +166,13 @@ var planSelectCmd = &cobra.Command{
 	Args:              cobra.MaximumNArgs(1),
 	ValidArgsFunction: planNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		timeline, err := flags.Timeline()
+		if err != nil {
+			return err
+		}
+
+		overages := flags.Overages(cmd)
+
 		client, err := authedTursoClient()
 		if err != nil {
 			return err
@@ -181,7 +188,7 @@ var planSelectCmd = &cobra.Command{
 			return err
 		}
 
-		return changePlan(client, plans, current, hasPaymentMethod, selected)
+		return changePlan(client, plans, current, hasPaymentMethod, selected, timeline, overages)
 	},
 }
 
@@ -263,7 +270,7 @@ var planUpgradeCmd = &cobra.Command{
 			return nil
 		}
 
-		return changePlan(client, plans, current, hasPaymentMethod, "scaler")
+		return changePlan(client, plans, current, hasPaymentMethod, "scaler", "", nil)
 	},
 }
 
@@ -334,7 +341,7 @@ var planDisableOverages = &cobra.Command{
 	},
 }
 
-func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected string) error {
+func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected, timeline string, overages *bool) error {
 	if selected == current {
 		fmt.Println("You're all set! No changes are needed.")
 		return nil
@@ -372,7 +379,7 @@ func changePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 		return nil
 	}
 
-	if err := client.Subscriptions.Set(selected); err != nil {
+	if err := client.Subscriptions.Update(selected, timeline, overages); err != nil {
 		return err
 	}
 

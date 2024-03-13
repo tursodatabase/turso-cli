@@ -178,7 +178,7 @@ var orgCreateCmd = &cobra.Command{
 			client.Organizations.Delete(org.Slug)
 			return err
 		}
-		if err = client.Subscriptions.Set("scaler"); err != nil {
+		if err = client.Subscriptions.Update("scaler", "", nil); err != nil {
 			client.Organizations.Delete(org.Slug)
 			return err
 		}
