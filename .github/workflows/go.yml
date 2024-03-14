@@ -24,6 +24,9 @@ jobs:
   build:
     needs: authorize
     runs-on: self-hosted
+    strategy:
+      matrix:
+        mode: ["", "--canary"]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -76,4 +79,4 @@ jobs:
           token: ${{ secrets.ACCESS_TOKEN_TO_TESTS }}
 
       - name: Integration Test
-        run: cd tests && export TURSO_BINARY=../turso && go run cmd/tursotest/main.go -test.v -test.count=1 run integrationtests
+        run: cd tests && export TURSO_BINARY=../turso && go run cmd/tursotest/main.go -test.v -test.count=1 run integrationtests ${{ matrix.mode }}
