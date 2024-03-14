@@ -15,6 +15,7 @@ type Plan struct {
 		RowsRead    uint64 `json:"rowsRead"`
 		RowsWritten uint64 `json:"rowsWritten"`
 		Databases   uint64 `json:"databases"`
+		BytesSynced uint64 `json:"bytesSynced"`
 		Locations   uint64 `json:"locations"`
 		Storage     uint64 `json:"storage"`
 		Groups      uint64 `json:"groups"`

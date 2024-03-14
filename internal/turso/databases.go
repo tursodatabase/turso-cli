@@ -343,6 +343,7 @@ type Usage struct {
 	RowsRead         uint64 `json:"rows_read,omitempty"`
 	RowsWritten      uint64 `json:"rows_written,omitempty"`
 	StorageBytesUsed uint64 `json:"storage_bytes,omitempty"`
+	BytesSynced      uint64 `json:"bytes_synced,omitempty"`
 }
 
 type InstanceUsage struct {
