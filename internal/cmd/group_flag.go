@@ -10,6 +10,7 @@ import (
 
 	"github.com/Clever/csvlint"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
@@ -89,10 +90,11 @@ func parseDBSeedFlags(client *turso.Client) (*turso.DBSeed, error) {
 	}
 
 	if fromCSVFlag != "" {
-		if csvSeparatorFlag != "" {
-			return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparatorFlag)
+		csvSeparator, err := flags.CSVSeparator()
+		if err != nil {
+			return nil, err
 		}
-		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, ",")
+		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparator)
 	}
 	if fromDumpURLFlag != "" {
 		return handleDumpURL(fromDumpURLFlag)
@@ -232,7 +234,7 @@ func dumpSQLiteDatabase(database string, dump *os.File) error {
 	return nil
 }
 
-func handleCSVFile(client *turso.Client, file, csvTableName string, csvSeparator string) (*turso.DBSeed, error) {
+func handleCSVFile(client *turso.Client, file, csvTableName string, separator rune) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
@@ -246,10 +248,7 @@ func handleCSVFile(client *turso.Client, file, csvTableName string, csvSeparator
 	}
 	defer csvFile.Close()
 
-	if len(csvSeparator) == 0 {
-		csvSeparator = ","
-	}
-	errs, invalid, _ := csvlint.Validate(csvFile, rune(csvSeparator[0]), false)
+	errs, invalid, _ := csvlint.Validate(csvFile, separator, false)
 	if invalid {
 		return nil, fmt.Errorf("CSV file is not valid: %+v", errs)
 	}
@@ -260,7 +259,7 @@ func handleCSVFile(client *turso.Client, file, csvTableName string, csvSeparator
 	}
 	defer os.Remove(tempDB.Name())
 
-	err = importCSVIntoSQLite(tempDB, csvFile.Name(), csvTableName, csvSeparator)
+	err = importCSVIntoSQLite(tempDB, csvFile.Name(), csvTableName, separator)
 	if err != nil {
 		return nil, err
 	}
@@ -272,9 +271,9 @@ func handleCSVFile(client *turso.Client, file, csvTableName string, csvSeparator
 	return seed, nil
 }
 
-func importCSVIntoSQLite(tempDB *os.File, csvFile, csvTableName, csvSeparator string) error {
+func importCSVIntoSQLite(tempDB *os.File, csvFile, csvTableName string, separator rune) error {
 	stdErr := &bytes.Buffer{}
-	cmd := exec.Command("sqlite3", "-csv", tempDB.Name(), fmt.Sprintf(".separator %s", csvSeparator), fmt.Sprintf(".import %s %s", csvFile, csvTableName))
+	cmd := exec.Command("sqlite3", "-csv", tempDB.Name(), fmt.Sprintf(".separator %c", separator), fmt.Sprintf(".import %s %s", csvFile, csvTableName))
 	cmd.Stderr = stdErr
 
 	if err := cmd.Run(); err != nil {
