@@ -25,8 +25,33 @@ func init() {
 	addCanaryFlag(groupsCreateCmd)
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
+	groupCmd.AddCommand(groupShowCmd)
 }
 
+var groupShowCmd = &cobra.Command{
+	Use:               "show <group-name>",
+	Short:             "Show information about a group.",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: groupArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		name := args[0]
+		group, err := getGroup(client, name)
+		if err != nil {
+			return err
+		}
+
+		version := group.Version
+		fmt.Printf("Locations:  %s\n", formatLocations(group.Locations, group.Primary))
+		fmt.Printf("Version:    %s\n", internal.Emph(version))
+		return nil
+	},
+}
 var groupsListCmd = &cobra.Command{
 	Use:               "list",
 	Short:             "List databases groups",
