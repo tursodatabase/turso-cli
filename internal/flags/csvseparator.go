@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var csvSeparator rune
 var csvSeparatorValue string
 
 func AddCSVSeparator(cmd *cobra.Command) {
@@ -18,8 +17,7 @@ func CSVSeparator() (rune, error) {
 	if err := validateCSVSeparator(csvSeparatorValue); err != nil {
 		return 0, err
 	}
-    csvSeparator = rune(csvSeparatorValue[0])
-	return csvSeparator, nil
+	return rune(csvSeparatorValue[0]), nil
 }
 
 func validateCSVSeparator(csvSeparatorValue string) error {
