@@ -72,7 +72,7 @@ jobs:
         with:
           repository: tursodatabase/tursotest
           ref: "main"
-          path: "tests"
+          path: "go1.22"
           token: ${{ secrets.ACCESS_TOKEN_TO_TESTS }}
 
       - name: Integration Test
