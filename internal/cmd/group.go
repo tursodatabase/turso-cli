@@ -69,7 +69,7 @@ var groupsListCmd = &cobra.Command{
 			return err
 		}
 
-		printTable([]string{"Name", "Locations", "Sleeping"}, groupsTable(groups))
+		printTable([]string{"Name", "Locations", "Version", "Sleeping"}, groupsTable(groups))
 		return nil
 	},
 }
@@ -214,7 +214,7 @@ func destroyGroup(client *turso.Client, name string) error {
 func groupsTable(groups []turso.Group) [][]string {
 	var data [][]string
 	for _, group := range groups {
-		row := []string{group.Name, formatLocations(group.Locations, group.Primary), formatBool(group.Archived)}
+		row := []string{group.Name, formatLocations(group.Locations, group.Primary), group.Version, formatBool(group.Archived)}
 		data = append(data, row)
 	}
 	return data
