@@ -52,7 +52,7 @@ var dbInspectCmd = &cobra.Command{
 		fmt.Printf("Number of rows read: %d\n", dbUsage.Usage.RowsRead)
 		fmt.Printf("Number of rows written: %d\n", dbUsage.Usage.RowsWritten)
 		if dbUsage.Usage.BytesSynced != 0 {
-			fmt.Printf("Number of bytes synced: %s\n", humanize.Bytes(dbUsage.Usage.BytesSynced))
+			fmt.Printf("Embedded syncs: %s\n", humanize.Bytes(dbUsage.Usage.BytesSynced))
 		}
 
 		if len(instances) == 0 {
