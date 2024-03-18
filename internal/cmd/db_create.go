@@ -7,6 +7,7 @@ import (
 	"github.com/athoscouto/codename"
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
@@ -22,6 +23,7 @@ func init() {
 	addDbFromFileFlag(createCmd)
 	addDbFromCSVFlag(createCmd)
 	addCSVTableNameFlag(createCmd)
+	flags.AddCSVSeparator(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
 	addCanaryFlag(createCmd)
