@@ -46,6 +46,8 @@ github.com/athoscouto/codename v0.0.3 h1:1SGIW4b97/7fGpyzQ+ughmxBr4sPJQ+7IMV+qs+
 github.com/athoscouto/codename v0.0.3/go.mod h1:WYA5Vt4+xE7bhaVtjph09iwyjNRqYEGCRkAxdYVsKXc=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
+github.com/avinassh/libsql-shell-go v0.9.4-0.20240319084508-11136861263c h1:fq4K8N3P54dvNj9P0n6gFy3T13Btd1s6bTntCkntzLw=
+github.com/avinassh/libsql-shell-go v0.9.4-0.20240319084508-11136861263c/go.mod h1:VBZzPK21wJRzLo5Yf+TO43eoDi9xYjr/zI5SCjfkt98=
 github.com/aymanbagabas/go-osc52 v1.0.3 h1:DTwqENW7X9arYimJrPeGZcV0ln14sGMt3pHZspWD+Mg=
 github.com/aymanbagabas/go-osc52 v1.0.3/go.mod h1:zT8H+Rk4VSabYN90pWyugflM3ZhpTZNC7cASDfUCdT4=
 github.com/bytedance/sonic v1.5.0/go.mod h1:ED5hyg4y6t3/9Ku1R6dU/4KyJ48DZ4jPhfY1O2AihPM=
@@ -240,8 +242,6 @@ github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
 github.com/leodido/go-urn v1.2.4 h1:XlAE/cm/ms7TE/VMVoduSpNBoyc2dOxHs5MZSwAN63Q=
 github.com/leodido/go-urn v1.2.4/go.mod h1:7ZrI8mTSeBSHl/UaRyKQW1qZeMgak41ANeCNaVckg+4=
-github.com/libsql/libsql-shell-go v0.9.4-0.20240313071646-14620be78fd0 h1:bhpUPLSa3jKSuoHkd8HR6+oCHdtR398yV7DuQtCjnHg=
-github.com/libsql/libsql-shell-go v0.9.4-0.20240313071646-14620be78fd0/go.mod h1:VBZzPK21wJRzLo5Yf+TO43eoDi9xYjr/zI5SCjfkt98=
 github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475 h1:6PfEMwfInASh9hkN83aR0j4W/eKaAZt/AURtXAXlas0=
 github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475/go.mod h1:20nXSmcf0nAscrzqsXeC2/tA3KkV2eCiJqYuyAgl+ss=
 github.com/lucasb-eyer/go-colorful v1.0.3/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=

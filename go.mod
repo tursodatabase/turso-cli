@@ -75,3 +75,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
+
+replace github.com/libsql/libsql-shell-go => github.com/avinassh/libsql-shell-go v0.9.4-0.20240319084508-11136861263c
