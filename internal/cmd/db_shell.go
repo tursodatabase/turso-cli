@@ -41,10 +41,10 @@ func getURL(db *turso.Database, client *turso.Client) (string, error) {
 		}
 		for _, instance := range instances {
 			if instance.Region == locationFlag {
-				return getInstanceWSUrl(db, &instance), nil
+				return getInstanceHttpUrl(db, &instance), nil
 			}
 			if instance.Name == instanceFlag {
-				return getInstanceWSUrl(db, &instance), nil
+				return getInstanceHttpUrl(db, &instance), nil
 			}
 		}
 		if locationFlag != "" {
@@ -55,7 +55,7 @@ func getURL(db *turso.Database, client *turso.Client) (string, error) {
 		}
 		return "", fmt.Errorf("impossible")
 	} else {
-		return getDatabaseWSUrl(db), nil
+		return getDatabaseHttpUrl(db), nil
 	}
 }
 

@@ -88,6 +88,10 @@ func getDatabaseHttpUrl(db *turso.Database) string {
 	return getUrl(db, nil, "https")
 }
 
+func getInstanceHttpUrl(db *turso.Database, inst *turso.Instance) string {
+	return getUrl(db, inst, "https")
+}
+
 func getDatabaseWSUrl(db *turso.Database) string {
 	return getUrl(db, nil, "wss")
 }
