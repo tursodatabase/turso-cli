@@ -132,12 +132,25 @@ var groupCreateTokenCmd = &cobra.Command{
 }
 
 func validateDBNames(client *turso.Client, dbNames []string) error {
-	databases := map[string]struct{}{}
-	for _, dbName := range getDatabaseNames(client) {
-		databases[dbName] = struct{}{}
+	databasesMap, err := getDatabasesMap(client, false)
+	if err != nil {
+		return err
 	}
+	var missingDbs []string
 	for _, name := range dbNames {
-		if _, ok := databases[name]; !ok {
+		if _, ok := databasesMap[name]; !ok {
+			missingDbs = append(missingDbs, name)
+		}
+	}
+	if len(missingDbs) == 0 {
+		return nil
+	}
+	databasesMap, err = getDatabasesMap(client, true)
+	if err != nil {
+		return err
+	}
+	for _, name := range missingDbs {
+		if _, ok := databasesMap[name]; !ok {
 			return fmt.Errorf("database %s does not exist", name)
 		}
 	}
