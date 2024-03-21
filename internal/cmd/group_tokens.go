@@ -113,7 +113,7 @@ var groupCreateTokenCmd = &cobra.Command{
 		}
 		var claim *turso.PermissionsClaim
 		if len(flags.AttachClaims()) > 0 {
-			err := validateDBNames(flags.AttachClaims())
+			err := validateDBNames(client, flags.AttachClaims())
 			if err != nil {
 				return err
 			}
@@ -131,10 +131,10 @@ var groupCreateTokenCmd = &cobra.Command{
 	},
 }
 
-func validateDBNames(dbNames []string) error {
-	databases := map[string]string{}
-	for _, db := range getDatabasesCache() {
-		databases[db.Name] = db.ID
+func validateDBNames(client *turso.Client, dbNames []string) error {
+	databases := map[string]struct{}{}
+	for _, dbName := range getDatabaseNames(client) {
+		databases[dbName] = struct{}{}
 	}
 	for _, name := range dbNames {
 		if _, ok := databases[name]; !ok {
