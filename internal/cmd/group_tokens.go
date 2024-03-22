@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -136,12 +137,7 @@ func validateDBNames(client *turso.Client, dbNames []string) error {
 	if err != nil {
 		return err
 	}
-	var missingDbs []string
-	for _, name := range dbNames {
-		if _, ok := databasesMap[name]; !ok {
-			missingDbs = append(missingDbs, name)
-		}
-	}
+	missingDbs := findMissingDBs(databasesMap, dbNames)
 	if len(missingDbs) == 0 {
 		return nil
 	}
@@ -149,10 +145,19 @@ func validateDBNames(client *turso.Client, dbNames []string) error {
 	if err != nil {
 		return err
 	}
-	for _, name := range missingDbs {
+	missingDbs = findMissingDBs(databasesMap, missingDbs)
+	if len(missingDbs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("databases does not exist: %s", strings.Join(missingDbs, ", "))
+}
+
+func findMissingDBs(databasesMap map[string]turso.Database, dbNames []string) []string {
+	var missingDbs []string
+	for _, name := range dbNames {
 		if _, ok := databasesMap[name]; !ok {
-			return fmt.Errorf("database %s does not exist", name)
+			missingDbs = append(missingDbs, name)
 		}
 	}
-	return nil
+	return missingDbs
 }
