@@ -67,6 +67,18 @@ func getDatabases(client *turso.Client, fresh ...bool) ([]turso.Database, error)
 	return databases, nil
 }
 
+func getDatabasesMap(client *turso.Client, fresh bool) (map[string]turso.Database, error) {
+	databases, err := getDatabases(client, fresh)
+	if err != nil {
+		return nil, err
+	}
+	databasesMap := make(map[string]turso.Database)
+	for _, db := range databases {
+		databasesMap[db.Name] = db
+	}
+	return databasesMap, nil
+}
+
 func getDatabaseNames(client *turso.Client) []string {
 	databases, err := getDatabases(client)
 	if err != nil {

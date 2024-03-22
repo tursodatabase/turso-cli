@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -113,7 +114,7 @@ var groupCreateTokenCmd = &cobra.Command{
 		}
 		var claim *turso.PermissionsClaim
 		if len(flags.AttachClaims()) > 0 {
-			err := validateDBNames(flags.AttachClaims())
+			err := validateDBNames(client, flags.AttachClaims())
 			if err != nil {
 				return err
 			}
@@ -131,15 +132,32 @@ var groupCreateTokenCmd = &cobra.Command{
 	},
 }
 
-func validateDBNames(dbNames []string) error {
-	databases := map[string]string{}
-	for _, db := range getDatabasesCache() {
-		databases[db.Name] = db.ID
+func validateDBNames(client *turso.Client, dbNames []string) error {
+	databasesMap, err := getDatabasesMap(client, false)
+	if err != nil {
+		return err
 	}
+	missingDbs := findMissingDBs(databasesMap, dbNames)
+	if len(missingDbs) == 0 {
+		return nil
+	}
+	databasesMap, err = getDatabasesMap(client, true)
+	if err != nil {
+		return err
+	}
+	missingDbs = findMissingDBs(databasesMap, missingDbs)
+	if len(missingDbs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("databases does not exist: %s", strings.Join(missingDbs, ", "))
+}
+
+func findMissingDBs(databasesMap map[string]turso.Database, dbNames []string) []string {
+	var missingDbs []string
 	for _, name := range dbNames {
-		if _, ok := databases[name]; !ok {
-			return fmt.Errorf("database %s does not exist", name)
+		if _, ok := databasesMap[name]; !ok {
+			missingDbs = append(missingDbs, name)
 		}
 	}
-	return nil
+	return missingDbs
 }

@@ -105,7 +105,7 @@ var shellCmd = &cobra.Command{
 
 			var claim *turso.PermissionsClaim
 			if len(flags.AttachClaims()) > 0 {
-				err := validateDBNames(flags.AttachClaims())
+				err := validateDBNames(client, flags.AttachClaims())
 				if err != nil {
 					return err
 				}
