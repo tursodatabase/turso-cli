@@ -39,6 +39,12 @@ brew upgrade turso
 curl -sSfL https://get.tur.so/install.sh | bash
 ```
 
+### Go
+
+```bash
+go install github.com/tursodatabase/turso-cli/cmd/turso@latest
+```
+
 ### Building from source
 
 ```bash
