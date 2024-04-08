@@ -33,30 +33,33 @@ func init() {
 	flags.AddAttachClaims(shellCmd)
 }
 
-func getURL(db *turso.Database, client *turso.Client) (string, error) {
-	if instanceFlag != "" || locationFlag != "" {
-		instances, err := client.Instances.List(db.Name)
-		if err != nil {
-			return "", err
-		}
-		for _, instance := range instances {
-			if instance.Region == locationFlag {
-				return getInstanceWSUrl(db, &instance), nil
-			}
-			if instance.Name == instanceFlag {
-				return getInstanceWSUrl(db, &instance), nil
-			}
-		}
-		if locationFlag != "" {
-			return "", fmt.Errorf("location %s for db %s not found", locationFlag, db.Name)
-		}
-		if instanceFlag != "" {
-			return "", fmt.Errorf("instance %s for db %s not found", instanceFlag, db.Name)
-		}
-		return "", fmt.Errorf("impossible")
-	} else {
-		return getDatabaseWSUrl(db), nil
+func getURL(db *turso.Database, client *turso.Client, http bool) (string, error) {
+	scheme := "wss"
+	if http {
+		scheme = "https"
 	}
+
+	if instanceFlag == "" && locationFlag == "" {
+		return getUrl(db, nil, scheme), nil
+	}
+
+	instances, err := client.Instances.List(db.Name)
+	if err != nil {
+		return "", err
+	}
+	for _, instance := range instances {
+		if instance.Region == locationFlag || instance.Name == instanceFlag {
+			return getUrl(db, &instance, scheme), nil
+		}
+	}
+
+	if locationFlag != "" {
+		return "", fmt.Errorf("location %s for db %s not found", locationFlag, db.Name)
+	}
+	if instanceFlag != "" {
+		return "", fmt.Errorf("instance %s for db %s not found", instanceFlag, db.Name)
+	}
+	return "", fmt.Errorf("impossible")
 }
 
 func getDbURLForDump(u string) string {
@@ -90,6 +93,7 @@ var shellCmd = &cobra.Command{
 		urlString := nameOrUrl
 		var db *turso.Database = nil
 		var authToken string
+		nonInteractive := pipeOrRedirect()
 		// Makes sure localhost URL or self-hosted will work even if not authenticated
 		// to turso. The token code will check for auth
 		if !isURL(nameOrUrl) {
@@ -118,7 +122,7 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			dbUrl, err = getURL(db, client)
+			dbUrl, err = getURL(db, client, nonInteractive)
 			if err != nil {
 				return err
 			}
@@ -190,7 +194,7 @@ var shellCmd = &cobra.Command{
 			return runShellLine(dbID, shellConfig, args[1])
 		}
 
-		if pipeOrRedirect() {
+		if nonInteractive {
 			// TODO: read chunks when interactive transactions are available
 			b, err := io.ReadAll(os.Stdin)
 			if err != nil {
