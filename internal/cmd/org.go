@@ -320,11 +320,6 @@ var membersAddCmd = &cobra.Command{
 			return err
 		}
 
-		org := settings.Organization()
-		if org == "" {
-			return fmt.Errorf("cannot add user to personal organization")
-		}
-
 		username := args[0]
 		if username == "" {
 			return fmt.Errorf("username cannot be empty")
@@ -345,6 +340,7 @@ var membersAddCmd = &cobra.Command{
 			return err
 		}
 
+		org := settings.Organization()
 		fmt.Printf("User %s added to organization %s.\n", internal.Emph(username), internal.Emph(org))
 		return nil
 	},
@@ -361,11 +357,6 @@ var membersInviteCmd = &cobra.Command{
 		settings, err := settings.ReadSettings()
 		if err != nil {
 			return err
-		}
-
-		org := settings.Organization()
-		if org == "" {
-			return fmt.Errorf("cannot invite member to personal organization")
 		}
 
 		email := args[0]
@@ -388,6 +379,7 @@ var membersInviteCmd = &cobra.Command{
 			return err
 		}
 
+		org := settings.Organization()
 		fmt.Printf("Email %s invited to organization %s.\n", internal.Emph(email), internal.Emph(org))
 		return nil
 	},
@@ -406,11 +398,6 @@ var membersRemoveCmd = &cobra.Command{
 			return err
 		}
 
-		org := settings.Organization()
-		if org == "" {
-			return fmt.Errorf("cannot remove user from personal organization")
-		}
-
 		username := args[0]
 		if username == "" {
 			return fmt.Errorf("username cannot be empty")
@@ -425,6 +412,7 @@ var membersRemoveCmd = &cobra.Command{
 			return err
 		}
 
+		org := settings.Organization()
 		fmt.Printf("User %s removed from organization %s.\n", internal.Emph(username), internal.Emph(org))
 		return nil
 	},
