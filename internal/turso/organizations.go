@@ -226,9 +226,6 @@ func (c *OrganizationsClient) AddMember(username, role string) error {
 }
 
 func (c *OrganizationsClient) InviteMember(email, role string) error {
-	if c.client.Org == "" {
-		return fmt.Errorf("the currently active organization %s does not allow members. You can use %s to change to an active organization", internal.Emph("personal"), internal.Emph("turso org switch"))
-	}
 	prefix := "/v1/organizations/" + c.client.Org
 
 	body, err := marshal(Invite{Email: email, Role: role})
@@ -277,9 +274,6 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 }
 
 func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
-	if c.client.Org == "" {
-		return "", fmt.Errorf("the currently active organization %s does not allow members. You can use %s to change to an active organization", internal.Emph("personal"), internal.Emph("turso org switch"))
-	}
 	return "/v1/organizations/" + c.client.Org + "/members" + suffix, nil
 }
 
