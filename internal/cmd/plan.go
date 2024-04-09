@@ -13,6 +13,7 @@ import (
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -27,6 +28,8 @@ func init() {
 	planCmd.AddCommand(overagesCommand)
 	overagesCommand.AddCommand(planEnableOverages)
 	overagesCommand.AddCommand(planDisableOverages)
+	flags.AddOverages(planSelectCmd)
+	flags.AddTimeline(planSelectCmd)
 }
 
 var planCmd = &cobra.Command{
@@ -71,10 +74,12 @@ var planShowCmd = &cobra.Command{
 			return fmt.Errorf("could not retrieve local config: %w", err)
 		}
 
-		plan, orgUsage, plans, err := orgPlanData(client)
+		subscription, orgUsage, plans, err := orgPlanData(client)
 		if err != nil {
 			return err
 		}
+
+		plan := subscription.Plan
 
 		var organizationName string
 		if organizationName = client.Org; organizationName == "" {
@@ -137,7 +142,7 @@ func planUsageTable(orgUsage turso.OrgUsage, current turso.Plan, currentOrg turs
 	return tbl
 }
 
-func orgPlanData(client *turso.Client) (sub string, usage turso.OrgUsage, plans []turso.Plan, err error) {
+func orgPlanData(client *turso.Client) (sub turso.Subscription, usage turso.OrgUsage, plans []turso.Plan, err error) {
 	g := errgroup.Group{}
 	g.Go(func() (err error) {
 		sub, err = client.Subscriptions.Get()
@@ -158,33 +163,77 @@ func orgPlanData(client *turso.Client) (sub string, usage turso.OrgUsage, plans 
 }
 
 var planSelectCmd = &cobra.Command{
-	Use:   "select",
-	Short: "Change your current organization plan",
-	Args:  cobra.ExactArgs(0),
+	Use:               "select",
+	Short:             "Change your current organization plan",
+	Args:              cobra.MaximumNArgs(1),
+	ValidArgsFunction: planNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		timeline, err := flags.Timeline()
+		if err != nil {
+			return err
+		}
+
+		overages := flags.Overages(cmd)
+
 		client, err := authedTursoClient()
 		if err != nil {
 			return err
 		}
 
-		plans, current, hasPaymentMethod, err := GetSelectPlanInfo(client)
+		plans, subscription, hasPaymentMethod, err := GetSelectPlanInfo(client)
 		if err != nil {
 			return fmt.Errorf("failed to get plans: %w", err)
 		}
-		selectabledPlans, err := getSelectabledPlans(plans)
-		if err != nil {
-			return err
-		}
-		selected, err := promptPlanSelection(selectabledPlans, current)
+
+		selected, err := selectedPlan(subscription, plans, args)
 		if err != nil {
 			return err
 		}
 
-		return ChangePlan(client, plans, current, hasPaymentMethod, selected)
+		return changePlan(client, plans, subscription, hasPaymentMethod, selected, timeline, overages)
 	},
 }
 
-func getSelectabledPlans(plans []turso.Plan) ([]turso.Plan, error) {
+func selectedPlan(subscription turso.Subscription, plans []turso.Plan, args []string) (string, error) {
+	if len(args) > 0 {
+		return args[0], nil
+	}
+
+	selectabledPlans, err := selectabledPlans(plans)
+	if err != nil {
+		return "", err
+	}
+	selected, err := promptPlanSelection(selectabledPlans, subscription.Plan)
+	if err != nil {
+		return "", err
+	}
+
+	return selected, nil
+}
+
+func planNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) != 0 {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	client, err := authedTursoClient()
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	plans, err := getPlans(client)
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	names := make([]string, 0, len(plans))
+	for _, plan := range plans {
+		names = append(names, plan.Name)
+	}
+	return names, cobra.ShellCompDirectiveNoFileComp
+}
+
+func selectabledPlans(plans []turso.Plan) ([]turso.Plan, error) {
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return plans, err
@@ -215,7 +264,7 @@ var planUpgradeCmd = &cobra.Command{
 			return fmt.Errorf("failed to get plans: %w", err)
 		}
 
-		if current == "scaler" {
+		if current.Plan == "scaler" {
 			fmt.Printf("You've already upgraded to %s! 🎉\n", internal.Emph(current))
 			fmt.Println()
 			fmt.Println("If you need more resources, we're happy to help.")
@@ -223,7 +272,7 @@ var planUpgradeCmd = &cobra.Command{
 			return nil
 		}
 
-		return ChangePlan(client, plans, current, hasPaymentMethod, "scaler")
+		return changePlan(client, plans, current, hasPaymentMethod, "scaler", "", nil)
 	},
 }
 
@@ -294,14 +343,15 @@ var planDisableOverages = &cobra.Command{
 	},
 }
 
-func ChangePlan(client *turso.Client, plans []turso.Plan, current string, hasPaymentMethod bool, selected string) error {
-	if selected == current {
+func changePlan(client *turso.Client, plans []turso.Plan, subscription turso.Subscription, hasPaymentMethod bool, selected, timeline string, overages *bool) error {
+	current := subscription.Plan
+	if selected == current && (timeline == "" || subscription.Timeline == timeline) && (overages == nil || subscription.Overages == *overages) {
 		fmt.Println("You're all set! No changes are needed.")
 		return nil
 	}
 
-	upgrade := isUpgrade(getPlan(current, plans), getPlan(selected, plans))
-	if !hasPaymentMethod && upgrade {
+	upgrade := planChangeType(getPlan(current, plans), getPlan(selected, plans))
+	if !hasPaymentMethod && requiresPaymentMethod(getPlan(current, plans)) {
 		ok, err := PaymentMethodHelper(client, selected)
 		if err != nil {
 			return fmt.Errorf("failed to check payment method: %w", err)
@@ -313,13 +363,17 @@ func ChangePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
 	}
 
-	change := "downgrading"
-	if upgrade {
+	change := "changing"
+	if upgrade > 0 {
 		change = "upgrading"
 	}
+	if upgrade < 0 {
+		change = "downgrading"
+	}
+
 	fmt.Printf("You're %s to the %s plan.\n", change, internal.Emph(selected))
 
-	if upgrade && hasPaymentMethod {
+	if requiresPaymentMethod(getPlan(selected, plans)) {
 		printPricingInfoDisclaimer()
 	}
 
@@ -328,19 +382,27 @@ func ChangePlan(client *turso.Client, plans []turso.Plan, current string, hasPay
 		return nil
 	}
 
-	if err := client.Subscriptions.Set(selected); err != nil {
+	if err := client.Subscriptions.Update(selected, timeline, overages); err != nil {
 		return err
 	}
 
 	fmt.Println()
 
-	change = "downgraded"
-	if upgrade {
+	change = "changed"
+	if upgrade > 0 {
 		change = "upgraded"
 	}
+	if upgrade < 0 {
+		change = "downgraded"
+	}
+
 	fmt.Printf("You've been %s to plan %s.\n", change, internal.Emph(selected))
 	fmt.Printf("To see your new quotas, use %s.\n", internal.Emph("turso plan show"))
 	return nil
+}
+
+func requiresPaymentMethod(plan turso.Plan) bool {
+	return plan.Price != "0"
 }
 
 func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
@@ -438,10 +500,10 @@ func PaymentMethodHelperWithStripeId(client *turso.Client, stripeId, orgName str
 	return checkPaymentMethod(client, stripeId)
 }
 
-func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string, hasPaymentMethod bool, err error) {
+func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current turso.Subscription, hasPaymentMethod bool, err error) {
 	g := errgroup.Group{}
 	g.Go(func() (err error) {
-		plans, err = client.Plans.List()
+		plans, err = getPlans(client)
 		return
 	})
 	g.Go(func() (err error) {
@@ -454,6 +516,18 @@ func GetSelectPlanInfo(client *turso.Client) (plans []turso.Plan, current string
 	})
 	err = g.Wait()
 	return
+}
+
+func getPlans(client *turso.Client) ([]turso.Plan, error) {
+	if cached := getPlansCache(); cached != nil {
+		return cached, nil
+	}
+	plans, err := client.Plans.List()
+	if err != nil {
+		return nil, err
+	}
+	setPlansCache(plans)
+	return plans, nil
 }
 
 func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
@@ -493,10 +567,18 @@ func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
 	return result, err
 }
 
-func isUpgrade(current, selected turso.Plan) bool {
+func planChangeType(current, selected turso.Plan) int {
 	cp, _ := strconv.Atoi(current.Price)
 	sp, _ := strconv.Atoi(selected.Price)
-	return sp > cp
+	switch {
+	case sp > cp:
+		return 1
+	case sp < cp:
+		return -1
+	default:
+		return 0
+	}
+
 }
 
 func getPlan(name string, plans []turso.Plan) turso.Plan {
