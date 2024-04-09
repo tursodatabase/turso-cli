@@ -156,8 +156,30 @@ var shellCmd = &cobra.Command{
 				authToken = authTokenSnake
 			} else if authTokenCamel != "" {
 				authToken = authTokenCamel
-			} else {
+			} else if jwt != "" {
 				authToken = jwt
+			} else {
+				client, err := authedTursoClient()
+				if err != nil {
+					return fmt.Errorf("could not create turso client: %w", err)
+				}
+				dbs, err := getDatabases(client)
+				if err != nil {
+					return err
+				}
+				for _, d := range dbs {
+					if d.Hostname == u.Hostname() {
+						db = &d
+						break
+					}
+				}
+				if db == nil {
+					return fmt.Errorf("could not find a database with the hostname %s", u.Hostname())
+				}
+				authToken, err = tokenFromDb(db, client, nil)
+				if err != nil {
+					return err
+				}
 			}
 			dbUrl = u.String()
 		}
