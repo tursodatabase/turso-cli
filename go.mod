@@ -29,7 +29,7 @@ require github.com/hashicorp/go-version v1.6.0
 
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
-	github.com/tursodatabase/libsql-client-go v0.0.0-20240409095100-b3f915fbd79c // indirect
+	github.com/tursodatabase/libsql-client-go v0.0.0-20240411070317-a1138d155304 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 )
 
