@@ -158,7 +158,7 @@ var shellCmd = &cobra.Command{
 				authToken = authTokenCamel
 			} else if jwt != "" {
 				authToken = jwt
-			} else {
+			} else if strings.HasSuffix(u.Hostname(), ".turso.io") {
 				client, err := authedTursoClient()
 				if err != nil {
 					return fmt.Errorf("could not create turso client: %w", err)
