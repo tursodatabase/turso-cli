@@ -47,7 +47,7 @@ func printInvoiceListPdfs(invoices []turso.Invoice) {
 }
 
 func invoiceListTable(invoices []turso.Invoice) ([]string, [][]string) {
-	headers := []string{"Invoice Number", "Amount Due", "Due Date", "Paid At", "Payment Failed At"}
+	headers := []string{"ID", "Amount Due", "Due Date", "Paid At", "Payment Failed At"}
 	data := make([][]string, len(invoices))
 	for i, invoice := range invoices {
 		data[i] = []string{invoice.Number, invoice.Amount, invoice.DueDate, invoice.PaidAt, invoice.PaymentFailedAt}
@@ -56,7 +56,7 @@ func invoiceListTable(invoices []turso.Invoice) ([]string, [][]string) {
 }
 
 func invoiceListPdfs(invoices []turso.Invoice) ([]string, [][]string) {
-	headers := []string{"Invoice Number", "PDF"}
+	headers := []string{"ID", "Link"}
 	data := make([][]string, len(invoices))
 	for i, invoice := range invoices {
 		data[i] = []string{invoice.Number, invoice.InvoicePdf}
