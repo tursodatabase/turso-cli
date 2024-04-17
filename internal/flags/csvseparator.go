@@ -9,7 +9,7 @@ import (
 var csvSeparatorValue string
 
 func AddCSVSeparator(cmd *cobra.Command) {
-	usage := "CSV separator character. Must be a single character. Defaults to ','"
+	usage := "CSV separator character. Must be a single character."
 	cmd.Flags().StringVar(&csvSeparatorValue, "csv-separator", ",", usage)
 }
 
