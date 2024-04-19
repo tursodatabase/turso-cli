@@ -145,6 +145,10 @@ func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {
 	return t.do("PATCH", path, body)
 }
 
+func (t *Client) Put(path string, body io.Reader) (*http.Response, error) {
+	return t.do("PUT", path, body)
+}
+
 func (t *Client) Upload(path string, fileData *os.File) (*http.Response, error) {
 	body, bodyWriter := io.Pipe()
 	writer := multipart.NewWriter(bodyWriter)
