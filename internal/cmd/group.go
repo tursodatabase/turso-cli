@@ -86,11 +86,6 @@ var groupsCreateCmd = &cobra.Command{
 			return err
 		}
 
-		name := args[0]
-		if err := turso.CheckName(name); err != nil {
-			return fmt.Errorf("invalid group name: %w", err)
-		}
-
 		location := locationFlag
 		if location == "" {
 			location, _ = closestLocation(client)
@@ -104,6 +99,7 @@ var groupsCreateCmd = &cobra.Command{
 			version = "canary"
 		}
 
+		name := args[0]
 		return createGroup(client, name, location, version)
 	},
 }

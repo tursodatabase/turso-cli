@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
-	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {
@@ -30,11 +29,6 @@ var createApiTokensCmd = &cobra.Command{
 		}
 
 		name := strings.TrimSpace(args[0])
-
-		if err := turso.CheckName(name); err != nil {
-			return fmt.Errorf("invalid token name: %w", err)
-		}
-
 		description := fmt.Sprintf("Creating api token %s", internal.Emph(name))
 		bar := prompt.Spinner(description)
 		defer bar.Stop()
