@@ -44,10 +44,6 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		if err := turso.CheckName(name); err != nil {
-			return fmt.Errorf("invalid database name: %w", err)
-		}
-
 		client, err := authedTursoClient()
 		if err != nil {
 			return err
