@@ -112,3 +112,64 @@ func (c *BillingClient) CreateStripeCustomer(name string) (string, error) {
 	resp, err := unmarshal[struct{ StripeCustomerId string }](r)
 	return resp.StripeCustomerId, err
 }
+
+type BillingAddress struct {
+	Line1      string `json:"line1"`
+	Line2      string `json:"line2"`
+	City       string `json:"city"`
+	State      string `json:"state"`
+	PostalCode string `json:"postal_code"`
+	Country    string `json:"country"`
+}
+
+type TaxID struct {
+	Value   string `json:"value"`
+	Country string `json:"country"`
+}
+type BillingCustomer struct {
+	Name           string         `json:"name"`
+	Email          string         `json:"email"`
+	TaxID          TaxID          `json:"tax_id"`
+	BillingAddress BillingAddress `json:"billing_address"`
+}
+
+func (c *BillingClient) GetBillingCustomer() (BillingCustomer, error) {
+	prefix := "/v1"
+	if c.client.Org != "" {
+		prefix = "/v1/organizations/" + c.client.Org
+	}
+	r, err := c.client.Get(prefix+"/billing/customer", nil)
+	if err != nil {
+		return BillingCustomer{}, fmt.Errorf("failed to get billing customer: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != 200 {
+		return BillingCustomer{}, fmt.Errorf("failed to get billing customer with status %s: %v", r.Status, parseResponseError(r))
+	}
+
+	resp, err := unmarshal[BillingCustomer](r)
+	return resp, err
+}
+
+func (c *BillingClient) UpdateBillingCustomer(customer BillingCustomer) error {
+	prefix := "/v1"
+	if c.client.Org != "" {
+		prefix = "/v1/organizations/" + c.client.Org
+	}
+	body, err := marshal(customer)
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+	r, err := c.client.Put(prefix+"/billing/customer", body)
+	if err != nil {
+		return fmt.Errorf("failed to update billing customer: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != 200 {
+		return fmt.Errorf("failed to update billing customer with status %s: %v", r.Status, parseResponseError(r))
+	}
+
+	return nil
+}
