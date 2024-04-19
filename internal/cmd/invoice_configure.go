@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {
 	invoiceCmd.AddCommand(configureInvoiceInfoCmd)
-	addBillingCustomerFlags(configureInvoiceInfoCmd)
 }
 
 var configureInvoiceInfoCmd = &cobra.Command{
@@ -29,7 +29,10 @@ var configureInvoiceInfoCmd = &cobra.Command{
 			return err
 		}
 
-		customer := parseBillingCustomerFlags(oldCustomer)
+		customer, err := promptConfigureBillingCustomer(oldCustomer)
+		if err != nil {
+			return err
+		}
 
 		err = client.Billing.UpdateBillingCustomer(customer)
 		if err != nil {
@@ -48,45 +51,66 @@ var configureInvoiceInfoCmd = &cobra.Command{
 	},
 }
 
-func parseBillingCustomerFlags(customer turso.BillingCustomer) turso.BillingCustomer {
-	if billingCustomerNameFlag != "" {
-		customer.Name = billingCustomerNameFlag
+func promptConfigureBillingCustomer(customer turso.BillingCustomer) (turso.BillingCustomer, error) {
+	newName, err := prompt.TextInput("Name", customer.Name, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.Name = newName
 
-	if billingCustomerEmailFlag != "" {
-		customer.Email = billingCustomerEmailFlag
+	newEmail, err := prompt.TextInput("Email", customer.Email, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.Email = newEmail
 
-	if billingCustomerBillingAddressLine1Flag != "" {
-		customer.BillingAddress.Line1 = billingCustomerBillingAddressLine1Flag
+	newBillingAddressLine1, err := prompt.TextInput("Billing Address Line 1", customer.BillingAddress.Line1, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.BillingAddress.Line1 = newBillingAddressLine1
 
-	if billingCustomerBillingAddressLine2Flag != "" {
-		customer.BillingAddress.Line2 = billingCustomerBillingAddressLine2Flag
+	newBillingAddressLine2, err := prompt.TextInput("Billing Address Line 2", customer.BillingAddress.Line2, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.BillingAddress.Line2 = newBillingAddressLine2
 
-	if billingCustomerBillingAddressCityFlag != "" {
-		customer.BillingAddress.City = billingCustomerBillingAddressCityFlag
+	newBillingAddressCity, err := prompt.TextInput("Billing Address City", customer.BillingAddress.City, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.BillingAddress.City = newBillingAddressCity
 
-	if billingCustomerBillingAddressStateFlag != "" {
-		customer.BillingAddress.State = billingCustomerBillingAddressStateFlag
+	newBillingAddressState, err := prompt.TextInput("Billing Address State", customer.BillingAddress.State, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.BillingAddress.State = newBillingAddressState
 
-	if billingCustomerBillingAddressPostalCodeFlag != "" {
-		customer.BillingAddress.PostalCode = billingCustomerBillingAddressPostalCodeFlag
+	newBillingAddressPostalCode, err := prompt.TextInput("Billing Address Postal Code", customer.BillingAddress.PostalCode, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.BillingAddress.PostalCode = newBillingAddressPostalCode
 
-	if billingCustomerBillingAddressCountryFlag != "" {
-		customer.BillingAddress.Country = billingCustomerBillingAddressCountryFlag
+	newBillingAddressCountry, err := prompt.TextInput("Billing Address Country", customer.BillingAddress.Country, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.BillingAddress.Country = newBillingAddressCountry
 
-	if billingCustomerTaxIDCountryFlag != "" {
-		customer.TaxID.Country = billingCustomerTaxIDCountryFlag
+	newTaxIDCountry, err := prompt.TextInput("Tax ID Country", customer.TaxID.Country, "")
+	if err != nil {
+		return customer, err
 	}
+	customer.TaxID.Country = newTaxIDCountry
 
-	if billingCustomerTaxIDNumberFlag != "" {
-		customer.TaxID.Value = billingCustomerTaxIDNumberFlag
+	newTaxIDNumber, err := prompt.TextInput("Tax ID Number", customer.TaxID.Value, "")
+	if err != nil {
+		return customer, err
 	}
-	return customer
+	customer.TaxID.Value = newTaxIDNumber
+
+	return customer, nil
 }
