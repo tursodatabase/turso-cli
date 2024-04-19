@@ -28,6 +28,11 @@ var listInvoicesCmd = &cobra.Command{
 			return err
 		}
 
+		if len(invoices) == 0 {
+			fmt.Println("No invoices found.")
+			return nil
+		}
+
 		printInvoiceListTable(invoices)
 		fmt.Println()
 		fmt.Println()
