@@ -64,7 +64,7 @@ func updateGroup(client *turso.Client, name, version, extensions string) error {
 	defer s.Stop()
 
 	if err := client.Groups.Update(name, version, extensions); err != nil {
-		return fmt.Errorf("error updating group")
+		return err
 	}
 
 	s.Stop()

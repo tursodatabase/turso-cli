@@ -228,8 +228,7 @@ func (d *GroupsClient) Token(group string, expiration string, readOnly bool, per
 	}
 
 	if r.StatusCode != http.StatusOK {
-		err, _ := unmarshal[string](r)
-		return "", fmt.Errorf("failed to get database token: %d %s", r.StatusCode, err)
+		return "", fmt.Errorf("failed to get database token: %w", parseResponseError(r))
 	}
 
 	type JwtResponse struct{ Jwt string }
@@ -254,8 +253,7 @@ func (d *GroupsClient) Rotate(group string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		err, _ := unmarshal[string](r)
-		return fmt.Errorf("failed to rotate database keys: %d %s", r.StatusCode, err)
+		return fmt.Errorf("failed to rotate database keys: %w", parseResponseError(r))
 	}
 
 	return nil
@@ -281,8 +279,7 @@ func (d *GroupsClient) Update(group string, version, extensions string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		err, _ := unmarshal[string](r)
-		return fmt.Errorf("failed to rotate database keys: %d %s", r.StatusCode, err)
+		return fmt.Errorf("failed to update group: %w", parseResponseError(r))
 	}
 
 	return nil
