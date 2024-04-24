@@ -206,8 +206,7 @@ func (d *DatabasesClient) Token(database string, expiration string, readOnly boo
 	}
 
 	if r.StatusCode != http.StatusOK {
-		err, _ := unmarshal[string](r)
-		return "", fmt.Errorf("failed to get database token: %d %s", r.StatusCode, err)
+		return "", fmt.Errorf("failed to get database token: %w", parseResponseError(r))
 	}
 
 	type JwtResponse struct{ Jwt string }
@@ -232,8 +231,7 @@ func (d *DatabasesClient) Rotate(database string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		err, _ := unmarshal[string](r)
-		return fmt.Errorf("failed to rotate database keys: %d %s", r.StatusCode, err)
+		return fmt.Errorf("failed to rotate database keys: %w", parseResponseError(r))
 	}
 
 	return nil
@@ -256,8 +254,7 @@ func (d *DatabasesClient) Update(database string, group bool) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		err, _ := unmarshal[string](r)
-		return fmt.Errorf("failed to update database: %d %s", r.StatusCode, err)
+		return fmt.Errorf("failed to update database: %w", parseResponseError(r))
 	}
 
 	return nil
@@ -285,8 +282,7 @@ func (d *DatabasesClient) Stats(database string) (Stats, error) {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		err = parseResponseError(r)
-		return Stats{}, fmt.Errorf("failed to get stats for database: %d %s", r.StatusCode, err)
+		return Stats{}, fmt.Errorf("failed to get stats for database: %w", parseResponseError(r))
 	}
 
 	return unmarshal[Stats](r)
@@ -310,8 +306,7 @@ func (d *DatabasesClient) Transfer(database, org string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		err := parseResponseError(r)
-		return fmt.Errorf("failed to transfer %s database to org %s: %w", database, org, err)
+		return fmt.Errorf("failed to transfer %s database to org %s: %w", database, org, parseResponseError(r))
 	}
 
 	return nil
@@ -331,9 +326,7 @@ func (d *DatabasesClient) Wakeup(database string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-
-		err, _ := unmarshal[string](r)
-		return fmt.Errorf("failed to wakeup database: %d %s", r.StatusCode, err)
+		return fmt.Errorf("failed to wakeup database: %w", parseResponseError(r))
 	}
 
 	return nil
@@ -371,8 +364,7 @@ func (d *DatabasesClient) Usage(database string) (DbUsage, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		err, _ := unmarshal[string](r)
-		return DbUsage{}, fmt.Errorf("failed to get database usage: %d %s", r.StatusCode, err)
+		return DbUsage{}, fmt.Errorf("failed to get database usage: %w", parseResponseError(r))
 	}
 
 	body, err := unmarshal[DbUsageResponse](r)
