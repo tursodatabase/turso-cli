@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -22,6 +23,9 @@ func init() {
 	membersCmd.AddCommand(membersAddCmd)
 	membersCmd.AddCommand(membersRemoveCmd)
 	membersCmd.AddCommand(membersInviteCmd)
+	membersCmd.AddCommand(inviteRemoveCmd)
+	membersCmd.AddCommand(inviteListCmd)
+	membersCmd.AddCommand()
 	orgCmd.AddCommand(orgBillingCmd)
 	membersAddCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Add the user as an admin")
 	membersInviteCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Invite the user as an admin")
@@ -135,7 +139,6 @@ var orgCreateCmd = &cobra.Command{
 		}
 
 		_, err = client.Organizations.Create(name, "", true)
-
 		if err != nil {
 			return err
 		}
@@ -383,6 +386,72 @@ var membersInviteCmd = &cobra.Command{
 		fmt.Printf("Email %s invited to organization %s.\n", internal.Emph(email), internal.Emph(org))
 		return nil
 	},
+}
+
+var inviteRemoveCmd = &cobra.Command{
+	Use:               "invite-remove <email>",
+	Short:             "Remove a pending invite to an email to join the current organization",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+
+		email := args[0]
+		if email == "" {
+			return fmt.Errorf("email cannot be empty")
+		}
+
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		if err := client.Organizations.DeleteInvite(email); err != nil {
+			return err
+		}
+
+		org := settings.Organization()
+		fmt.Printf("Pending invite to email %s removed from organization %s.\n", internal.Emph(email), internal.Emph(org))
+		return nil
+	},
+}
+
+var inviteListCmd = &cobra.Command{
+	Use:               "invite-list",
+	Short:             "List invites in the current organization",
+	Args:              cobra.ExactArgs(0),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		invites, err := client.Organizations.ListInvites()
+		if err != nil {
+			return err
+		}
+
+		printInviteTable(invites)
+
+		return nil
+	},
+}
+
+func printInviteTable(invites []turso.Invite) {
+	data := make([][]string, 0, len(invites))
+	for _, invite := range invites {
+		data = append(data, []string{invite.Email, invite.Role, strconv.FormatBool(invite.Accepted)})
+	}
+
+	printTable([]string{"email", "role", "accepted"}, data)
 }
 
 var membersRemoveCmd = &cobra.Command{

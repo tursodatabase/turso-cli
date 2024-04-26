@@ -165,8 +165,9 @@ type Member struct {
 }
 
 type Invite struct {
-	Email string `json:"email,omitempty"`
-	Role  string `json:"role,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Role     string `json:"role,omitempty"`
+	Accepted bool   `json:"accepted,omitempty"`
 }
 
 func (c *OrganizationsClient) ListMembers() ([]Member, error) {
@@ -248,6 +249,57 @@ func (c *OrganizationsClient) InviteMember(email, role string) error {
 	}
 
 	return nil
+}
+
+func (c *OrganizationsClient) DeleteInvite(email string) error {
+	prefix := "/v1/organizations/" + c.client.Org
+
+	r, err := c.client.Delete(prefix+"/invites/"+email, nil)
+	if err != nil {
+		return fmt.Errorf("failed to remove pending invite: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("only organization admins or owners can invite members")
+	}
+
+	if r.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("invite for %s not found", email)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to delete pending invite: %w", parseResponseError(r))
+	}
+
+	return nil
+}
+
+func (c *OrganizationsClient) ListInvites() ([]Invite, error) {
+	prefix := "/v1/organizations/" + c.client.Org
+
+	r, err := c.client.Get(prefix+"/invites", nil)
+	if err != nil {
+		return []Invite{}, fmt.Errorf("failed to list invites: %s", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusForbidden {
+		return []Invite{}, fmt.Errorf("only organization admins or owners can list invites")
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return []Invite{}, fmt.Errorf("failed to list invites: %w", parseResponseError(r))
+	}
+
+	data, err := unmarshal[struct {
+		Invites []Invite `json:"invites"`
+	}](r)
+	if err != nil {
+		return []Invite{}, fmt.Errorf("failed to deserialize list invites response: %w", err)
+	}
+
+	return data.Invites, nil
 }
 
 func (c *OrganizationsClient) RemoveMember(username string) error {
