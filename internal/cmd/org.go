@@ -19,13 +19,14 @@ func init() {
 	orgCmd.AddCommand(orgDestroyCmd)
 	orgCmd.AddCommand(orgSwitchCmd)
 	orgCmd.AddCommand(membersCmd)
+	orgCmd.AddCommand(invitesCmd)
 	membersCmd.AddCommand(membersListCmd)
 	membersCmd.AddCommand(membersAddCmd)
 	membersCmd.AddCommand(membersRemoveCmd)
 	membersCmd.AddCommand(membersInviteCmd)
-	membersCmd.AddCommand(inviteRemoveCmd)
-	membersCmd.AddCommand(inviteListCmd)
-	membersCmd.AddCommand()
+	invitesCmd.AddCommand(membersInviteCmd)
+	invitesCmd.AddCommand(inviteRemoveCmd)
+	invitesCmd.AddCommand(inviteListCmd)
 	orgCmd.AddCommand(orgBillingCmd)
 	membersAddCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Add the user as an admin")
 	membersInviteCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Invite the user as an admin")
@@ -282,6 +283,11 @@ var membersCmd = &cobra.Command{
 	Short: "Manage your organization members",
 }
 
+var invitesCmd = &cobra.Command{
+	Use:   "invites",
+	Short: "Manage your organization invites",
+}
+
 var membersListCmd = &cobra.Command{
 	Use:               "list",
 	Short:             "List members of current organization",
@@ -350,17 +356,13 @@ var membersAddCmd = &cobra.Command{
 }
 
 var membersInviteCmd = &cobra.Command{
-	Use:               "invite <email>",
+	Use:               "create <email>",
+	Aliases:           []string{"invite"},
 	Short:             "Invite an email to join the current organization",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
 
 		email := args[0]
 		if email == "" {
@@ -382,24 +384,18 @@ var membersInviteCmd = &cobra.Command{
 			return err
 		}
 
-		org := settings.Organization()
-		fmt.Printf("Email %s invited to organization %s.\n", internal.Emph(email), internal.Emph(org))
+		fmt.Printf("Email %s invited.\n", internal.Emph(email))
 		return nil
 	},
 }
 
 var inviteRemoveCmd = &cobra.Command{
-	Use:               "invite-remove <email>",
+	Use:               "remove <email>",
 	Short:             "Remove a pending invite to an email to join the current organization",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
 
 		email := args[0]
 		if email == "" {
@@ -415,14 +411,13 @@ var inviteRemoveCmd = &cobra.Command{
 			return err
 		}
 
-		org := settings.Organization()
-		fmt.Printf("Pending invite to email %s removed from organization %s.\n", internal.Emph(email), internal.Emph(org))
+		fmt.Printf("Pending invite to email %s removed.\n", internal.Emph(email))
 		return nil
 	},
 }
 
 var inviteListCmd = &cobra.Command{
-	Use:               "invite-list",
+	Use:               "list",
 	Short:             "List invites in the current organization",
 	Args:              cobra.ExactArgs(0),
 	ValidArgsFunction: noFilesArg,
