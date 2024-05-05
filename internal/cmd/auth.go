@@ -162,6 +162,20 @@ func auth(cmd *cobra.Command, path string) error {
 		exitOnValidAuth(settings, path)
 		return nil
 	}
+	versionChannel := make(chan string, 1)
+	autoUpdateDisabled := settings.GetAutoupdate() == "off"
+
+	if autoUpdateDisabled && version != "dev" {
+		go func() {
+			latestVersion, err := fetchLatestVersion()
+			if err != nil {
+				// On error we just behave as the version check has never happend
+				versionChannel <- version
+				return
+			}
+			versionChannel <- latestVersion
+		}()
+	}
 
 	if flags.Headless() {
 		return printHeadlessLoginInstructions(path)
@@ -199,6 +213,17 @@ func auth(cmd *cobra.Command, path string) error {
 	fmt.Printf("✔  Success! Logged in as %s\n", username)
 
 	signupHint(settings)
+
+	if autoUpdateDisabled && version != "dev" {
+		latestVersion := <-versionChannel
+
+		if version != latestVersion {
+			fmt.Printf("\nFriendly reminder that there's a newer version of %s available.\n", internal.Emph("Turso CLI"))
+			fmt.Printf("You're currently using version %s while latest available version is %s.\n", internal.Emph(version), internal.Emph(latestVersion))
+			fmt.Printf("Please consider updating to get new features and more stable experience. To update:\n")
+			fmt.Printf("\n\t%s\n\n", internal.Emph("turso update"))
+		}
+	}
 
 	return nil
 }
