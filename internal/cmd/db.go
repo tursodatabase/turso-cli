@@ -109,6 +109,14 @@ var dbCmd = &cobra.Command{
 
 const ENV_ACCESS_TOKEN = "TURSO_API_TOKEN"
 
+type notLoggedInError struct{}
+
+func (*notLoggedInError) Error() string {
+	return fmt.Sprintf("user not logged in, please login with %s", internal.Emph("turso auth login"))
+}
+
+var NotLoggedInError = &notLoggedInError{}
+
 func getAccessToken() (string, error) {
 	token, err := envAccessToken()
 	if err != nil {
@@ -125,7 +133,7 @@ func getAccessToken() (string, error) {
 
 	token = settings.GetToken()
 	if !isJwtTokenValid(token) {
-		return "", fmt.Errorf("user not logged in, please login with %s", internal.Emph("turso auth login"))
+		return "", NotLoggedInError
 	}
 
 	return token, nil
