@@ -43,7 +43,7 @@ jobs:
           version: latest
           args: release --clean --config .goreleaser-self.yaml
         env:
-          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_TO_TAP }}
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_GITHUB }}
       - name: Get version
         id: get_version
         run: echo ::set-output name=VERSION::$(echo "{ \"Version\":\"$GITHUB_REF_NAME\"}")
