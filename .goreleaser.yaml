@@ -54,7 +54,7 @@ changelog:
 brews:
   - name: turso
     homepage: https://github.com/tursodatabase/homebrew-tap
-    tap:
+    repository:
       owner: tursodatabase
       name: homebrew-tap
     dependencies:
