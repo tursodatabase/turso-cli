@@ -46,7 +46,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_TO_SELF }}
       - name: Get version
         id: get_version
-        run: echo "VERSION=$(echo '{ \"Version\":\"$GITHUB_REF_NAME\"}')" >> $GITHUB_OUTPUT
+        run: echo "VERSION={ \"Version\":\"$GITHUB_REF_NAME\"}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Echo
         run: echo ${{ steps.get_version.outputs.VERSION }}
