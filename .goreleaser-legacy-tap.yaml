@@ -54,7 +54,7 @@ changelog:
 brews:
   - name: turso
     homepage: https://github.com/chiselstrike/homebrew-tap
-    tap:
+    repository:
       owner: chiselstrike
       name: homebrew-tap
     dependencies:
