@@ -87,7 +87,7 @@ func init() {
 			return
 		}
 		_, err := getAccessToken()
-		if errors.Is(err, NotLoggedInError) {
+		if errors.Is(err, ErrNotLoggedIn) {
 			fmt.Printf("You are not logged in, please login with %s before running other commands.\n", internal.Emph("turso auth login"))
 			os.Exit(0)
 		}
