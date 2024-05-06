@@ -58,11 +58,32 @@ func update(client *turso.Client, name string) error {
 	s := prompt.Spinner(msg)
 	defer s.Stop()
 
+	db, err := getDatabase(client, name, true)
+	if err != nil {
+		return err
+	}
+	version := db.Version
+
 	if err := client.Databases.Update(name, groupBoolFlag); err != nil {
 		return fmt.Errorf("error updating database")
 	}
 
 	s.Stop()
-	fmt.Printf("✔  Success! Database %s updated successfully\n", internal.Emph(name))
+	if version == "" {
+		fmt.Printf("✔  Success! Database %s updated successfully\n", internal.Emph(name))
+		return nil
+	}
+
+	db, err = getDatabase(client, name, true)
+	if err != nil {
+		return err
+	}
+
+	if db.Version == version {
+		fmt.Printf("Database %s is already up to date\n", internal.Emph(name))
+	} else {
+		fmt.Printf("✔  Success! Database %s updated successfully\n", internal.Emph(name))
+	}
+
 	return nil
 }
