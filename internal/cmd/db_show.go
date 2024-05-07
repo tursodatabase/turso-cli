@@ -96,7 +96,7 @@ var showCmd = &cobra.Command{
 		fmt.Println("Bytes Synced:  ", humanize.Bytes(dbUsage.Usage.BytesSynced))
 		fmt.Println("Is Schema:     ", formatBool(db.IsSchema))
 		if db.Schema != "" {
-			fmt.Println("Parent DB ID:  ", db.Schema)
+			fmt.Println("Schema:        ", db.Schema)
 		}
 
 		fmt.Println()
