@@ -20,6 +20,8 @@ type Database struct {
 	Version       string
 	Group         string
 	Sleeping      bool
+	Schema        string
+	IsSchema      bool `json:"is_schema"`
 }
 
 type DatabasesClient client
