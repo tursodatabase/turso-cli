@@ -29,6 +29,10 @@ func Execute() {
 
 var noMultipleTokenSourcesWarning bool
 
+func requiresLogin(cmd *cobra.Command) bool {
+	return cmd.Name() != "login" && cmd.Name() != "signup" && cmd.CommandPath() != "turso config set token" && cmd.CommandPath() != "turso update"
+}
+
 func init() {
 	rootCmd.PersistentFlags().StringP("config-path", "c", "", "Path to the directory with config file")
 	if err := viper.BindPFlag("config-path", rootCmd.PersistentFlags().Lookup("config-path")); err != nil {
@@ -83,7 +87,7 @@ func init() {
 		}
 	}
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		if cmd.Name() == "login" || cmd.Name() == "signup" {
+		if !requiresLogin(cmd) {
 			return
 		}
 		_, err := getAccessToken()
