@@ -6,4 +6,5 @@ var canaryFlag bool
 
 func addCanaryFlag(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&canaryFlag, "canary", false, "Use database canary build.")
+	_ = cmd.Flags().MarkHidden("canary")
 }
