@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
@@ -23,6 +24,7 @@ func init() {
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
 	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
 	addCanaryFlag(groupsCreateCmd)
+	flags.AddVersion(groupsCreateCmd, "Version of the group. Valid values: 'latest', 'canary' or 'vector'")
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
 	groupCmd.AddCommand(groupShowCmd)
@@ -94,8 +96,11 @@ var groupsCreateCmd = &cobra.Command{
 			return fmt.Errorf("location '%s' is not a valid one", location)
 		}
 
-		version := "latest"
+		version := flags.Version()
 		if canaryFlag {
+			if version != "" {
+				return fmt.Errorf("cannot specify both --canary and --version flags")
+			}
 			version = "canary"
 		}
 
