@@ -103,7 +103,7 @@ var devCmd = &cobra.Command{
 		}
 
 		// Check if the server is actually running.
-		maxAttempts := 5
+		maxAttempts := 3
 		for i := 0; i < maxAttempts; i++ {
 			_, err := http.Get(conn)
 			if err == nil {
@@ -120,8 +120,11 @@ var devCmd = &cobra.Command{
 
 		fmt.Printf("Use the following URL to configure your libSQL client SDK for local development:\n\n    %s\n\n",
 			internal.Emph(conn))
-		fmt.Printf("No auth token is required when sqld is running locally.\n\n")
-
+		if authJwtFile != "" {
+			fmt.Printf("Using auth token from file %s.\n\n", authJwtFile)
+		} else {
+			fmt.Printf("No auth token is required when sqld is running locally.\n\n")
+		}
 		if devFile != "" {
 			fmt.Printf("Using database file %s.\n", internal.Emph(devFile))
 		} else {
