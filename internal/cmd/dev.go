@@ -123,7 +123,7 @@ var devCmd = &cobra.Command{
 		if authJwtFile != "" {
 			fmt.Printf("Using auth token from file %s.\n\n", authJwtFile)
 		} else {
-			fmt.Printf("No auth token is required when sqld is running locally.\n\n")
+			fmt.Printf("By default, no auth token is required when sqld is running locally. If you want to require authentication, use %s to specify a file containing the JWT key.\n\n", internal.Emph("--auth-jwt-key-file"))
 		}
 		if devFile != "" {
 			fmt.Printf("Using database file %s.\n", internal.Emph(devFile))
