@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"regexp"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -18,6 +20,7 @@ func init() {
 	addDevPortFlag(devCmd)
 	addDevFileFlag(devCmd)
 	addDevSqldVersionFlag(devCmd)
+	addAuthJwtFileFlag(devCmd)
 }
 
 var devCmd = &cobra.Command{
@@ -73,25 +76,55 @@ var devCmd = &cobra.Command{
 		addr := fmt.Sprintf("0.0.0.0:%d", devPort)
 		conn := fmt.Sprintf("http://127.0.0.1:%d", devPort)
 
-		sqld := exec.Command("sqld", "--no-welcome", "--http-listen-addr", addr, "-d", tempDir)
+		sqldFlags := []string{
+			"--no-welcome",
+			"--http-listen-addr",
+			addr,
+			"-d",
+			tempDir,
+		}
+
+		if authJwtFile != "" {
+			sqldFlags = append(sqldFlags, "--auth-jwt-key-file", authJwtFile)
+		}
+
+		sqld := exec.Command("sqld", sqldFlags...)
 		sqld.Env = append(os.Environ(), "RUST_LOG=error")
 
 		// Set the appropriate output and error streams for the server process
 		sqld.Stdout = os.Stdout
 		sqld.Stderr = os.Stderr
 
-		// Start the server process
+		// Start the server process.
 		err = sqld.Start()
 		if err != nil {
 			fmt.Fprint(os.Stderr, sqldNotFoundErr)
 			return err
 		}
+
+		// Check if the server is actually running.
+		maxAttempts := 3
+		for i := 0; i < maxAttempts; i++ {
+			_, err := http.Get(conn)
+			if err == nil {
+				break
+			}
+			if i == maxAttempts-1 {
+				fmt.Fprintf(os.Stderr, "sqld not ready after %d health check attempts\n", maxAttempts)
+				return err
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+
 		fmt.Printf("sqld listening on port %s.\n", internal.Emph(devPort))
 
 		fmt.Printf("Use the following URL to configure your libSQL client SDK for local development:\n\n    %s\n\n",
 			internal.Emph(conn))
-		fmt.Printf("No auth token is required when sqld is running locally.\n\n")
-
+		if authJwtFile != "" {
+			fmt.Printf("Using auth token from file %s.\n\n", authJwtFile)
+		} else {
+			fmt.Printf("By default, no auth token is required when sqld is running locally. If you want to require authentication, use %s to specify a file containing the JWT key.\n\n", internal.Emph("--auth-jwt-key-file"))
+		}
 		if devFile != "" {
 			fmt.Printf("Using database file %s.\n", internal.Emph(devFile))
 		} else {
@@ -103,6 +136,12 @@ var devCmd = &cobra.Command{
 
 		// Terminate the server process
 		err = sqld.Process.Kill()
+		if err != nil {
+			return fmt.Errorf("could not kill sqld: %w", err)
+		}
+
+		// Wait for the server process to exit.
+		err = sqld.Wait()
 		if err != nil {
 			return fmt.Errorf("could not kill sqld: %w", err)
 		}
