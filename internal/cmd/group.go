@@ -51,9 +51,11 @@ var groupShowCmd = &cobra.Command{
 		version := group.Version
 		fmt.Printf("Locations:  %s\n", formatLocations(group.Locations, group.Primary))
 		fmt.Printf("Version:    %s\n", internal.Emph(version))
+		fmt.Printf("Status:     %s\n", aggregateGroupStatus(group))
 		return nil
 	},
 }
+
 var groupsListCmd = &cobra.Command{
 	Use:               "list",
 	Short:             "List databases groups",
@@ -71,7 +73,7 @@ var groupsListCmd = &cobra.Command{
 			return err
 		}
 
-		printTable([]string{"Name", "Locations", "Version", "Sleeping"}, groupsTable(groups))
+		printTable([]string{"Name", "Locations", "Version", "Status"}, groupsTable(groups))
 		return nil
 	},
 }
@@ -215,10 +217,35 @@ func destroyGroup(client *turso.Client, name string) error {
 func groupsTable(groups []turso.Group) [][]string {
 	var data [][]string
 	for _, group := range groups {
-		row := []string{group.Name, formatLocations(group.Locations, group.Primary), group.Version, formatBool(group.Archived)}
+		row := []string{group.Name, formatLocations(group.Locations, group.Primary), group.Version, aggregateGroupStatus(group)}
 		data = append(data, row)
 	}
 	return data
+}
+
+func aggregateGroupStatus(group turso.Group) string {
+	status := "Healthy"
+	if group.Archived {
+		return "Sleeping 💤"
+	}
+	allIdle := true
+	for _, locationStatus := range group.Status.Locations {
+		if group.Primary == locationStatus.Name && locationStatus.Status == "down" {
+			status = "Unhealthy"
+			break
+		}
+		if locationStatus.Status != "stopped" {
+			allIdle = false
+		}
+		if locationStatus.Status == "down" {
+			allIdle = false
+			status = "Degraded"
+		}
+	}
+	if allIdle {
+		status = "Idle"
+	}
+	return status
 }
 
 func getGroups(client *turso.Client, fresh ...bool) ([]turso.Group, error) {

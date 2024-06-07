@@ -9,12 +9,21 @@ import (
 
 type GroupsClient client
 
+type LocationStatus struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+type GroupStatus struct {
+	Locations []LocationStatus `json:"locations"`
+}
 type Group struct {
-	Name      string   `json:"name"`
-	Locations []string `json:"locations"`
-	Primary   string   `json:"primary"`
-	Archived  bool     `json:"archived"`
-	Version   string   `json:"version"`
+	Name      string      `json:"name"`
+	Locations []string    `json:"locations"`
+	Primary   string      `json:"primary"`
+	Archived  bool        `json:"archived"`
+	Version   string      `json:"version"`
+	Status    GroupStatus `json:"status"`
 }
 
 func (d *GroupsClient) List() ([]Group, error) {
