@@ -223,18 +223,22 @@ func aggregateGroupStatus(group turso.Group) string {
 	if group.Archived {
 		return "Sleeping 💤"
 	}
+	allIdle := true
 	for _, locationStatus := range group.Status.Locations {
 		if group.Primary == locationStatus.Name && locationStatus.Status == "down" {
-			status = "Busted 🔴"
+			status = "Unhealthy 🔴"
 			break
 		}
-		if group.Primary == locationStatus.Name && locationStatus.Status == "stopped" {
-			status = "Idle ⚪️"
-			break
+		if locationStatus.Status != "stopped" {
+			allIdle = false
 		}
 		if locationStatus.Status == "down" {
+			allIdle = false
 			status = "Degraded 🟡"
 		}
+	}
+	if allIdle {
+		status = "Idle 🟠"
 	}
 	return status
 }
