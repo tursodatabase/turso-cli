@@ -219,14 +219,14 @@ func groupsTable(groups []turso.Group) [][]string {
 }
 
 func aggregateGroupStatus(group turso.Group) string {
-	status := "Healthy 🟢"
+	status := "Healthy"
 	if group.Archived {
 		return "Sleeping 💤"
 	}
 	allIdle := true
 	for _, locationStatus := range group.Status.Locations {
 		if group.Primary == locationStatus.Name && locationStatus.Status == "down" {
-			status = "Unhealthy 🔴"
+			status = "Unhealthy"
 			break
 		}
 		if locationStatus.Status != "stopped" {
@@ -234,11 +234,11 @@ func aggregateGroupStatus(group turso.Group) string {
 		}
 		if locationStatus.Status == "down" {
 			allIdle = false
-			status = "Degraded 🟡"
+			status = "Degraded"
 		}
 	}
 	if allIdle {
-		status = "Idle 🟠"
+		status = "Idle"
 	}
 	return status
 }
