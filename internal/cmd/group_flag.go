@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -147,7 +148,34 @@ func validateDumpFile(name string) (*os.File, error) {
 	if fileStat.Size() > MaxDumpFileSizeBytes {
 		return nil, fmt.Errorf("dump file is too large. max allowed size is 2GB")
 	}
+	if err := checkDumpFileFirstLines(name, file); err != nil {
+		return nil, fmt.Errorf("invalid dump file: %w", err)
+	}
 	return file, nil
+}
+
+func checkDumpFileFirstLines(name string, file *os.File) error {
+	scanner := bufio.NewScanner(file)
+	scanner.Scan()
+	if scanner.Text() != "PRAGMA foreign_keys=OFF;" {
+		if checkSQLiteFile(name) == nil {
+			return fmt.Errorf("you're trying to use a SQLite database file as a dump. Use the --from-db flag instead of --from-dump")
+		}
+		return fmt.Errorf("file doens't look like a dump: first line should be 'PRAGMA foreign_keys=OFF;'")
+	}
+
+	scanner.Scan()
+	if scanner.Text() != "BEGIN TRANSACTION;" {
+		if checkSQLiteFile(name) == nil {
+			return fmt.Errorf("you're trying to use a SQLite database file as a dump. Use --from-db instead")
+		}
+		return fmt.Errorf("file doens't look like a dump: second line should be 'BEGIN TRANSACTION;'")
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return fmt.Errorf("could not seek to the beginning of dump after validating it: %w", err)
+	}
+	return nil
 }
 
 func countFlags(flags ...string) (count int) {
