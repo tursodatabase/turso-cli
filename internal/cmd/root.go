@@ -30,7 +30,7 @@ func Execute() {
 var noMultipleTokenSourcesWarning bool
 
 func requiresLogin(cmd *cobra.Command) bool {
-	return cmd.Name() != "login" && cmd.Name() != "signup" && cmd.CommandPath() != "turso config set token" && cmd.CommandPath() != "turso update"
+	return cmd.Name() != "login" && cmd.Name() != "signup" && cmd.CommandPath() != "turso config set token" && cmd.CommandPath() != "turso update" && cmd.CommandPath() != "turso dev"
 }
 
 func init() {
