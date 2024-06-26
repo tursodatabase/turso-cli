@@ -23,7 +23,7 @@ func InvoiceType() (string, error) {
 
 func validateInvoiceType(invoiceType string) error {
 	switch invoiceType {
-	case "issued", "all", "upcoming", "":
+	case "issued", "all", "upcoming":
 		return nil
 	default:
 		return fmt.Errorf("type parameter must be either 'all' or 'upcoming' or 'issued'")
