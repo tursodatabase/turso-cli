@@ -38,6 +38,7 @@ func requiresLogin(cmd *cobra.Command) bool {
 		"turso config set token",
 		"turso update",
 		"turso completion",
+		"turso db shell",
 	}
 	for _, allowed := range allowlist {
 		if strings.HasPrefix(path, allowed) {
@@ -104,13 +105,17 @@ func init() {
 		if !requiresLogin(cmd) {
 			return
 		}
-		_, err := getAccessToken()
-		if errors.Is(err, ErrNotLoggedIn) {
-			fmt.Printf("You are not logged in, please login with %s before running other commands.\n", internal.Emph("turso auth login"))
-			os.Exit(0)
-		}
+		VerifyUserIsLoggedIn()
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	flags.AddDebugFlag(rootCmd)
 	flags.AddResetConfigFlag(rootCmd)
+}
+
+func VerifyUserIsLoggedIn() {
+	_, err := getAccessToken()
+	if errors.Is(err, ErrNotLoggedIn) {
+		fmt.Printf("You are not logged in, please login with %s before running other commands.\n", internal.Emph("turso auth login"))
+		os.Exit(0)
+	}
 }

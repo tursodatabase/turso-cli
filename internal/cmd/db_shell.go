@@ -97,6 +97,7 @@ var shellCmd = &cobra.Command{
 		// Makes sure localhost URL or self-hosted will work even if not authenticated
 		// to turso. The token code will check for auth
 		if !isURL(nameOrUrl) {
+			VerifyUserIsLoggedIn()
 			client, err := authedTursoClient()
 			if err != nil {
 				return fmt.Errorf("could not create turso client: %w", err)
