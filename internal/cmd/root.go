@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	semver "github.com/hashicorp/go-version"
@@ -30,7 +31,20 @@ func Execute() {
 var noMultipleTokenSourcesWarning bool
 
 func requiresLogin(cmd *cobra.Command) bool {
-	return cmd.Name() != "login" && cmd.Name() != "signup" && cmd.CommandPath() != "turso config set token" && cmd.CommandPath() != "turso update"
+	path := cmd.CommandPath()
+	allowlist := []string{
+		"turso auth login",
+		"turso auth signup",
+		"turso config set token",
+		"turso update",
+		"turso completion",
+	}
+	for _, allowed := range allowlist {
+		if strings.HasPrefix(path, allowed) {
+			return false
+		}
+	}
+	return true
 }
 
 func init() {
