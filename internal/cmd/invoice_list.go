@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {
 	invoiceCmd.AddCommand(listInvoicesCmd)
-	AddInvoiceType(listInvoicesCmd)
+	flags.AddInvoiceType(listInvoicesCmd)
 }
 
 var listInvoicesCmd = &cobra.Command{
@@ -24,12 +25,9 @@ var listInvoicesCmd = &cobra.Command{
 			return err
 		}
 
-		if invoiceType == "" {
-			invoiceType = "issued"
-		}
-
-		if invoiceType != "all" && invoiceType != "upcoming" && invoiceType != "issued" {
-			return fmt.Errorf("invalid invoice type: %s", invoiceType)
+		invoiceType, err := flags.InvoiceType()
+		if err != nil {
+			return err
 		}
 
 		invoices, err := client.Invoices.List(invoiceType)
@@ -42,25 +40,25 @@ var listInvoicesCmd = &cobra.Command{
 			return nil
 		}
 
-		printInvoiceListTable(invoices)
+		printInvoiceTable(invoices)
 		fmt.Println()
 		fmt.Println()
-		printInvoiceListLinks(invoices)
+		printInvoiceLinks(invoices)
 		return nil
 	},
 }
 
-func printInvoiceListTable(invoices []turso.Invoice) {
-	headers, data := invoiceListTable(invoices)
+func printInvoiceTable(invoices []turso.Invoice) {
+	headers, data := invoiceTable(invoices)
 	printTable(headers, data)
 }
 
-func printInvoiceListLinks(invoices []turso.Invoice) {
-	headers, data := invoiceListLinks(invoices)
+func printInvoiceLinks(invoices []turso.Invoice) {
+	headers, data := invoiceLinks(invoices)
 	printTable(headers, data)
 }
 
-func invoiceListTable(invoices []turso.Invoice) ([]string, [][]string) {
+func invoiceTable(invoices []turso.Invoice) ([]string, [][]string) {
 	headers := []string{"ID", "Amount Due", "Status", "Due Date", "Paid At", "Payment Failed At"}
 	data := make([][]string, len(invoices))
 	for i, invoice := range invoices {
@@ -69,7 +67,7 @@ func invoiceListTable(invoices []turso.Invoice) ([]string, [][]string) {
 	return headers, data
 }
 
-func invoiceListLinks(invoices []turso.Invoice) ([]string, [][]string) {
+func invoiceLinks(invoices []turso.Invoice) ([]string, [][]string) {
 	headers := []string{"ID", "Link"}
 	data := make([][]string, len(invoices))
 	for i, invoice := range invoices {
