@@ -9,6 +9,7 @@ import (
 
 func init() {
 	invoiceCmd.AddCommand(listInvoicesCmd)
+	AddInvoiceType(listInvoicesCmd)
 }
 
 var listInvoicesCmd = &cobra.Command{
@@ -23,7 +24,15 @@ var listInvoicesCmd = &cobra.Command{
 			return err
 		}
 
-		invoices, err := client.Invoices.List()
+		if invoiceType == "" {
+			invoiceType = "issued"
+		}
+
+		if invoiceType != "all" && invoiceType != "upcoming" && invoiceType != "issued" {
+			return fmt.Errorf("invalid invoice type: %s", invoiceType)
+		}
+
+		invoices, err := client.Invoices.List(invoiceType)
 		if err != nil {
 			return err
 		}
@@ -36,7 +45,7 @@ var listInvoicesCmd = &cobra.Command{
 		printInvoiceListTable(invoices)
 		fmt.Println()
 		fmt.Println()
-		printInvoiceListPdfs(invoices)
+		printInvoiceListLinks(invoices)
 		return nil
 	},
 }
@@ -46,25 +55,29 @@ func printInvoiceListTable(invoices []turso.Invoice) {
 	printTable(headers, data)
 }
 
-func printInvoiceListPdfs(invoices []turso.Invoice) {
-	headers, data := invoiceListPdfs(invoices)
+func printInvoiceListLinks(invoices []turso.Invoice) {
+	headers, data := invoiceListLinks(invoices)
 	printTable(headers, data)
 }
 
 func invoiceListTable(invoices []turso.Invoice) ([]string, [][]string) {
-	headers := []string{"ID", "Amount Due", "Due Date", "Paid At", "Payment Failed At"}
+	headers := []string{"ID", "Amount Due", "Status", "Due Date", "Paid At", "Payment Failed At"}
 	data := make([][]string, len(invoices))
 	for i, invoice := range invoices {
-		data[i] = []string{invoice.Number, invoice.Amount, invoice.DueDate, invoice.PaidAt, invoice.PaymentFailedAt}
+		data[i] = []string{invoice.Number, invoice.Amount, invoice.Status, invoice.DueDate, invoice.PaidAt, invoice.PaymentFailedAt}
 	}
 	return headers, data
 }
 
-func invoiceListPdfs(invoices []turso.Invoice) ([]string, [][]string) {
+func invoiceListLinks(invoices []turso.Invoice) ([]string, [][]string) {
 	headers := []string{"ID", "Link"}
 	data := make([][]string, len(invoices))
 	for i, invoice := range invoices {
-		data[i] = []string{invoice.Number, invoice.InvoicePdf}
+		invoiceLink := invoice.InvoicePdf
+		if invoice.InvoicePdf == "" {
+			invoiceLink = invoice.HostedInvoiceUrl
+		}
+		data[i] = []string{invoice.Number, invoiceLink}
 	}
 	return headers, data
 }
