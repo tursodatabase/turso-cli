@@ -39,6 +39,7 @@ func requiresLogin(cmd *cobra.Command) bool {
 		"turso update",
 		"turso completion",
 		"turso db shell",
+		"turso dev",
 	}
 	for _, allowed := range allowlist {
 		if strings.HasPrefix(path, allowed) {
