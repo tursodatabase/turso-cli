@@ -194,7 +194,7 @@ func unarchiveGroup(client *turso.Client, name string) error {
 	s.Stop()
 	elapsed := time.Since(start)
 	invalidateGroupsCache(client.Org)
-	fmt.Printf("Waked up group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+	fmt.Printf("Woke up group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
 	return nil
 }
 
