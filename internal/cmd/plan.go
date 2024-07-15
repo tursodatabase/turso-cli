@@ -190,6 +190,18 @@ var planSelectCmd = &cobra.Command{
 			return err
 		}
 
+		settings, err := settings.ReadSettings()
+		if err != nil {
+			return fmt.Errorf("could not retrieve local config: %w", err)
+		}
+
+		org := settings.Organization()
+		if org != "" && selected == "starter" {
+			fmt.Printf("You can't downgrade to the %s plan with a team organization\n", internal.Emph("starter"))
+			fmt.Printf("Instead, you can destroy it with %s\n", internal.Emph(fmt.Sprintf("turso org destroy %s", org)))
+			return nil
+		}
+
 		return changePlan(client, plans, subscription, hasPaymentMethod, selected, timeline, overages)
 	},
 }
@@ -199,11 +211,7 @@ func selectedPlan(subscription turso.Subscription, plans []turso.Plan, args []st
 		return args[0], nil
 	}
 
-	selectabledPlans, err := selectabledPlans(plans)
-	if err != nil {
-		return "", err
-	}
-	selected, err := promptPlanSelection(selectabledPlans, subscription.Plan)
+	selected, err := promptPlanSelection(plans, subscription.Plan)
 	if err != nil {
 		return "", err
 	}
@@ -231,22 +239,6 @@ func planNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string
 		names = append(names, plan.Name)
 	}
 	return names, cobra.ShellCompDirectiveNoFileComp
-}
-
-func selectabledPlans(plans []turso.Plan) ([]turso.Plan, error) {
-	settings, err := settings.ReadSettings()
-	if err != nil {
-		return plans, err
-	}
-
-	org := settings.Organization()
-	var plansToSelect []turso.Plan
-	for _, plan := range plans {
-		if plan.Name != "starter" || org == "" {
-			plansToSelect = append(plansToSelect, plan)
-		}
-	}
-	return plansToSelect, nil
 }
 
 var planUpgradeCmd = &cobra.Command{
