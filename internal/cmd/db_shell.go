@@ -186,6 +186,10 @@ var shellCmd = &cobra.Command{
 		}
 
 		connectionInfo := getConnectionInfo(urlString, db)
+		schemaDb := false
+		if db != nil {
+			schemaDb = db.IsSchema
+		}
 
 		shellConfig := shell.ShellConfig{
 			DbUri:          dbUrl,
@@ -201,6 +205,7 @@ var shellCmd = &cobra.Command{
 				spinner.Stop()
 			},
 			DisableAutoCompletion: true,
+			SchemaDb:              schemaDb,
 		}
 
 		dbID := ""
