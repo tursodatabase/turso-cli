@@ -45,7 +45,7 @@ func printDBListTable(databases []turso.Database) {
 	}
 
 	if !shouldPrintSleeping(databases) {
-		headers, data = removeColumn(headers, data, "Sleeping")
+		headers, data = removeColumn(headers, data, "Archived")
 	}
 
 	printTable(headers, data)
@@ -87,7 +87,7 @@ func dbListTable(databases []turso.Database) (headers []string, data [][]string)
 		return data[i][0] < data[j][0]
 	})
 
-	return []string{"Name", "Locations", "Group", "URL", "Sleeping"}, data
+	return []string{"Name", "Locations", "Group", "URL", "Archived"}, data
 }
 
 func removeColumn(headers []string, data [][]string, column string) ([]string, [][]string) {
