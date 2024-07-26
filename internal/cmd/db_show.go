@@ -92,7 +92,7 @@ var showCmd = &cobra.Command{
 		}
 		fmt.Println("Locations:     ", strings.Join(regions, ", "))
 		fmt.Println("Size:          ", humanize.Bytes(dbUsage.Usage.StorageBytesUsed))
-		fmt.Println("Sleeping:      ", formatBool(db.Sleeping))
+		fmt.Println("Archived:      ", formatBool(db.Sleeping))
 		fmt.Println("Bytes Synced:  ", humanize.Bytes(dbUsage.Usage.BytesSynced))
 		fmt.Println("Is Schema:     ", formatBool(db.IsSchema))
 		if db.Schema != "" {
