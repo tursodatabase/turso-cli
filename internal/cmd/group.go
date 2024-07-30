@@ -226,7 +226,7 @@ func groupsTable(groups []turso.Group) [][]string {
 func aggregateGroupStatus(group turso.Group) string {
 	status := "Healthy"
 	if group.Archived {
-		return "Archived 💤"
+		return "Archived"
 	}
 	allIdle := true
 	for _, locationStatus := range group.Status.Locations {

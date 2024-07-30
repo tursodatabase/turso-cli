@@ -15,7 +15,7 @@ func ensureGroupAwake(client *turso.Client, groupName string) (bool, error) {
 	}
 
 	groupStatus := aggregateGroupStatus(group)
-	if groupStatus != "Archived 💤" {
+	if groupStatus != "Archived" {
 		return true, nil
 	}
 
