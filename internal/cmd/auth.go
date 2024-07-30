@@ -339,7 +339,7 @@ func (a authCallback) Result() (string, error) {
 		return result, nil
 	case <-time.After(10 * time.Minute):
 		_ = a.server.Shutdown(context.Background())
-		return "", fmt.Errorf("authentication timed out, try again.")
+		return "", fmt.Errorf("authentication timed out, try again")
 	}
 }
 
