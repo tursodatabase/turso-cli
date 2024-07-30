@@ -8,8 +8,13 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+var groupFilter string
+var schemaFilter string
+
 func init() {
 	dbCmd.AddCommand(listCmd)
+	listCmd.Flags().StringVarP(&groupFilter, "group", "g", "", "Filter databases by group")
+	listCmd.Flags().StringVarP(&schemaFilter, "schema", "s", "", "Filter databases by schema")
 }
 
 var listCmd = &cobra.Command{
@@ -24,7 +29,15 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		databases, err := client.Databases.List()
+		options := make(map[string]string)
+		if groupFilter != "" {
+			options["group"] = groupFilter
+		}
+		if schemaFilter != "" {
+			options["schema"] = schemaFilter
+		}
+
+		databases, err := client.Databases.List(options)
 		if err != nil {
 			return err
 		}

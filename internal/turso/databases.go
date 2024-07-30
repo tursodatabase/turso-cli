@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -26,8 +27,21 @@ type Database struct {
 
 type DatabasesClient client
 
-func (d *DatabasesClient) List() ([]Database, error) {
-	r, err := d.client.Get(d.URL(""), nil)
+func (d *DatabasesClient) List(options map[string]string) ([]Database, error) {
+	path := d.URL("")
+
+	query := url.Values{}
+	for key, value := range options {
+		if value != "" {
+			query.Add(key, value)
+		}
+	}
+
+	if len(query) > 0 {
+		path += "?" + query.Encode()
+	}
+
+	r, err := d.client.Get(path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database listing: %s", err)
 	}
