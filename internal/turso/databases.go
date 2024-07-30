@@ -27,19 +27,18 @@ type Database struct {
 
 type DatabasesClient client
 
-func (d *DatabasesClient) List(options ...map[string]string) ([]Database, error) {
+func (d *DatabasesClient) List(options map[string]string) ([]Database, error) {
 	path := d.URL("")
 
-	if len(options) > 0 && options[0] != nil {
-		query := url.Values{}
-		for key, value := range options[0] {
-			if value != "" {
-				query.Add(key, value)
-			}
+	query := url.Values{}
+	for key, value := range options {
+		if value != "" {
+			query.Add(key, value)
 		}
-		if len(query) > 0 {
-			path += "?" + query.Encode()
-		}
+	}
+
+	if len(query) > 0 {
+		path += "?" + query.Encode()
 	}
 
 	r, err := d.client.Get(path, nil)

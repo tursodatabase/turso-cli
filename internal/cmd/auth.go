@@ -272,7 +272,7 @@ func signupHint(config *settings.Settings) {
 		return
 	}
 
-	dbs, err := client.Databases.List()
+	dbs, err := client.Databases.List(nil)
 	if err != nil || len(dbs) != 0 {
 		return
 	}
