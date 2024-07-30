@@ -201,7 +201,10 @@ func auth(cmd *cobra.Command, path string) error {
 	fmt.Println(url)
 	fmt.Println("Waiting for authentication...")
 
-	jwt := callbackServer.Result()
+	jwt, err := callbackServer.Result()
+	if err != nil {
+		return suggestHeadless(cmd, err)
+	}
 	username, err := validateToken(jwt)
 	if err != nil {
 		return suggestHeadless(cmd, err)
@@ -329,10 +332,15 @@ func authCallbackServer(state string) (authCallback, error) {
 	}, nil
 }
 
-func (a authCallback) Result() string {
-	result := <-a.ch
-	_ = a.server.Shutdown(context.Background())
-	return result
+func (a authCallback) Result() (string, error) {
+	select {
+	case result := <-a.ch:
+		_ = a.server.Shutdown(context.Background())
+		return result, nil
+	case <-time.After(5 * time.Minute):
+		_ = a.server.Shutdown(context.Background())
+		return "", fmt.Errorf("authentication timed out, try again")
+	}
 }
 
 func createCallbackServer(ch chan string, state string) (*http.Server, error) {
