@@ -46,9 +46,8 @@ type DatabasesClient client
 func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) {
 	path := d.URL("")
 
-	encodedOptions := options.Encode()
-	if encodedOptions != "" {
-		path += "?" + encodedOptions
+	if options := options.Encode(); options != "" {
+		path += "?" + options
 	}
 
 	r, err := d.client.Get(path, nil)
