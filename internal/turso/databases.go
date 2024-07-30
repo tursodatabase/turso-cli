@@ -26,8 +26,8 @@ type Database struct {
 }
 
 type DatabaseListOptions struct {
-	Group  string `json:"group,omitempty"`
-	Schema string `json:"schema,omitempty"`
+	Group  string
+	Schema string
 }
 
 func (o DatabaseListOptions) Encode() string {
