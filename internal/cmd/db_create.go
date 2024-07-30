@@ -55,25 +55,12 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		groupInfo, err := getGroup(client, group)
+		awake, err := ensureGroupAwake(client, group)
 		if err != nil {
-			return fmt.Errorf("failed to get group info: %w", err)
+			return err
 		}
-
-		groupStatus := aggregateGroupStatus(groupInfo)
-		if groupStatus == "Archived 💤" {
-			fmt.Printf("The group %s is currently archived. Do you want to wake it up? [Y/n]: ", internal.Emph(group))
-			var response string
-			fmt.Scanln(&response)
-			if response == "" || response == "y" || response == "yes" {
-				err = unarchiveGroup(client, group)
-				if err != nil {
-					return fmt.Errorf("failed to wake up group: %w", err)
-				}
-				fmt.Printf("Group %s has been woken up.\n", internal.Emph(group))
-			} else {
-				return fmt.Errorf("cannot create a database in an archived group. Please wake up the group first")
-			}
+		if !awake {
+			return fmt.Errorf("cannot create a database in an archived group. Please wake up the group first")
 		}
 
 		location, err := locationFromFlag(client)
