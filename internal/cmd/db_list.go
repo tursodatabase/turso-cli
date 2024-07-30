@@ -29,14 +29,10 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		options := make(map[string]string)
-		if groupFilter != "" {
-			options["group"] = groupFilter
+		options := turso.DatabaseListOptions{
+			Group:  groupFilter,
+			Schema: schemaFilter,
 		}
-		if schemaFilter != "" {
-			options["schema"] = schemaFilter
-		}
-
 		databases, err := client.Databases.List(options)
 		if err != nil {
 			return err

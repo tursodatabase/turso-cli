@@ -17,6 +17,7 @@ import (
 	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/settings"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 //go:embed login.html
@@ -275,7 +276,7 @@ func signupHint(config *settings.Settings) {
 		return
 	}
 
-	dbs, err := client.Databases.List(nil)
+	dbs, err := client.Databases.List(turso.DatabaseListOptions{})
 	if err != nil || len(dbs) != 0 {
 		return
 	}

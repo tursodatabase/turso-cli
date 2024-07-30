@@ -25,20 +25,30 @@ type Database struct {
 	IsSchema      bool `json:"is_schema"`
 }
 
+type DatabaseListOptions struct {
+	Group  string `json:"group,omitempty"`
+	Schema string `json:"schema,omitempty"`
+}
+
+func (o DatabaseListOptions) Encode() string {
+	query := url.Values{}
+	if o.Group != "" {
+		query.Set("group", o.Group)
+	}
+	if o.Schema != "" {
+		query.Set("schema", o.Schema)
+	}
+	return query.Encode()
+}
+
 type DatabasesClient client
 
-func (d *DatabasesClient) List(options map[string]string) ([]Database, error) {
+func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) {
 	path := d.URL("")
 
-	query := url.Values{}
-	for key, value := range options {
-		if value != "" {
-			query.Add(key, value)
-		}
-	}
-
-	if len(query) > 0 {
-		path += "?" + query.Encode()
+	encodedOptions := options.Encode()
+	if encodedOptions != "" {
+		path += "?" + encodedOptions
 	}
 
 	r, err := d.client.Get(path, nil)
