@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -19,11 +18,13 @@ func ensureGroupAwake(client *turso.Client, groupName string) (bool, error) {
 		return true, nil
 	}
 
-	fmt.Printf("The group %s is currently archived. Do you want to wake it up? [Y/n]: ", internal.Emph(groupName))
-	var response string
-	fmt.Scanln(&response)
-	response = strings.ToLower(strings.TrimSpace(response))
-	if response == "" || response == "y" || response == "yes" {
+	prompt := fmt.Sprintf("The group %s is currently archived. Do you want to wake it up?", internal.Emph(groupName))
+	confirmed, err := promptConfirmation(prompt)
+	if err != nil {
+		return false, fmt.Errorf("could not get prompt confirmed by user: %w", err)
+	}
+
+	if confirmed {
 		err = unarchiveGroup(client, groupName)
 		if err != nil {
 			return false, fmt.Errorf("failed to wake up group: %w", err)
