@@ -108,10 +108,11 @@ type CreateDatabaseBody struct {
 	Seed       *DBSeed `json:"seed,omitempty"`
 	Schema     string  `json:"schema,omitempty"`
 	IsSchema   bool    `json:"is_schema,omitempty"`
+	SizeLimit  string  `json:"size_limit,omitempty"`
 }
 
-func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed) (*CreateDatabaseResponse, error) {
-	params := CreateDatabaseBody{name, location, image, extensions, group, seed, schema, isSchema}
+func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed, sizeLimit string) (*CreateDatabaseResponse, error) {
+	params := CreateDatabaseBody{name, location, image, extensions, group, seed, schema, isSchema, sizeLimit}
 
 	body, err := marshal(params)
 	if err != nil {
