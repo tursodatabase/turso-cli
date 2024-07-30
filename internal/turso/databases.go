@@ -25,6 +25,8 @@ type Database struct {
 	IsSchema      bool `json:"is_schema"`
 }
 
+type DatabasesClient client
+
 type DatabaseListOptions struct {
 	Group  string
 	Schema string
@@ -40,8 +42,6 @@ func (o DatabaseListOptions) Encode() string {
 	}
 	return query.Encode()
 }
-
-type DatabasesClient client
 
 func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) {
 	path := d.URL("")
