@@ -29,7 +29,6 @@ func ensureGroupAwake(client *turso.Client, groupName string) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("failed to wake up group: %w", err)
 		}
-		fmt.Printf("Group %s has been woken up.\n", internal.Emph(groupName))
 		return true, nil
 	}
 
