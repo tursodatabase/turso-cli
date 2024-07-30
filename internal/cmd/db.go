@@ -59,7 +59,7 @@ func getDatabases(client *turso.Client, fresh ...bool) ([]turso.Database, error)
 	if cachedNames := getDatabasesCache(); !skipCache && cachedNames != nil {
 		return cachedNames, nil
 	}
-	databases, err := client.Databases.List(nil)
+	databases, err := client.Databases.List(turso.DatabaseListOptions{})
 	if err != nil {
 		return nil, err
 	}
