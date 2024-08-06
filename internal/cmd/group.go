@@ -112,8 +112,8 @@ var groupsCreateCmd = &cobra.Command{
 }
 
 var unarchiveGroupCmd = &cobra.Command{
-	Use:               "wakeup <group-name>",
-	Short:             "Wake up a database group",
+	Use:               "unarchive <group-name>",
+	Short:             "Unarchive a database group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: groupArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -185,7 +185,7 @@ func createGroup(client *turso.Client, name, location, version string) error {
 
 func unarchiveGroup(client *turso.Client, name string) error {
 	start := time.Now()
-	s := prompt.Spinner(fmt.Sprintf("Waking up group %s... ", internal.Emph(name)))
+	s := prompt.Spinner(fmt.Sprintf("Unarchiving group %s... ", internal.Emph(name)))
 	defer s.Stop()
 
 	if err := client.Groups.Unarchive(name); err != nil {
@@ -194,7 +194,7 @@ func unarchiveGroup(client *turso.Client, name string) error {
 	s.Stop()
 	elapsed := time.Since(start)
 	invalidateGroupsCache(client.Org)
-	fmt.Printf("Woke up group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
+	fmt.Printf("Unarchived group %s in %d seconds.\n", internal.Emph(name), int(elapsed.Seconds()))
 	return nil
 }
 
