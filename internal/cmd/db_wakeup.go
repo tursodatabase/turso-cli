@@ -18,6 +18,7 @@ var wakeUpDbCmd = &cobra.Command{
 	Use:               "unarchive <db-name>",
 	Short:             "Unarchive a database",
 	Args:              cobra.ExactArgs(1),
+	Aliases:           []string{"wakeup"},
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true

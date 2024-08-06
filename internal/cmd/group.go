@@ -114,6 +114,7 @@ var groupsCreateCmd = &cobra.Command{
 var unarchiveGroupCmd = &cobra.Command{
 	Use:               "unarchive <group-name>",
 	Short:             "Unarchive a database group",
+	Aliases:           []string{"wakeup"},
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: groupArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
