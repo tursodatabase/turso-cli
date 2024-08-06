@@ -342,7 +342,7 @@ func (d *DatabasesClient) Wakeup(database string) error {
 	url := d.URL(fmt.Sprintf("/%s/wakeup", database))
 	r, err := d.client.Post(url, nil)
 	if err != nil {
-		return fmt.Errorf("failed to wakeup database: %w", err)
+		return fmt.Errorf("failed to unarchive database: %w", err)
 	}
 	defer r.Body.Close()
 
@@ -352,7 +352,7 @@ func (d *DatabasesClient) Wakeup(database string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to wakeup database: %w", parseResponseError(r))
+		return fmt.Errorf("failed to unarchive database: %w", parseResponseError(r))
 	}
 
 	return nil
