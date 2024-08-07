@@ -130,9 +130,17 @@ var devCmd = &cobra.Command{
 		} else {
 			fmt.Printf("This server is using an ephemeral database. Changes will be lost when this server stops.\nIf you want to persist changes, use %s to specify a SQLite database file instead.\n", internal.Emph("--db-file"))
 		}
+
+		waitCh := make(chan error, 1)
+		go func() { waitCh <- sqld.Wait() }()
+
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-		<-sigCh
+		select {
+		case <-sigCh:
+		case err = <-waitCh:
+			return fmt.Errorf("sqld exited unexpectedly: %w", err)
+		}
 
 		// Terminate the server process
 		err = sqld.Process.Kill()
