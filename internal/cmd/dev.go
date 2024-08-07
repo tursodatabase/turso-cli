@@ -149,7 +149,7 @@ var devCmd = &cobra.Command{
 		}
 
 		// Wait for the server process to exit.
-		err = sqld.Wait()
+		err = <-waitCh
 		if err != nil {
 			return fmt.Errorf("could not kill sqld: %w", err)
 		}
