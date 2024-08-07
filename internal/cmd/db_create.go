@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/flags"
-	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
@@ -55,14 +54,6 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		awake, err := ensureGroupAwake(client, group)
-		if err != nil {
-			return err
-		}
-		if !awake {
-			return fmt.Errorf("cannot create a database in an archived group. Please wake up the group first")
-		}
-
 		location, err := locationFromFlag(client)
 		if err != nil {
 			return err
@@ -83,14 +74,16 @@ var createCmd = &cobra.Command{
 		}
 
 		start := time.Now()
-		spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(group)))
-		defer spinner.Stop()
+		spinnerText := fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(group))
 
-		if _, err = client.Databases.Create(name, location, "", "", group, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag); err != nil {
+		_, err = RetryOnSleepingGroup(client, group, spinnerText, func() (any, error) {
+			return client.Databases.Create(name, location, "", "", group, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag)
+		})
+
+		if err != nil {
 			return fmt.Errorf("could not create database %s: %w", name, err)
 		}
 
-		spinner.Stop()
 		elapsed := time.Since(start)
 		fmt.Printf("Created database %s at group %s in %s.\n\n", internal.Emph(name), internal.Emph(group), elapsed.Round(time.Millisecond).String())
 

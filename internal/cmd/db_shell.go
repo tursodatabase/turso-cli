@@ -108,16 +108,6 @@ var shellCmd = &cobra.Command{
 				return err
 			}
 
-			spinner.Stop()
-			awake, err := ensureGroupAwake(client, db.Group)
-			if err != nil {
-				return err
-			}
-			if !awake {
-				return fmt.Errorf("cannot connect to a database in an archived group. Please wake up the group first")
-			}
-			spinner.Start()
-
 			var claim *turso.PermissionsClaim
 			if len(flags.AttachClaims()) > 0 {
 				err := validateDBNames(client, flags.AttachClaims())
