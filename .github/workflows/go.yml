@@ -25,13 +25,13 @@ jobs:
     needs: authorize
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           #ref: "refs/pull/${{ github.event.number }}/merge" # THIS IS INSECURE
 
       - name: Setup Golang with cache
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: false
@@ -55,7 +55,7 @@ jobs:
         run: go vet -vettool=${HOME}/go/bin/sqlclosecheck ./...
 
       - name: Staticcheck
-        uses: dominikh/staticcheck-action@v1.3.0
+        uses: dominikh/staticcheck-action@v1
         with:
           version: "2023.1.2"
           build-tags: "preview"
