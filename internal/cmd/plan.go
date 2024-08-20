@@ -168,41 +168,7 @@ var planSelectCmd = &cobra.Command{
 	Args:              cobra.MaximumNArgs(1),
 	ValidArgsFunction: planNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		timeline, err := flags.Timeline()
-		if err != nil {
-			return err
-		}
-
-		overages := flags.Overages(cmd)
-
-		client, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-
-		plans, subscription, hasPaymentMethod, err := GetSelectPlanInfo(client)
-		if err != nil {
-			return fmt.Errorf("failed to get plans: %w", err)
-		}
-
-		selected, err := selectedPlan(subscription, plans, args)
-		if err != nil {
-			return err
-		}
-
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return fmt.Errorf("could not retrieve local config: %w", err)
-		}
-
-		org := settings.Organization()
-		if org != "" && selected == "starter" {
-			fmt.Printf("You can't downgrade to the %s plan with a team organization\n", internal.Emph("starter"))
-			fmt.Printf("Instead, you can destroy it with %s\n", internal.Emph(fmt.Sprintf("turso org destroy %s", org)))
-			return nil
-		}
-
-		return changePlan(client, plans, subscription, hasPaymentMethod, selected, timeline, overages)
+		return BillingPortal()
 	},
 }
 
@@ -246,25 +212,7 @@ var planUpgradeCmd = &cobra.Command{
 	Short: "Upgrade your current organization plan",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-
-		plans, current, hasPaymentMethod, err := GetSelectPlanInfo(client)
-		if err != nil {
-			return fmt.Errorf("failed to get plans: %w", err)
-		}
-
-		if current.Plan == "scaler" {
-			fmt.Printf("You've already upgraded to %s! 🎉\n", internal.Emph(current))
-			fmt.Println()
-			fmt.Println("If you need more resources, we're happy to help.")
-			fmt.Printf("You can find us at %s or at Discord (%s)\n", internal.Emph("sales@turso.tech"), internal.Emph("https://discord.com/invite/4B5D7hYwub"))
-			return nil
-		}
-
-		return changePlan(client, plans, current, hasPaymentMethod, "scaler", "", nil)
+		return BillingPortal()
 	},
 }
 
@@ -273,39 +221,7 @@ var planEnableOverages = &cobra.Command{
 	Short: "Enable overages for your current organization plan",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
-		var org string
-		if org = settings.Organization(); org == "" {
-			org = settings.GetUsername()
-		}
-		client, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-
-		hasPaymentMethod, err := client.Billing.HasPaymentMethod()
-		if err != nil {
-			return err
-		}
-		if !hasPaymentMethod {
-			ok, err := PaymentMethodHelperOverages(client)
-			if err != nil {
-				return fmt.Errorf("failed to check payment method: %w", err)
-			}
-			if !ok {
-				return fmt.Errorf("failed to add payment method")
-			}
-			fmt.Println("Payment method added successfully.")
-			fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
-		}
-		if err = client.Organizations.SetOverages(org, true); err != nil {
-			return err
-		}
-		fmt.Println("Overages enabled successfully.")
-		return nil
+		return BillingPortal()
 	},
 }
 
@@ -314,87 +230,8 @@ var planDisableOverages = &cobra.Command{
 	Short: "Disable overages for your current organization plan",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		settings, err := settings.ReadSettings()
-		if err != nil {
-			return err
-		}
-		var org string
-		if org = settings.Organization(); org == "" {
-			org = settings.GetUsername()
-		}
-		client, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-
-		if err = client.Organizations.SetOverages(org, false); err != nil {
-			return err
-		}
-		fmt.Println("Overages disabled successfully.")
-		return nil
+		return BillingPortal()
 	},
-}
-
-func changePlan(client *turso.Client, plans []turso.Plan, subscription turso.Subscription, hasPaymentMethod bool, selected, timeline string, overages *bool) error {
-	current := subscription.Plan
-	if selected == current && (timeline == "" || subscription.Timeline == timeline) && (overages == nil || subscription.Overages == *overages) {
-		fmt.Println("You're all set! No changes are needed.")
-		return nil
-	}
-
-	upgrade := planChangeType(getPlan(current, plans), getPlan(selected, plans))
-	if !hasPaymentMethod && requiresPaymentMethod(getPlan(current, plans)) {
-		ok, err := PaymentMethodHelper(client, selected)
-		if err != nil {
-			return fmt.Errorf("failed to check payment method: %w", err)
-		}
-		if !ok {
-			return nil
-		}
-		fmt.Println("Payment method added successfully.")
-		fmt.Printf("You can manage your payment methods with %s.\n\n", internal.Emph("turso org billing"))
-	}
-
-	change := "changing"
-	if upgrade > 0 {
-		change = "upgrading"
-	}
-	if upgrade < 0 {
-		change = "downgrading"
-	}
-
-	fmt.Printf("You're %s to the %s plan.\n", change, internal.Emph(selected))
-
-	if requiresPaymentMethod(getPlan(selected, plans)) {
-		printPricingInfoDisclaimer()
-	}
-
-	if ok, _ := promptConfirmation("Do you want to continue?"); !ok {
-		fmt.Printf("Plan change cancelled. You're still on %s.\n", internal.Emph(current))
-		return nil
-	}
-
-	if err := client.Subscriptions.Update(selected, timeline, overages); err != nil {
-		return err
-	}
-
-	fmt.Println()
-
-	change = "changed"
-	if upgrade > 0 {
-		change = "upgraded"
-	}
-	if upgrade < 0 {
-		change = "downgraded"
-	}
-
-	fmt.Printf("You've been %s to plan %s.\n", change, internal.Emph(selected))
-	fmt.Printf("To see your new quotas, use %s.\n", internal.Emph("turso plan show"))
-	return nil
-}
-
-func requiresPaymentMethod(plan turso.Plan) bool {
-	return plan.Price != "0"
 }
 
 func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
@@ -408,7 +245,7 @@ func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
 	}
 
 	fmt.Println()
-	if err := billingPortal(client); err != nil {
+	if err := billingPortal("client"); err != nil {
 		return false, err
 	}
 	fmt.Println()
@@ -459,7 +296,7 @@ func PaymentMethodHelperOverages(client *turso.Client) (bool, error) {
 	}
 
 	fmt.Println()
-	if err := billingPortal(client); err != nil {
+	if err := billingPortal("client"); err != nil {
 		return false, err
 	}
 	fmt.Println()
@@ -582,18 +419,14 @@ func getPlan(name string, plans []turso.Plan) turso.Plan {
 	return turso.Plan{}
 }
 
-func billingPortal(client *turso.Client) error {
-	portal, err := client.Billing.Portal()
-	if err != nil {
-		return err
-	}
-
+func billingPortal(currentOrg string) error {
+	url := "https://app.turso.tech/" + currentOrg + "/settings/billing"
 	msg := "Opening your browser at:"
-	if err := browser.OpenURL(portal.URL); err != nil {
+	if err := browser.OpenURL(url); err != nil {
 		msg = "Access the following URL to manage your payment methods:"
 	}
 	fmt.Println(msg)
-	fmt.Println(portal.URL)
+	fmt.Println(url)
 	return nil
 }
 

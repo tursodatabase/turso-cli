@@ -487,15 +487,22 @@ var orgBillingCmd = &cobra.Command{
 	Short: "Manange payment methods for the current organization.",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cmd.SilenceUsage = true
-
-		client, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-
-		return billingPortal(client)
+		return BillingPortal()
 	},
+}
+
+func BillingPortal() error {
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return err
+	}
+
+	org := settings.Organization()
+	if org == "" {
+		org = settings.GetUsername()
+	}
+
+	return billingPortal(org)
 }
 
 func listOrganizations(client *turso.Client, fresh ...bool) ([]turso.Organization, error) {
