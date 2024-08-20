@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
-	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
@@ -170,19 +168,6 @@ var planSelectCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return BillingPortal()
 	},
-}
-
-func selectedPlan(subscription turso.Subscription, plans []turso.Plan, args []string) (string, error) {
-	if len(args) > 0 {
-		return args[0], nil
-	}
-
-	selected, err := promptPlanSelection(plans, subscription.Plan)
-	if err != nil {
-		return "", err
-	}
-
-	return selected, nil
 }
 
 func planNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -357,57 +342,6 @@ func getPlans(client *turso.Client) ([]turso.Plan, error) {
 	}
 	setPlansCache(plans)
 	return plans, nil
-}
-
-func promptPlanSelection(plans []turso.Plan, current string) (string, error) {
-	planNames := make([]string, 0, len(plans))
-	cur := 0
-	for _, plan := range plans {
-		if plan.Name == current {
-			cur = len(planNames)
-			planNames = append(planNames, fmt.Sprintf("%s (current)", internal.Emph(plan.Name)))
-			continue
-		}
-		planNames = append(planNames, plan.Name)
-	}
-
-	settings, err := settings.ReadSettings()
-	if err != nil {
-		return "", err
-	}
-
-	var org string
-	if org = settings.Organization(); org == "" {
-		org = settings.GetUsername()
-	}
-
-	prompt := promptui.Select{
-		CursorPos:    cur,
-		HideHelp:     true,
-		Label:        fmt.Sprintf("Select a plan for organization %s", internal.Emph(org)),
-		Items:        planNames,
-		HideSelected: true,
-	}
-
-	_, result, err := prompt.Run()
-	if strings.HasSuffix(result, "(current)") {
-		result = current
-	}
-	return result, err
-}
-
-func planChangeType(current, selected turso.Plan) int {
-	cp, _ := strconv.Atoi(current.Price)
-	sp, _ := strconv.Atoi(selected.Price)
-	switch {
-	case sp > cp:
-		return 1
-	case sp < cp:
-		return -1
-	default:
-		return 0
-	}
-
 }
 
 func getPlan(name string, plans []turso.Plan) turso.Plan {
