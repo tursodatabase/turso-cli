@@ -483,9 +483,10 @@ var membersRemoveCmd = &cobra.Command{
 }
 
 var orgBillingCmd = &cobra.Command{
-	Use:   "billing",
-	Short: "Manange payment methods for the current organization.",
-	Args:  cobra.ExactArgs(0),
+	Use:    "billing",
+	Short:  "Manange payment methods for the current organization.",
+	Hidden: true,
+	Args:   cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return BillingPortal()
 	},

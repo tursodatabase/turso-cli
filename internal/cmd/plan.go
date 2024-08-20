@@ -164,6 +164,7 @@ var planSelectCmd = &cobra.Command{
 	Use:               "select",
 	Short:             "Change your current organization plan",
 	Args:              cobra.MaximumNArgs(1),
+	Hidden:            true,
 	ValidArgsFunction: planNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return BillingPortal()
@@ -193,52 +194,33 @@ func planNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string
 }
 
 var planUpgradeCmd = &cobra.Command{
-	Use:   "upgrade",
-	Short: "Upgrade your current organization plan",
-	Args:  cobra.ExactArgs(0),
+	Use:    "upgrade",
+	Short:  "Upgrade your current organization plan",
+	Args:   cobra.ExactArgs(0),
+	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return BillingPortal()
 	},
 }
 
 var planEnableOverages = &cobra.Command{
-	Use:   "enable",
-	Short: "Enable overages for your current organization plan",
-	Args:  cobra.ExactArgs(0),
+	Use:    "enable",
+	Short:  "Enable overages for your current organization plan",
+	Args:   cobra.ExactArgs(0),
+	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return BillingPortal()
 	},
 }
 
 var planDisableOverages = &cobra.Command{
-	Use:   "disable",
-	Short: "Disable overages for your current organization plan",
-	Args:  cobra.ExactArgs(0),
+	Use:    "disable",
+	Short:  "Disable overages for your current organization plan",
+	Args:   cobra.ExactArgs(0),
+	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return BillingPortal()
 	},
-}
-
-func PaymentMethodHelper(client *turso.Client, selected string) (bool, error) {
-	fmt.Printf("You need to add a payment method before you can upgrade to the %s plan.\n", internal.Emph(selected))
-	printPricingInfoDisclaimer()
-
-	ok, _ := promptConfirmation("Want to add a payment method right now?")
-	if !ok {
-		fmt.Printf("When you're ready, you can use %s to manage your payment methods.\n", internal.Emph("turso org billing"))
-		return false, nil
-	}
-
-	fmt.Println()
-	if err := billingPortal("client"); err != nil {
-		return false, err
-	}
-	fmt.Println()
-
-	spinner := prompt.Spinner("Waiting for you to add a payment method")
-	defer spinner.Stop()
-
-	return checkPaymentMethod(client, "")
 }
 
 func hasPaymentMethodCheck(client *turso.Client, stripeId string) (bool, error) {
@@ -268,28 +250,6 @@ func checkPaymentMethod(client *turso.Client, stripeId string) (bool, error) {
 		}
 		time.Sleep(1 * time.Second)
 	}
-}
-
-func PaymentMethodHelperOverages(client *turso.Client) (bool, error) {
-	fmt.Print("You need to add a payment method before you can enable overages.\n")
-	printPricingInfoDisclaimer()
-
-	ok, _ := promptConfirmation("Want to add a payment method right now?")
-	if !ok {
-		fmt.Printf("When you're ready, you can use %s to manage your payment methods.\n", internal.Emph("turso org billing"))
-		return false, nil
-	}
-
-	fmt.Println()
-	if err := billingPortal("client"); err != nil {
-		return false, err
-	}
-	fmt.Println()
-
-	spinner := prompt.Spinner("Waiting for you to add a payment method")
-	defer spinner.Stop()
-
-	return checkPaymentMethod(client, "")
 }
 
 func PaymentMethodHelperWithStripeId(client *turso.Client, stripeId, orgName string) (bool, error) {
