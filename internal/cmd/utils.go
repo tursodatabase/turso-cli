@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -296,6 +297,20 @@ func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, 
 		return getDatabaseNames(client), cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
+func dbNameListArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := authedTursoClient()
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+	var dbNameList = make([]string, 0)
+	for _, dbName := range getDatabaseNames(client) {
+		if !slices.Contains(args, dbName) {
+			dbNameList = append(dbNameList, dbName)
+		}
+	}
+	return dbNameList, cobra.ShellCompDirectiveNoFileComp
 }
 
 func dbNameAndOrgArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

@@ -22,7 +22,7 @@ var destroyCmd = &cobra.Command{
 	Use:               "destroy <database-name>",
 	Short:             "Destroy a database.",
 	Args:              cobra.MinimumNArgs(1),
-	ValidArgsFunction: dbNameArg,
+	ValidArgsFunction: dbNameListArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
