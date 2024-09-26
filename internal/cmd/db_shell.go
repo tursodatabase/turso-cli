@@ -123,7 +123,7 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			dbUrl, err = getURL(db, client, nonInteractive || db.IsSchema)
+			dbUrl, err = getURL(db, client, nonInteractive || db.IsSchema || db.Version == "tech-preview")
 			if err != nil {
 				return err
 			}
