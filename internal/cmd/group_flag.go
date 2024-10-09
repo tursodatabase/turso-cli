@@ -161,7 +161,7 @@ func checkDumpFileFirstLines(name string, file *os.File) error {
 		if checkSQLiteFile(name) == nil {
 			return fmt.Errorf("you're trying to use a SQLite database file as a dump. Use the --from-db flag instead of --from-dump")
 		}
-		return fmt.Errorf("file doens't look like a dump: first line should be 'PRAGMA foreign_keys=OFF;'")
+		return fmt.Errorf("file doesn't look like a dump: first line should be 'PRAGMA foreign_keys=OFF;'")
 	}
 
 	scanner.Scan()
@@ -169,7 +169,7 @@ func checkDumpFileFirstLines(name string, file *os.File) error {
 		if checkSQLiteFile(name) == nil {
 			return fmt.Errorf("you're trying to use a SQLite database file as a dump. Use --from-db instead")
 		}
-		return fmt.Errorf("file doens't look like a dump: second line should be 'BEGIN TRANSACTION;'")
+		return fmt.Errorf("file doesn't look like a dump: second line should be 'BEGIN TRANSACTION;'")
 	}
 
 	if _, err := file.Seek(0, 0); err != nil {
