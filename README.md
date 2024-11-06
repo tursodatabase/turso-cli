@@ -11,7 +11,7 @@ There is [reference documentation](https://docs.turso.tech/reference/turso-cli)
 available.
 
 For a guided walkthrough, follow the
-[Turso CLI tutorial](https://docs.turso.tech/tutorials/get-started-turso-cli).
+[Turso Quickstart docs](https://docs.turso.tech/quickstart).
 
 ## Installation
 
