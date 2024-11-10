@@ -34,9 +34,9 @@ func init() {
 }
 
 func getURL(db *turso.Database, client *turso.Client, http bool) (string, error) {
-	scheme := "wss"
-	if http {
-		scheme = "https"
+	scheme := "https"
+	if !http {
+		scheme = "wss"
 	}
 
 	if instanceFlag == "" && locationFlag == "" {
