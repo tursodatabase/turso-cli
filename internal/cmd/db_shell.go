@@ -33,14 +33,28 @@ func init() {
 	flags.AddAttachClaims(shellCmd)
 }
 
-func getURL(db *turso.Database, client *turso.Client, http bool) (string, error) {
+func getURL(db *turso.Database, client *turso.Client, http bool, primaryOnly bool) (string, error) {
 	scheme := "wss"
 	if http {
 		scheme = "https"
 	}
 
 	if instanceFlag == "" && locationFlag == "" {
-		return getUrl(db, nil, scheme), nil
+		if !primaryOnly {
+			return getUrl(db, nil, scheme), nil
+		}
+
+		instances, err := client.Instances.List(db.Name)
+		if err != nil {
+			return "", err
+		}
+		for _, instance := range instances {
+			if instance.Type == "primary" {
+				return getUrl(db, &instance, scheme), nil
+			}
+		}
+
+		return "", fmt.Errorf("primary not found")
 	}
 
 	instances, err := client.Instances.List(db.Name)
@@ -88,6 +102,18 @@ var shellCmd = &cobra.Command{
 			spinner.Start()
 			defer spinner.Stop()
 		}
+		isDump := false
+		sql := ""
+		if len(args) == 2 {
+			if len(args[1]) == 0 {
+				return fmt.Errorf("no SQL command to execute")
+			}
+			if args[1] == ".dump" {
+				isDump = true
+			} else {
+				sql = args[1]
+			}
+		}
 
 		dbUrl := nameOrUrl
 		urlString := nameOrUrl
@@ -123,7 +149,7 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			dbUrl, err = getURL(db, client, nonInteractive || db.IsSchema || db.Version == "tech-preview")
+			dbUrl, err = getURL(db, client, nonInteractive || db.IsSchema || db.Version == "tech-preview", isDump)
 			if err != nil {
 				return err
 			}
@@ -215,14 +241,12 @@ var shellCmd = &cobra.Command{
 		if db != nil {
 			dbID = db.ID
 		}
-		if len(args) == 2 {
-			if len(args[1]) == 0 {
-				return fmt.Errorf("no SQL command to execute")
-			}
-			if args[1] == ".dump" {
-				return dump(getDbURLForDump(dbUrl), authToken)
-			}
-			return runShellLine(dbID, shellConfig, args[1])
+		if isDump {
+			return dump(getDbURLForDump(dbUrl), authToken)
+		}
+
+		if sql != "" {
+			return runShellLine(dbID, shellConfig, sql)
 		}
 
 		if nonInteractive {
