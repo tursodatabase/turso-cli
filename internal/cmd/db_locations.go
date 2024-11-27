@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"math"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -13,7 +12,6 @@ import (
 
 func init() {
 	dbCmd.AddCommand(regionsCmd)
-	addLatencyFlag(regionsCmd)
 }
 
 var regionsCmd = &cobra.Command{
@@ -39,52 +37,21 @@ var regionsCmd = &cobra.Command{
 
 		columns := make([]interface{}, 0)
 
-		lats := make(map[string]int)
 		var ids []string
-		if latencyFlag {
-			lats, err = latencies(client)
-			if err != nil {
-				return err
-			}
-			ids = maps.Keys(lats)
-			sort.Slice(ids, func(i, j int) bool {
-				return lats[ids[i]] < lats[ids[j]]
-			})
-			columns = append(columns, "ID")
-			columns = append(columns, "LOCATION")
-			columns = append(columns, "LATENCY↓")
-		} else {
-			ids = maps.Keys(locations)
-			sort.Strings(ids)
-			columns = append(columns, "ID↓")
-			columns = append(columns, "LOCATION")
-		}
+		ids = maps.Keys(locations)
+		sort.Strings(ids)
+		columns = append(columns, "ID↓")
+		columns = append(columns, "LOCATION")
 
 		tbl := turso.LocationsTable(columns)
 
 		for _, location := range ids {
 			description := locations[location]
-			lat, ok := lats[location]
-			var latency string
-			if ok && lat != math.MaxInt {
-				latency = fmt.Sprintf("%dms", lat)
-			} else {
-				latency = "???"
-			}
-
 			if location == closest {
 				description = fmt.Sprintf("%s  [default]", description)
-				if latencyFlag {
-					tbl.AddRow(internal.Emph(location), internal.Emph(description), internal.Emph(latency))
-				} else {
-					tbl.AddRow(internal.Emph(location), internal.Emph(description))
-				}
+				tbl.AddRow(internal.Emph(location), internal.Emph(description))
 			} else {
-				if latencyFlag {
-					tbl.AddRow(location, description, latency)
-				} else {
-					tbl.AddRow(location, description)
-				}
+				tbl.AddRow(location, description)
 			}
 		}
 		tbl.Print()
