@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -37,24 +38,46 @@ var regionsCmd = &cobra.Command{
 
 		columns := make([]interface{}, 0)
 
-		var ids []string
-		ids = maps.Keys(locations)
-		sort.Strings(ids)
+		ids := maps.Keys(locations)
+
+		awsIds := make([]string, 0, len(ids))
+		flyIds := make([]string, 0, len(ids))
+
+		for _, id := range ids {
+			if strings.HasPrefix(id, "aws-") {
+				awsIds = append(awsIds, id)
+			} else {
+				flyIds = append(flyIds, id)
+			}
+		}
+
+		sort.Strings(awsIds)
+		sort.Strings(flyIds)
+
 		columns = append(columns, "ID↓")
 		columns = append(columns, "LOCATION")
 
-		tbl := turso.LocationsTable(columns)
+		flyTbl := turso.LocationsTable(columns)
+		awsTbl := turso.LocationsTable(columns)
 
-		for _, location := range ids {
+		fmt.Println(internal.Emph("Fly.io Regions:"))
+		for _, location := range flyIds {
 			description := locations[location]
 			if location == closest {
 				description = fmt.Sprintf("%s  [default]", description)
-				tbl.AddRow(internal.Emph(location), internal.Emph(description))
+				flyTbl.AddRow(internal.Emph(location), internal.Emph(description))
 			} else {
-				tbl.AddRow(location, description)
+				flyTbl.AddRow(location, description)
 			}
 		}
-		tbl.Print()
+		flyTbl.Print()
+
+		fmt.Println(internal.Emph("\nAWS (beta) Regions:"))
+		for _, location := range awsIds {
+			description := locations[location]
+			awsTbl.AddRow(location, description)
+		}
+		awsTbl.Print()
 		return nil
 	},
 }
