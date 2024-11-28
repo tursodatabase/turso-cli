@@ -12,6 +12,6 @@ var accountBookMeetingCmd = &cobra.Command{
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		return browser.OpenURL("https://calendly.com/d/gt7-bfd-83n/meet-with-chiselstrike")
+		return browser.OpenURL("https://tur.so/cli-chat")
 	},
 }
