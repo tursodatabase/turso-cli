@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/manifoldco/promptui"
@@ -39,6 +40,9 @@ var replicateCmd = &cobra.Command{
 		database, err := getDatabase(client, dbName, true)
 		if err != nil {
 			return err
+		}
+		if strings.HasPrefix(database.PrimaryRegion, "aws-") {
+			return fmt.Errorf("replication is not available on AWS at the moment")
 		}
 
 		location, err := getReplicateLocation(client, args, database)
@@ -194,7 +198,7 @@ func pickLocation(dbName string, locations map[string]string, exclude []string) 
 	tbl := table.New(columns...)
 
 	for _, id := range ids {
-		if excluded[id] {
+		if excluded[id] || strings.HasPrefix(id, "aws-") {
 			continue
 		}
 		tbl.AddRow(id, locations[id])
