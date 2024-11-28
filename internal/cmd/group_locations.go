@@ -53,7 +53,7 @@ var groupLocationsListCmd = &cobra.Command{
 var groupLocationAddCmd = &cobra.Command{
 	Use:               "add <group-name> <...location-code>",
 	Short:             "Add locations to a database group",
-	Args:              cobra.MinimumNArgs(2),
+	Args:              cobra.MinimumNArgs(1),
 	ValidArgsFunction: locationsAddArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		groupName := args[0]
@@ -75,8 +75,18 @@ var groupLocationAddCmd = &cobra.Command{
 		for _, location := range group.Locations {
 			alreadyExistingLocations[location] = true
 		}
+		available, err := locations(client)
+		if err != nil {
+			return err
+		}
 
-		locations := args[1:]
+		locations := make([]string, 0)
+		if len(args) > 1 {
+			locations = append(locations, args[1:]...)
+		} else {
+			locations = append(locations, pickLocation(available, group.Locations))
+		}
+
 		for _, location := range locations {
 			if !isValidLocation(client, location) {
 				return fmt.Errorf("location '%s' is not a valid one", location)
