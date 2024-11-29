@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -24,6 +25,7 @@ func init() {
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
 	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
 	addCanaryFlag(groupsCreateCmd)
+	addBetaFlag(groupsCreateCmd)
 	flags.AddVersion(groupsCreateCmd, "Version of the group. Valid values: 'latest', 'canary' or 'vector'")
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
@@ -163,6 +165,14 @@ var groupsDestroyCmd = &cobra.Command{
 }
 
 func createGroup(client *turso.Client, name, location, version string) error {
+	if strings.HasPrefix(location, "aws-") && !betaFlag {
+		fmt.Printf("AWS regions are currently in %s. Not all features are available in all plans.\nFor a complete list, check %s.\n",
+			internal.Emph("beta"), internal.Emph("https://docs.turso.tech/cloud-providers"))
+
+		fmt.Printf("To create a database on AWS, add the %s flag.\n", internal.Emph("--beta"))
+		return fmt.Errorf("--beta flag not passed")
+	}
+
 	start := time.Now()
 	description := fmt.Sprintf("Creating group %s at %s...", internal.Emph(name), internal.Emph(location))
 	spinner := prompt.Spinner(description)
