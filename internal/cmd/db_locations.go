@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"math"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -13,7 +13,6 @@ import (
 
 func init() {
 	dbCmd.AddCommand(regionsCmd)
-	addLatencyFlag(regionsCmd)
 }
 
 var regionsCmd = &cobra.Command{
@@ -39,55 +38,46 @@ var regionsCmd = &cobra.Command{
 
 		columns := make([]interface{}, 0)
 
-		lats := make(map[string]int)
-		var ids []string
-		if latencyFlag {
-			lats, err = latencies(client)
-			if err != nil {
-				return err
+		ids := maps.Keys(locations)
+
+		awsIds := make([]string, 0, len(ids))
+		flyIds := make([]string, 0, len(ids))
+
+		for _, id := range ids {
+			if strings.HasPrefix(id, "aws-") {
+				awsIds = append(awsIds, id)
+			} else {
+				flyIds = append(flyIds, id)
 			}
-			ids = maps.Keys(lats)
-			sort.Slice(ids, func(i, j int) bool {
-				return lats[ids[i]] < lats[ids[j]]
-			})
-			columns = append(columns, "ID")
-			columns = append(columns, "LOCATION")
-			columns = append(columns, "LATENCY↓")
-		} else {
-			ids = maps.Keys(locations)
-			sort.Strings(ids)
-			columns = append(columns, "ID↓")
-			columns = append(columns, "LOCATION")
 		}
 
-		tbl := turso.LocationsTable(columns)
+		sort.Strings(awsIds)
+		sort.Strings(flyIds)
 
-		for _, location := range ids {
+		columns = append(columns, "ID↓")
+		columns = append(columns, "LOCATION")
+
+		flyTbl := turso.LocationsTable(columns)
+		awsTbl := turso.LocationsTable(columns)
+
+		fmt.Println(internal.Emph("Fly.io Regions:"))
+		for _, location := range flyIds {
 			description := locations[location]
-			lat, ok := lats[location]
-			var latency string
-			if ok && lat != math.MaxInt {
-				latency = fmt.Sprintf("%dms", lat)
-			} else {
-				latency = "???"
-			}
-
 			if location == closest {
 				description = fmt.Sprintf("%s  [default]", description)
-				if latencyFlag {
-					tbl.AddRow(internal.Emph(location), internal.Emph(description), internal.Emph(latency))
-				} else {
-					tbl.AddRow(internal.Emph(location), internal.Emph(description))
-				}
+				flyTbl.AddRow(internal.Emph(location), internal.Emph(description))
 			} else {
-				if latencyFlag {
-					tbl.AddRow(location, description, latency)
-				} else {
-					tbl.AddRow(location, description)
-				}
+				flyTbl.AddRow(location, description)
 			}
 		}
-		tbl.Print()
+		flyTbl.Print()
+
+		fmt.Println(internal.Emph("\nAWS (beta) Regions:"))
+		for _, location := range awsIds {
+			description := locations[location]
+			awsTbl.AddRow(location, description)
+		}
+		awsTbl.Print()
 		return nil
 	},
 }
