@@ -172,7 +172,7 @@ func getReplicateLocation(client *turso.Client, args []string, database turso.Da
 		return "", err
 	}
 
-	location := pickLocation(database.Name, locations, database.Regions)
+	location := pickLocation(locations, database.Regions)
 	if location == "" {
 		return "", fmt.Errorf("you must specify a database location ID to replicate it")
 	}
@@ -180,7 +180,7 @@ func getReplicateLocation(client *turso.Client, args []string, database turso.Da
 	return location, nil
 }
 
-func pickLocation(dbName string, locations map[string]string, exclude []string) string {
+func pickLocation(locations map[string]string, exclude []string) string {
 	fmt.Printf("%s", internal.Emph("Available locations:\n"))
 
 	excluded := make(map[string]bool)
