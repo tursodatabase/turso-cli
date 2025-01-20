@@ -8,6 +8,11 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
+func showAttachDeprecationNotice() {
+	fmt.Println(internal.Warn("Notice: Database ATTACH is deprecated."))
+	fmt.Println(internal.Warn("For more information, visit: https://tur.so/attach-deprecated\n"))
+}
+
 func init() {
 	dbConfigCmd.AddCommand(dbAttachCmd)
 	dbAttachCmd.AddCommand(dbEnableAttachCmd)
@@ -27,6 +32,7 @@ var dbEnableAttachCmd = &cobra.Command{
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		showAttachDeprecationNotice()
 		cmd.SilenceUsage = true
 		return updateAttachStatus(args[0], true)
 	},
@@ -38,6 +44,7 @@ var dbDisableAttachCmd = &cobra.Command{
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		showAttachDeprecationNotice()
 		cmd.SilenceUsage = true
 		return updateAttachStatus(args[0], false)
 	},
@@ -49,6 +56,7 @@ var dbShowAttachStatusCmd = &cobra.Command{
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		showAttachDeprecationNotice()
 		cmd.SilenceUsage = true
 		client, err := authedTursoClient()
 		if err != nil {

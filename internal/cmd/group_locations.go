@@ -10,6 +10,11 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+func showEdgeReplicaDeprecationNotice() {
+	fmt.Println(internal.Warn("Notice: Edge Replicas are deprecated."))
+	fmt.Println(internal.Warn("For more information, visit: https://tur.so/replicas-deprecated\n"))
+}
+
 var groupLocationsCmd = &cobra.Command{
 	Use:   "locations",
 	Short: "Manage your database group locations",
@@ -29,6 +34,8 @@ var groupLocationsListCmd = &cobra.Command{
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		showEdgeReplicaDeprecationNotice()
+
 		group := args[0]
 		if group == "" {
 			return fmt.Errorf("the first argument must contain a group name")
@@ -56,6 +63,8 @@ var groupLocationAddCmd = &cobra.Command{
 	Args:              cobra.MinimumNArgs(1),
 	ValidArgsFunction: locationsAddArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		showEdgeReplicaDeprecationNotice()
+
 		groupName := args[0]
 		if groupName == "" {
 			return fmt.Errorf("the first argument must contain a group name")
@@ -133,6 +142,8 @@ var groupsLocationsRmCmd = &cobra.Command{
 	Args:              cobra.MinimumNArgs(2),
 	ValidArgsFunction: locationsRmArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		showEdgeReplicaDeprecationNotice()
+
 		groupName := args[0]
 		if groupName == "" {
 			return fmt.Errorf("the group flag is required")
