@@ -12,6 +12,11 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
+func showSchemaDeprecationNotice() {
+	fmt.Println(internal.Warn("Notice: Schema Databases are deprecated."))
+	fmt.Println(internal.Warn("For more information, visit: https://tur.so/schema-deprecated\n"))
+}
+
 const MaxDumpFileSizeBytes = 8 << 30
 
 func init() {
@@ -39,6 +44,12 @@ var createCmd = &cobra.Command{
 	Short:             "Create a database.",
 	Args:              cobra.MaximumNArgs(1),
 	ValidArgsFunction: noFilesArg,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if schemaFlag != "" || typeFlag == "schema" {
+			showSchemaDeprecationNotice()
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		name, err := getDatabaseName(args)
