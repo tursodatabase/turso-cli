@@ -96,9 +96,6 @@ var groupsCreateCmd = &cobra.Command{
 		if location == "" {
 			location, _ = closestLocation(client)
 		}
-		if !isValidLocation(client, location) {
-			return fmt.Errorf("location '%s' is not a valid one", location)
-		}
 
 		version := flags.Version()
 		if canaryFlag {
