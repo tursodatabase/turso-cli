@@ -60,19 +60,22 @@ var regionsCmd = &cobra.Command{
 		flyTbl := turso.LocationsTable(columns)
 		awsTbl := turso.LocationsTable(columns)
 
-		fmt.Println(internal.Emph("Fly.io Regions:"))
-		for _, location := range flyIds {
-			description := locations[location]
-			if location == closest {
-				description = fmt.Sprintf("%s  [default]", description)
-				flyTbl.AddRow(internal.Emph(location), internal.Emph(description))
-			} else {
-				flyTbl.AddRow(location, description)
+		if len(flyIds) > 0 {
+			fmt.Println(internal.Emph("Fly.io Regions:"))
+			for _, location := range flyIds {
+				description := locations[location]
+				if location == closest {
+					description = fmt.Sprintf("%s  [default]", description)
+					flyTbl.AddRow(internal.Emph(location), internal.Emph(description))
+				} else {
+					flyTbl.AddRow(location, description)
+				}
 			}
+			flyTbl.Print()
+			fmt.Println("")
 		}
-		flyTbl.Print()
 
-		fmt.Println(internal.Emph("\nAWS (beta) Regions:"))
+		fmt.Println(internal.Emph("AWS (beta) Regions:"))
 		for _, location := range awsIds {
 			description := locations[location]
 			awsTbl.AddRow(location, description)
