@@ -74,7 +74,7 @@ type ClosestLocationResponse struct {
 }
 
 func (c *LocationsClient) Closest() (string, error) {
-	r, err := c.client.Get("https://region.turso.io", nil)
+	r, err := c.client.Get("https://aws-region.turso.io", nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to request closest: %s", err)
 	}
@@ -95,7 +95,7 @@ func (c *LocationsClient) Closest() (string, error) {
 
 func ProbeLocation(location string) *time.Duration {
 	client := &http.Client{Timeout: 2 * time.Second}
-	req, err := http.NewRequest("GET", "http://region.turso.io:8080/", nil)
+	req, err := http.NewRequest("GET", "http://aws-region.turso.io:8080/", nil)
 	if err != nil {
 		return nil
 	}
