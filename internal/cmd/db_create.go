@@ -36,7 +36,6 @@ func init() {
 	addSchemaFlag(createCmd)
 	addTypeFlag(createCmd)
 	addSizeLimitFlag(createCmd)
-	addBetaFlag(createCmd)
 }
 
 var createCmd = &cobra.Command{
