@@ -78,7 +78,12 @@ var regionsCmd = &cobra.Command{
 		fmt.Println(internal.Emph("AWS (beta) Regions:"))
 		for _, location := range awsIds {
 			description := locations[location]
-			awsTbl.AddRow(location, description)
+			if location == closest {
+				description = fmt.Sprintf("%s  [default]", description)
+				awsTbl.AddRow(internal.Emph(location), internal.Emph(description))
+			} else {
+				awsTbl.AddRow(location, description)
+			}
 		}
 		awsTbl.Print()
 		return nil
