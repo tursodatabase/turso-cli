@@ -109,7 +109,7 @@ type DBSeed struct {
 	Timestamp *time.Time `json:"timestamp,omitempty"`
 	// This is only used locally when uploading a database file and
 	// never passed to the control plane as JSON.
-	Filepath string `json:"filepath,omitempty"`
+	Filepath string `json:"-"`
 }
 
 type CreateDatabaseBody struct {
