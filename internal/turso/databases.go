@@ -125,11 +125,11 @@ type CreateDatabaseBody struct {
 }
 
 func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed, sizeLimit string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
-	is_aws_db_upload := seed != nil && seed.Type == "database_upload" && seed.Filepath != ""
-	var upload_filepath string
+	isTursoServerUpload := seed != nil && seed.Type == "database_upload" && seed.Filepath != ""
+	var uploadFilepath string
 	var params CreateDatabaseBody
-	if is_aws_db_upload {
-		upload_filepath = seed.Filepath
+	if isTursoServerUpload {
+		uploadFilepath = seed.Filepath
 		// Clear the unused seed parameters, only Type=database_upload is used.
 		seed.Filepath = ""
 		seed.Name = ""
@@ -174,8 +174,8 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 		return nil, fmt.Errorf("failed to deserialize response: %w", err)
 	}
 
-	if is_aws_db_upload {
-		if _, err = d.UploadDatabaseAWS(data, group, upload_filepath, spinner); err != nil {
+	if isTursoServerUpload {
+		if _, err = d.UploadDatabaseAWS(data, group, uploadFilepath, spinner); err != nil {
 			// Clean up the database if the upload fails
 			if deleteErr := d.Delete(data.Database.Name); deleteErr != nil {
 				fmt.Printf("%v", deleteErr)
@@ -196,7 +196,7 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 //     This call happens in DatabasesClient.Create() above, after which it calls this function.
 //  2. This function creates a DB token for the newly-created DB, and then calls turso-server to upload the database file.
 //     turso-server will perform validations on the file and 'activate' the db if everything is ok.
-func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group string, upload_filepath string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
+func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group string, uploadFilepath string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
 	// Create a short-lived DB token for the newly created database to facilitate the upload
 	token, err := d.Token(resp.Database.Name, "1h", false, nil)
 	if err != nil {
@@ -211,7 +211,7 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group 
 
 	// Upload the database file
 	spinner.Text(fmt.Sprintf("Uploading database %s in group %s, this may take a while...", internal.Emph(resp.Database.Name), internal.Emph(group)))
-	err = tursoServerClient.UploadFile(upload_filepath, func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
+	err = tursoServerClient.UploadFile(uploadFilepath, func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
 		totalSeconds := int(elapsedTime.Seconds())
 		minutes := totalSeconds / 60
 		seconds := totalSeconds % 60
