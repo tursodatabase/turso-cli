@@ -217,21 +217,9 @@ func sqliteFileIntegrityChecks(file string) error {
 
 	settings := string(output)
 	if !strings.Contains(settings, "j = wal") {
-		log.Printf("Database is not in WAL mode, setting to WAL...")
-		// set to WAL
-		_, err = exec.Command("sqlite3", file, "PRAGMA journal_mode = WAL;").CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("database is not in WAL mode, and we failed to set it: %w", err)
-		}
-		// run truncating checkpoint
-		if flags.Debug() {
-			log.Printf("Running checkpoint...")
-		}
-		_, err = exec.Command("sqlite3", file, "pragma wal_checkpoint(TRUNCATE);").CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to run truncating checkpoint after setting journal mode to WAL: %w", err)
-		}
+		return fmt.Errorf("database is not in WAL mode. Set it with 'sqlite3 %s 'PRAGMA journal_mode = WAL'", file)
 	}
+
 	if !strings.Contains(settings, "p = 4096") {
 		return fmt.Errorf("database must use 4KB page size. you can set it with 'sqlite3 yourdb.db 'PRAGMA page_size = 4096'")
 	}
