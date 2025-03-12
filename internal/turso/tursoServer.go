@@ -1,6 +1,7 @@
 package turso
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,10 +28,10 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 		progressPct := int(float64(pr.bytesRead) / float64(pr.totalSize) * 100)
 
 		// Only call progress if we've made at least 1% progress or if we're done
-		if progressPct > pr.lastUpdate || err == io.EOF {
+		if progressPct > pr.lastUpdate || errors.Is(err, io.EOF) {
 			elapsedTime := time.Since(pr.startTime)
 			pr.lastUpdate = progressPct
-			pr.onProgress(progressPct, pr.bytesRead, pr.totalSize, elapsedTime, err == io.EOF)
+			pr.onProgress(progressPct, pr.bytesRead, pr.totalSize, elapsedTime, errors.Is(err, io.EOF))
 		}
 	}
 	return n, err
