@@ -221,13 +221,13 @@ func sqliteFileIntegrityChecks(file string) error {
 	}
 
 	if !strings.Contains(settings, "p = 4096") {
-		return fmt.Errorf("database must use 4KB page size. you can set it with 'sqlite3 yourdb.db 'PRAGMA page_size = 4096'")
+		return fmt.Errorf("database must use 4KB page size. you can set it with 'sqlite3 %s 'PRAGMA page_size = 4096; VACUUM;' Note that this is not possible to do if your database is already in WAL mode", file)
 	}
 	if !strings.Contains(settings, "a = 0") {
-		return fmt.Errorf("database must have autovacuum disabled. you can set it with 'sqlite3 yourdb.db 'PRAGMA auto_vacuum = 0'")
+		return fmt.Errorf("database must have autovacuum disabled. you can set it with 'sqlite3 %s 'PRAGMA auto_vacuum = 0;'", file)
 	}
 	if !strings.Contains(settings, "e = UTF-8") {
-		return fmt.Errorf("database must use UTF-8 encoding. you can set it with 'sqlite3 yourdb.db 'PRAGMA encoding = 'UTF-8'	")
+		return fmt.Errorf("database must use UTF-8 encoding. you can set it with 'sqlite3 %s 'PRAGMA encoding = 'UTF-8'	", file)
 	}
 
 	// run quick_check
