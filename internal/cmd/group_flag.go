@@ -191,8 +191,12 @@ func countFlags(flags ...string) (count int) {
 
 const MaxAWSDBSizeBytes = 1024 * 1024 * 1024 * 20 // 20 GB
 func sqliteFileIntegrityChecks(file string) error {
-	log.Printf("Running integrity checks on database file %s", file)
-	log.Printf("Checking file size...")
+	if flags.Debug() {
+		log.Printf("Running integrity checks on database file %s", file)
+	}
+	if flags.Debug() {
+		log.Printf("Checking file size...")
+	}
 	fileInfo, err := os.Stat(file)
 	if err != nil {
 		return fmt.Errorf("failed to get file info: %w", err)
@@ -202,7 +206,9 @@ func sqliteFileIntegrityChecks(file string) error {
 		return fmt.Errorf("database file size exceeds maximum allowed size of 20 GB")
 	}
 
-	log.Printf("Checking database settings...")
+	if flags.Debug() {
+		log.Printf("Checking database settings...")
+	}
 	output, err := exec.Command("sqlite3", file, ".mode line",
 		"select journal_mode as j, page_size as p, auto_vacuum as a, encoding as e from pragma_journal_mode, pragma_page_size, pragma_auto_vacuum, pragma_encoding;").CombinedOutput()
 	if err != nil {
@@ -218,7 +224,9 @@ func sqliteFileIntegrityChecks(file string) error {
 			return fmt.Errorf("database is not in WAL mode, and we failed to set it: %w", err)
 		}
 		// run truncating checkpoint
-		log.Printf("Running checkpoint...")
+		if flags.Debug() {
+			log.Printf("Running checkpoint...")
+		}
 		_, err = exec.Command("sqlite3", file, "pragma wal_checkpoint(TRUNCATE);").CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("failed to run truncating checkpoint after setting journal mode to WAL: %w", err)
@@ -235,7 +243,9 @@ func sqliteFileIntegrityChecks(file string) error {
 	}
 
 	// run quick_check
-	log.Printf("Running integrity check...")
+	if flags.Debug() {
+		log.Printf("Running integrity check...")
+	}
 	_, err = exec.Command("sqlite3", file, "pragma quick_check;").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("integrity check on database failed: %w", err)
