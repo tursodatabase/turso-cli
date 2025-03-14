@@ -63,10 +63,11 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		group, isDefault, err := groupFromFlag(client)
+		group, err := groupFromFlag(client)
 		if err != nil {
 			return err
 		}
+		groupName := group.Name
 
 		location, err := locationFromFlag(client)
 		if err != nil {
@@ -82,11 +83,6 @@ var createCmd = &cobra.Command{
 		version := "latest"
 		if canaryFlag {
 			version = "canary"
-		}
-
-		groupName := group.Name
-		if isDefault {
-			groupName = "default"
 		}
 
 		if err := ensureGroup(client, groupName, location, version); err != nil {
@@ -138,32 +134,32 @@ func getDatabaseName(args []string) (string, error) {
 	return codename.Generate(rng, 0), nil
 }
 
-// Returns (group, isDefault, error)
-func groupFromFlag(client *turso.Client) (turso.Group, bool, error) {
+// Returns (group, error)
+func groupFromFlag(client *turso.Client) (turso.Group, error) {
 	groups, err := getGroups(client)
 	if err != nil {
-		return turso.Group{}, false, err
+		return turso.Group{}, err
 	}
 
 	if groupFlag != "" {
 		if !groupExists(groups, groupFlag) {
-			return turso.Group{}, false, fmt.Errorf("group %s does not exist", groupFlag)
+			return turso.Group{}, fmt.Errorf("group %s does not exist", groupFlag)
 		}
 		for _, group := range groups {
 			if group.Name == groupFlag {
-				return group, false, nil
+				return group, nil
 			}
 		}
-		return turso.Group{}, false, fmt.Errorf("group %s does not exist", groupFlag)
+		return turso.Group{}, fmt.Errorf("group %s does not exist", groupFlag)
 	}
 
 	switch {
 	case len(groups) == 0:
-		return turso.Group{Name: "default"}, true, nil
+		return turso.Group{Name: "default"}, nil
 	case len(groups) == 1:
-		return groups[0], true, nil
+		return groups[0], nil
 	default:
-		return turso.Group{}, false, fmt.Errorf("you have more than one database group. Please specify one with %s", internal.Emph("--group"))
+		return turso.Group{}, fmt.Errorf("you have more than one database group. Please specify one with %s", internal.Emph("--group"))
 
 	}
 }
