@@ -200,6 +200,8 @@ func locationFromFlag(client *turso.Client, group turso.Group, groups []turso.Gr
 		if !groupContainsLocation {
 			return "", fmt.Errorf("location '%s' is not valid for group '%s'. The group has the following locations: %v. You can use 'turso group locations add' to add a new location to the group", loc, group.Name, strings.Join(group.Locations, ", "))
 		}
+
+		return loc, nil
 	}
 	if !isValidLocation(client, loc) {
 		return "", fmt.Errorf("location '%s' is not valid", loc)
