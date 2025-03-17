@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -36,6 +37,37 @@ func IsUnderHomebrew() bool {
 	return strings.HasPrefix(binary, brewBinPrefix)
 }
 
+func semverCompare(a, b string) int {
+	a = strings.TrimPrefix(a, "v")
+	b = strings.TrimPrefix(b, "v")
+
+	partsA := strings.Split(a, ".")
+	partsB := strings.Split(b, ".")
+
+	// fall back to lexicographic comparison if both don't have 3 parts
+	if len(partsA) != 3 || len(partsB) != 3 {
+		return strings.Compare(a, b)
+	}
+
+	// compare each part, and again fall back to lexicographic comparison if any part is not an integer
+	for i := 0; i < 3; i++ {
+		numA, err := strconv.Atoi(partsA[i])
+		if err != nil {
+			return strings.Compare(a, b)
+		}
+		numB, err := strconv.Atoi(partsB[i])
+		if err != nil {
+			return strings.Compare(a, b)
+		}
+		if numA < numB {
+			return -1
+		} else if numA > numB {
+			return 1
+		}
+	}
+	return 0
+}
+
 var updateCmd = &cobra.Command{
 	Use:               "update",
 	Short:             "Update the CLI to the latest version",
@@ -52,7 +84,7 @@ var updateCmd = &cobra.Command{
 		if version == "dev" {
 			fmt.Println("You're compiling from source. How much more up2date do you want to be?")
 			return nil
-		} else if version >= latest {
+		} else if semverCompare(version, latest) >= 0 {
 			fmt.Printf("version %s is already latest\n", internal.Emph(version))
 			return nil
 		}
