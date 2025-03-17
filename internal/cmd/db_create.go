@@ -66,13 +66,18 @@ func CreateDatabase(name string) error {
 		return err
 	}
 
-	group, err := groupFromFlag(client)
+	groups, err := client.Groups.List()
+	if err != nil {
+		return err
+	}
+
+	group, err := groupFromFlag(groups)
 	if err != nil {
 		return err
 	}
 	groupName := group.Name
 
-	location, err := locationFromFlag(client)
+	location, err := locationFromFlag(client, group, groups)
 	if err != nil {
 		return err
 	}
@@ -88,7 +93,7 @@ func CreateDatabase(name string) error {
 		version = "canary"
 	}
 
-	if err := ensureGroup(client, groupName, location, version); err != nil {
+	if err := ensureGroup(client, groupName, groups, location, version); err != nil {
 		return err
 	}
 
@@ -114,9 +119,9 @@ func CreateDatabase(name string) error {
 	return nil
 }
 
-func ensureGroup(client *turso.Client, group, location, version string) error {
-	if ok, err := shouldCreateGroup(client, group, location); !ok {
-		return err
+func ensureGroup(client *turso.Client, group string, groups []turso.Group, location, version string) error {
+	if !shouldAutoCreateGroup(group, groups) {
+		return nil
 	}
 	if err := createGroup(client, group, location, version); err != nil {
 		return err
@@ -137,15 +142,15 @@ func getDatabaseName(args []string) (string, error) {
 }
 
 // Returns (group, error)
-func groupFromFlag(client *turso.Client) (turso.Group, error) {
-	groups, err := getGroups(client)
-	if err != nil {
-		return turso.Group{}, err
-	}
+func groupFromFlag(groups []turso.Group) (turso.Group, error) {
 
 	if groupFlag != "" {
 		if !groupExists(groups, groupFlag) {
-			return turso.Group{}, fmt.Errorf("group %s does not exist", groupFlag)
+			groupNames := make([]string, len(groups))
+			for i, g := range groups {
+				groupNames[i] = g.Name
+			}
+			return turso.Group{}, fmt.Errorf("group %s does not exist. You have the following groups: %v. You can use 'turso group create' to create a new group", groupFlag, strings.Join(groupNames, ", "))
 		}
 		for _, group := range groups {
 			if group.Name == groupFlag {
@@ -175,10 +180,26 @@ func groupExists(groups []turso.Group, name string) bool {
 	return false
 }
 
-func locationFromFlag(client *turso.Client) (string, error) {
+func locationFromFlag(client *turso.Client, group turso.Group, groups []turso.Group) (string, error) {
 	loc := locationFlag
+	groupWillBeAutoCreated := shouldAutoCreateGroup(group.Name, groups)
 	if loc == "" {
-		loc, _ = closestLocation(client)
+		if groupWillBeAutoCreated {
+			loc, _ = closestLocation(client)
+		} else {
+			loc = group.Primary
+		}
+	}
+	if !groupWillBeAutoCreated {
+		var groupContainsLocation bool
+		for _, l := range group.Locations {
+			if l == loc {
+				groupContainsLocation = true
+			}
+		}
+		if !groupContainsLocation {
+			return "", fmt.Errorf("location '%s' is not valid for group '%s'. The group has the following locations: %v. You can use 'turso group locations add' to add a new location to the group", loc, group.Name, strings.Join(group.Locations, ", "))
+		}
 	}
 	if !isValidLocation(client, loc) {
 		return "", fmt.Errorf("location '%s' is not valid", loc)
@@ -186,11 +207,7 @@ func locationFromFlag(client *turso.Client) (string, error) {
 	return loc, nil
 }
 
-func shouldCreateGroup(client *turso.Client, name, location string) (bool, error) {
-	groups, err := getGroups(client)
-	if err != nil {
-		return false, err
-	}
+func shouldAutoCreateGroup(name string, groups []turso.Group) bool {
 	// we only create the default group automatically
-	return name == "default" && len(groups) == 0, nil
+	return name == "default" && len(groups) == 0
 }
