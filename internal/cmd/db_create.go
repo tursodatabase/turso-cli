@@ -146,18 +146,14 @@ func groupFromFlag(groups []turso.Group) (turso.Group, error) {
 
 	if groupFlag != "" {
 		if !groupExists(groups, groupFlag) {
-			groupNames := make([]string, len(groups))
-			for i, g := range groups {
-				groupNames[i] = g.Name
-			}
-			return turso.Group{}, fmt.Errorf("group %s does not exist. You have the following groups: %v. You can use 'turso group create' to create a new group", groupFlag, strings.Join(groupNames, ", "))
+			return turso.Group{}, fmt.Errorf("group %s does not exist. Please double-check the name. You can run 'turso group list' to get a list of your groups, or 'turso group create' to make a new one", groupFlag)
 		}
 		for _, group := range groups {
 			if group.Name == groupFlag {
 				return group, nil
 			}
 		}
-		return turso.Group{}, fmt.Errorf("group %s does not exist", groupFlag)
+		return turso.Group{}, fmt.Errorf("group %s does not exist. Please double-check the name. You can run 'turso group list' to get a list of your groups, or 'turso group create' to make a new one", groupFlag)
 	}
 
 	switch {
