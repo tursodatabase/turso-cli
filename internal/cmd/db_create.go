@@ -57,59 +57,62 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		client, err := authedTursoClient()
-		if err != nil {
-			return err
-		}
-
-		group, err := groupFromFlag(client)
-		if err != nil {
-			return err
-		}
-		groupName := group.Name
-
-		location, err := locationFromFlag(client)
-		if err != nil {
-			return err
-		}
-
-		isAWS := strings.HasPrefix(group.Primary, "aws-")
-		seed, err := parseDBSeedFlags(client, isAWS)
-		if err != nil {
-			return err
-		}
-
-		version := "latest"
-		if canaryFlag {
-			version = "canary"
-		}
-
-		if err := ensureGroup(client, groupName, location, version); err != nil {
-			return err
-		}
-
-		start := time.Now()
-		spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(groupName)))
-		defer spinner.Stop()
-
-		if _, err = client.Databases.Create(name, location, "", "", groupName, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag, spinner); err != nil {
-			return fmt.Errorf("could not create database %s: %w", name, err)
-		}
-
-		spinner.Stop()
-		elapsed := time.Since(start)
-		fmt.Printf("Created database %s at group %s in %s.\n\n", internal.Emph(name), internal.Emph(groupName), elapsed.Round(time.Millisecond).String())
-
-		fmt.Printf("Start an interactive SQL shell with:\n\n")
-		fmt.Printf("   %s\n\n", internal.Emph("turso db shell "+name))
-		fmt.Printf("To see information about the database, including a connection URL, run:\n\n")
-		fmt.Printf("   %s\n\n", internal.Emph("turso db show "+name))
-		fmt.Printf("To get an authentication token for the database, run:\n\n")
-		fmt.Printf("   %s\n\n", internal.Emph("turso db tokens create "+name))
-		invalidateDatabasesCache()
-		return nil
+		return CreateDatabase(name)
 	},
+}
+
+func CreateDatabase(name string) error {
+	client, err := authedTursoClient()
+	if err != nil {
+		return err
+	}
+
+	group, err := groupFromFlag(client)
+	if err != nil {
+		return err
+	}
+	groupName := group.Name
+
+	location, err := locationFromFlag(client)
+	if err != nil {
+		return err
+	}
+
+	isAWS := strings.HasPrefix(group.Primary, "aws-")
+	seed, err := parseDBSeedFlags(client, isAWS)
+	if err != nil {
+		return err
+	}
+
+	version := "latest"
+	if canaryFlag {
+		version = "canary"
+	}
+
+	if err := ensureGroup(client, groupName, location, version); err != nil {
+		return err
+	}
+
+	start := time.Now()
+	spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(groupName)))
+	defer spinner.Stop()
+
+	if _, err = client.Databases.Create(name, location, "", "", groupName, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag, spinner); err != nil {
+		return fmt.Errorf("could not create database %s: %w", name, err)
+	}
+
+	spinner.Stop()
+	elapsed := time.Since(start)
+	fmt.Printf("Created database %s at group %s in %s.\n\n", internal.Emph(name), internal.Emph(groupName), elapsed.Round(time.Millisecond).String())
+
+	fmt.Printf("Start an interactive SQL shell with:\n\n")
+	fmt.Printf("   %s\n\n", internal.Emph("turso db shell "+name))
+	fmt.Printf("To see information about the database, including a connection URL, run:\n\n")
+	fmt.Printf("   %s\n\n", internal.Emph("turso db show "+name))
+	fmt.Printf("To get an authentication token for the database, run:\n\n")
+	fmt.Printf("   %s\n\n", internal.Emph("turso db tokens create "+name))
+	invalidateDatabasesCache()
+	return nil
 }
 
 func ensureGroup(client *turso.Client, group, location, version string) error {
