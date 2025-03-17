@@ -38,11 +38,9 @@ func IsUnderHomebrew() bool {
 }
 
 func semverCompare(a, b string) int {
-	// cut v suffix
 	a = strings.TrimPrefix(a, "v")
 	b = strings.TrimPrefix(b, "v")
 
-	// compare
 	partsA := strings.Split(a, ".")
 	partsB := strings.Split(b, ".")
 
