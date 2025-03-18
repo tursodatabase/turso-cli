@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -21,6 +22,9 @@ var importCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+		if len(args) == 0 {
+			return fmt.Errorf("filename is required: 'turso db import <filename>'")
+		}
 		filename := args[0]
 		fromFileFlag = filename
 		name := sanitizeDatabaseName(filename)
