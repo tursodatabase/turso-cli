@@ -9,6 +9,7 @@ import (
 
 func init() {
 	dbCmd.AddCommand(importCmd)
+	addGroupFlag(importCmd)
 }
 
 var importCmd = &cobra.Command{
