@@ -75,7 +75,7 @@ var regionsCmd = &cobra.Command{
 			fmt.Println("")
 		}
 
-		fmt.Println(internal.Emph("AWS (beta) Regions:"))
+		fmt.Println(internal.Emph("AWS Regions:"))
 		for _, location := range awsIds {
 			description := locations[location]
 			if location == closest {
