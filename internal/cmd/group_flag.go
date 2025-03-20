@@ -190,10 +190,38 @@ func countFlags(flags ...string) (count int) {
 }
 
 const MaxAWSDBSizeBytes = 1024 * 1024 * 1024 * 20 // 20 GB
+func checkIfDump(filename string) (bool, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		firstLine := scanner.Text()
+		return strings.TrimSpace(firstLine) == "PRAGMA foreign_keys=OFF;", nil
+	} else {
+		return false, scanner.Err()
+	}
+}
+
 func sqliteFileIntegrityChecks(file string) error {
 	if flags.Debug() {
 		log.Printf("Running integrity checks on database file %s", file)
 	}
+
+	if flags.Debug() {
+		log.Printf("Checking if this is a sqlite dump: common mistake!...")
+	}
+
+	isDump, err := checkIfDump(file)
+	if err != nil {
+		return fmt.Errorf("failed to get file header: %w", err)
+	}
+	if isDump {
+		return fmt.Errorf("%s is a sqlite3 dump, not a sqlite3 database. Please import a sqlite database", file)
+	}
+
 	if flags.Debug() {
 		log.Printf("Checking file size...")
 	}
@@ -212,6 +240,7 @@ func sqliteFileIntegrityChecks(file string) error {
 	output, err := exec.Command("sqlite3", file, ".mode line",
 		"select journal_mode as j, page_size as p, auto_vacuum as a, encoding as e from pragma_journal_mode, pragma_page_size, pragma_auto_vacuum, pragma_encoding;").CombinedOutput()
 	if err != nil {
+
 		return fmt.Errorf("failed to check database settings: %w", err)
 	}
 
