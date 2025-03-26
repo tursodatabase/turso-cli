@@ -31,7 +31,7 @@ func (i *InvoicesClient) List(invoiceType string) ([]Invoice, error) {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get invoices: received status code%w", parseResponseError(r))
+		return nil, fmt.Errorf("failed to get invoices: received status code %w", parseResponseError(r))
 	}
 
 	type ListResponse struct {
