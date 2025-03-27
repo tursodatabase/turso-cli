@@ -76,6 +76,64 @@ func (d *GroupsClient) Get(name string) (Group, error) {
 	return resp.Group, err
 }
 
+type GroupConfig struct {
+	DeleteProtection *bool `json:"delete_protection"`
+}
+
+func (g *GroupConfig) IsDeleteProtected() bool {
+	if g.DeleteProtection == nil {
+		return false
+	}
+	return *g.DeleteProtection
+}
+
+func (g *GroupsClient) GetConfig(group string) (GroupConfig, error) {
+	url := g.URL(fmt.Sprintf("/%s/configuration", group))
+	r, err := g.client.Get(url, nil)
+	if err != nil {
+		return GroupConfig{}, fmt.Errorf("failed to get group: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := g.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return GroupConfig{}, notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err = parseResponseError(r)
+		return GroupConfig{}, fmt.Errorf("failed to get config for group: %d %s", r.StatusCode, err)
+	}
+
+	return unmarshal[GroupConfig](r)
+}
+
+func (g *GroupsClient) UpdateConfig(group string, config GroupConfig) error {
+	url := g.URL(fmt.Sprintf("/%s/configuration", group))
+	body, err := marshal(config)
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	r, err := g.client.Patch(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to patch group: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := g.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err = parseResponseError(r)
+		return fmt.Errorf("failed to patch config for group: %d %s", r.StatusCode, err)
+	}
+
+	return nil
+}
+
 func (d *GroupsClient) Delete(group string) error {
 	url := d.URL("/" + group)
 	r, err := d.client.Delete(url, nil)

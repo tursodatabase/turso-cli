@@ -496,7 +496,22 @@ func (d *DatabasesClient) URL(suffix string) string {
 }
 
 type DatabaseConfig struct {
-	AllowAttach bool `json:"allow_attach"`
+	AllowAttach      *bool `json:"allow_attach"`
+	DeleteProtection *bool `json:"delete_protection"`
+}
+
+func (d *DatabaseConfig) IsDeleteProtected() bool {
+	if d.DeleteProtection == nil {
+		return false
+	}
+	return *d.DeleteProtection
+}
+
+func (d *DatabaseConfig) AttachAllowed() bool {
+	if d.AllowAttach == nil {
+		return false
+	}
+	return *d.AllowAttach
 }
 
 func (d *DatabasesClient) GetConfig(database string) (DatabaseConfig, error) {

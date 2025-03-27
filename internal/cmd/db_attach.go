@@ -72,7 +72,7 @@ var dbShowAttachStatusCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Print(attachMessage(config.AllowAttach))
+		fmt.Print(attachMessage(config.AttachAllowed()))
 		return err
 	},
 }
@@ -86,7 +86,7 @@ func updateAttachStatus(name string, allowAttach bool) error {
 	if err != nil {
 		return err
 	}
-	return client.Databases.UpdateConfig(database.Name, turso.DatabaseConfig{AllowAttach: allowAttach})
+	return client.Databases.UpdateConfig(database.Name, turso.DatabaseConfig{AllowAttach: &allowAttach})
 }
 
 func attachMessage(attach bool) string {
