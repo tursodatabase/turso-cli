@@ -48,10 +48,16 @@ var groupShowCmd = &cobra.Command{
 			return err
 		}
 
+		config, err := client.Groups.GetConfig(group.Name)
+		if err != nil {
+			return err
+		}
+
 		version := group.Version
-		fmt.Printf("Locations:  %s\n", formatLocations(group.Locations, group.Primary))
-		fmt.Printf("Version:    %s\n", internal.Emph(version))
-		fmt.Printf("Status:     %s\n", aggregateGroupStatus(group))
+		fmt.Printf("Locations:         %s\n", formatLocations(group.Locations, group.Primary))
+		fmt.Printf("Version:           %s\n", internal.Emph(version))
+		fmt.Printf("Status:            %s\n", aggregateGroupStatus(group))
+		fmt.Printf("Delete Protection: %s\n", formatBool(config.IsDeleteProtected()))
 		return nil
 	},
 }

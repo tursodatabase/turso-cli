@@ -37,6 +37,11 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
+		config, err := client.Databases.GetConfig(db.Name)
+		if err != nil {
+			return err
+		}
+
 		if showUrlFlag {
 			fmt.Println(getDatabaseUrl(&db))
 			return nil
@@ -81,22 +86,23 @@ var showCmd = &cobra.Command{
 			data = append(data, row)
 		}
 
-		fmt.Println("Name:          ", db.Name)
-		fmt.Println("URL:           ", getDatabaseUrl(&db))
-		fmt.Println("ID:            ", db.ID)
+		fmt.Println("Name:              ", db.Name)
+		fmt.Println("URL:               ", getDatabaseUrl(&db))
+		fmt.Println("ID:                ", db.ID)
 		if db.Group != "" {
-			fmt.Println("Group:         ", db.Group)
+			fmt.Println("Group:             ", db.Group)
 		}
 		if db.Version != "" {
-			fmt.Println("Version:       ", db.Version)
+			fmt.Println("Version:           ", db.Version)
 		}
-		fmt.Println("Locations:     ", strings.Join(regions, ", "))
-		fmt.Println("Size:          ", humanize.Bytes(dbUsage.Usage.StorageBytesUsed))
-		fmt.Println("Archived:      ", formatBool(db.Sleeping))
-		fmt.Println("Bytes Synced:  ", humanize.Bytes(dbUsage.Usage.BytesSynced))
-		fmt.Println("Is Schema:     ", formatBool(db.IsSchema))
+		fmt.Println("Locations:         ", strings.Join(regions, ", "))
+		fmt.Println("Size:              ", humanize.Bytes(dbUsage.Usage.StorageBytesUsed))
+		fmt.Println("Archived:          ", formatBool(db.Sleeping))
+		fmt.Println("Bytes Synced:      ", humanize.Bytes(dbUsage.Usage.BytesSynced))
+		fmt.Println("Is Schema:         ", formatBool(db.IsSchema))
+		fmt.Println("Delete Protection: ", formatBool(config.IsDeleteProtected()))
 		if db.Schema != "" {
-			fmt.Println("Schema:        ", db.Schema)
+			fmt.Println("Schema:            ", db.Schema)
 		}
 
 		fmt.Println()
