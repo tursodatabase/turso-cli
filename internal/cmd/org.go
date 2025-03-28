@@ -32,7 +32,7 @@ func init() {
 	membersInviteCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Invite the user as an admin")
 }
 
-func switchToOrg(client *turso.Client, slug string) error {
+func switchToOrg(client *turso.Client, slug string, showHowToGoBack bool) error {
 	settings, err := settings.ReadSettings()
 	if err != nil {
 		return err
@@ -72,7 +72,9 @@ func switchToOrg(client *turso.Client, slug string) error {
 
 	fmt.Printf("Current organization set to %s.\n", internal.Emph(org.Slug))
 	fmt.Printf("All your %s commands will be executed in that organization context.\n", internal.Emph("turso"))
-	fmt.Printf("To switch back to your previous organization:\n\n\t%s\n", internal.Emph(prev))
+	if showHowToGoBack {
+		fmt.Printf("To switch back to your previous organization:\n\n\t%s\n", internal.Emph(prev))
+	}
 	invalidateDatabasesCache()
 	return nil
 }
@@ -106,11 +108,17 @@ var orgListCmd = &cobra.Command{
 		}
 
 		current := settings.Organization()
+		currentFound := false
+		personal := ""
 
 		data := make([][]string, 0, len(orgs))
 		for _, org := range orgs {
 			if isCurrentOrg(org, current) {
+				currentFound = true
 				org = formatCurrent(org)
+			}
+			if org.Type == "personal" {
+				personal = org.Slug
 			}
 			data = append(data, []string{org.Name, org.Slug})
 		}
@@ -121,6 +129,12 @@ var orgListCmd = &cobra.Command{
 		}
 
 		printTable([]string{"name", "slug"}, data)
+
+		if !currentFound && personal != "" {
+			fmt.Println("You don't have a default organization. Switching to your personal one...")
+			return switchToOrg(client, personal, false)
+		}
+
 		return nil
 	},
 }
@@ -175,7 +189,7 @@ var orgCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\nCreated organization %s.\n", internal.Emph(org.Name))
-		switchToOrg(client, org.Name)
+		switchToOrg(client, org.Name, true)
 		fmt.Println()
 		client, err = authedTursoClient()
 		if err != nil {
@@ -237,7 +251,7 @@ var orgSwitchCmd = &cobra.Command{
 			return err
 		}
 
-		return switchToOrg(client, slug)
+		return switchToOrg(client, slug, true)
 	},
 }
 
