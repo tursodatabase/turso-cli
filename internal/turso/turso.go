@@ -87,7 +87,6 @@ func (t *Client) newRequest(method, urlPath string, body io.Reader, contentType 
 	}
 	req.Header.Add("User-Agent", fmt.Sprintf("turso-cli/%s (%s/%s)", parsedCliVersion, runtime.GOOS, runtime.GOARCH))
 	req.Header.Add("Content-Type", contentType)
-	req.Header.Add("x-turso-organization", t.Org)
 	return req, nil
 }
 
