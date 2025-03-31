@@ -28,6 +28,8 @@ func init() {
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
 	groupCmd.AddCommand(groupShowCmd)
+	groupCmd.AddCommand(groupProtectCmd)
+	groupCmd.AddCommand(groupUnprotectCmd)
 }
 
 var groupShowCmd = &cobra.Command{
@@ -165,6 +167,40 @@ var groupsDestroyCmd = &cobra.Command{
 	},
 }
 
+var groupProtectCmd = &cobra.Command{
+	Use:               "protect <group-name>",
+	Short:             "Enable delete protection for a group",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: groupArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		name := args[0]
+		return setGroupProtection(client, name, true)
+	},
+}
+
+var groupUnprotectCmd = &cobra.Command{
+	Use:               "unprotect <group-name>",
+	Short:             "Disable delete protection for a group",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: groupArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		name := args[0]
+		return setGroupProtection(client, name, false)
+	},
+}
+
 func createGroup(client *turso.Client, name, location, version string) error {
 	start := time.Now()
 	description := fmt.Sprintf("Creating group %s at %s...", internal.Emph(name), internal.Emph(location))
@@ -295,4 +331,34 @@ func handleGroupWaitFlag(client *turso.Client, group, location string) error {
 		return nil
 	}
 	return client.Groups.WaitLocation(group, location)
+}
+
+func setGroupProtection(client *turso.Client, name string, protect bool) error {
+
+	_, err := getGroup(client, name)
+	if err != nil {
+		return err
+	}
+
+	deleteProtection := protect
+	config := turso.GroupConfig{
+		DeleteProtection: &deleteProtection,
+	}
+
+	err = client.Groups.UpdateConfig(name, config)
+	if err != nil {
+		action := "enable"
+		if !protect {
+			action = "disable"
+		}
+		return fmt.Errorf("failed to %s delete protection for group %s: %w", action, name, err)
+	}
+
+	if protect {
+		fmt.Printf("Delete protection enabled for group %s.\n", internal.Emph(name))
+	} else {
+		fmt.Printf("Delete protection disabled for group %s.\n", internal.Emph(name))
+	}
+
+	return nil
 }
