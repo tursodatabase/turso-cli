@@ -28,7 +28,8 @@ type LocationResponse struct {
 }
 
 func (c *LocationsClient) List() (map[string]string, error) {
-	r, err := c.client.Get("/v1/locations", nil)
+	// locations endpoint will return different value per org (for example, only some orgs can use Fly locations)
+	r, err := c.client.GetWithHeaders("/v1/locations", nil, Header("x-turso-organization", c.client.Org))
 	if err != nil {
 		return nil, fmt.Errorf("failed to request locations: %s", err)
 	}
