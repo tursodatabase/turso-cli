@@ -36,5 +36,13 @@ var importCmd = &cobra.Command{
 // Sanitize a SQLite database filename to be used as a cloud database name.
 func sanitizeDatabaseName(filename string) string {
 	base := filepath.Base(filename)
-	return strings.TrimSuffix(base, ".db")
+
+	extensions := []string{".db", ".sqlite", ".sqlite3", ".sl3", ".s3db", ".db3"}
+	for _, ext := range extensions {
+		if strings.HasSuffix(strings.ToLower(base), ext) {
+			return base[:len(base)-len(ext)]
+		}
+	}
+
+	return base
 }
