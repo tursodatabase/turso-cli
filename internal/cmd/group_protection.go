@@ -8,19 +8,19 @@ import (
 )
 
 func init() {
-	groupCmd.AddCommand(groupProtectCmd)
-	groupProtectCmd.AddCommand(groupEnableProtectionCmd)
-	groupProtectCmd.AddCommand(groupDisableProtectionCmd)
-	groupProtectCmd.AddCommand(groupShowProtectionStatusCmd)
+	groupCmd.AddCommand(groupProtectionCmd)
+	groupProtectionCmd.AddCommand(groupProtectionEnableCmd)
+	groupProtectionCmd.AddCommand(groupProtectionDisableCmd)
+	groupProtectionCmd.AddCommand(groupProtectionShowCmd)
 }
 
-var groupProtectCmd = &cobra.Command{
-	Use:               "protect",
+var groupProtectionCmd = &cobra.Command{
+	Use:               "protection",
 	Short:             "Manage delete protection of a group",
 	ValidArgsFunction: noSpaceArg,
 }
 
-var groupEnableProtectionCmd = &cobra.Command{
+var groupProtectionEnableCmd = &cobra.Command{
 	Use:               "enable <group-name>",
 	Short:             "Enable delete protection for a group",
 	Args:              cobra.ExactArgs(1),
@@ -31,7 +31,7 @@ var groupEnableProtectionCmd = &cobra.Command{
 	},
 }
 
-var groupDisableProtectionCmd = &cobra.Command{
+var groupProtectionDisableCmd = &cobra.Command{
 	Use:               "disable <group-name>",
 	Short:             "Disable delete protection for a group",
 	Args:              cobra.ExactArgs(1),
@@ -42,7 +42,7 @@ var groupDisableProtectionCmd = &cobra.Command{
 	},
 }
 
-var groupShowProtectionStatusCmd = &cobra.Command{
+var groupProtectionShowCmd = &cobra.Command{
 	Use:               "show <group-name>",
 	Short:             "Shows the delete protection status of a group",
 	Args:              cobra.ExactArgs(1),
