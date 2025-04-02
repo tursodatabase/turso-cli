@@ -27,27 +27,6 @@ type LocationResponse struct {
 	Closest     []Location
 }
 
-func (c *LocationsClient) List() (map[string]string, error) {
-	// locations endpoint will return different value per org (for example, only some orgs can use Fly locations)
-	r, err := c.client.GetWithHeaders("/v1/locations", nil, Header("x-turso-organization", c.client.Org))
-	if err != nil {
-		return nil, fmt.Errorf("failed to request locations: %s", err)
-	}
-	defer r.Body.Close()
-
-	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get locations: %w", parseResponseError(r))
-
-	}
-
-	data, err := unmarshal[LocationsResponse](r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize locations response: %w", err)
-	}
-
-	return data.Locations, nil
-}
-
 func (c *LocationsClient) Get(location string) (LocationResponse, error) {
 	r, err := c.client.Get("/v1/locations/"+location, nil)
 	if err != nil {

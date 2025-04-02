@@ -140,6 +140,36 @@ func (c *OrganizationsClient) Usage() (OrgUsage, error) {
 	return body.OrgUsage, nil
 }
 
+type OrgLocations map[string]map[string]string
+
+type OrgLocationsResponse struct {
+	Locations OrgLocations
+}
+
+func (c *OrganizationsClient) Locations() (OrgLocations, error) {
+	prefix := "/v2"
+	if c.client.Org != "" {
+		prefix = "/v2/organizations/" + c.client.Org
+	}
+
+	r, err := c.client.Get(prefix+"/locations", nil)
+	if err != nil {
+		return OrgLocations{}, fmt.Errorf("failed to get org locations: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[string](r)
+		return OrgLocations{}, fmt.Errorf("failed to get locations: %d %s", r.StatusCode, err)
+	}
+
+	body, err := unmarshal[OrgLocationsResponse](r)
+	if err != nil {
+		return OrgLocations{}, err
+	}
+	return body.Locations, nil
+}
+
 func (c *OrganizationsClient) SetOverages(slug string, toggle bool) error {
 	path := "/v1/organizations/" + slug
 	body, err := marshal(map[string]bool{"overages": toggle})

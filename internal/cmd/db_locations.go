@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -13,6 +12,19 @@ import (
 
 func init() {
 	dbCmd.AddCommand(regionsCmd)
+}
+
+func platformName(pl string) string {
+	switch pl {
+	case "fly":
+		return "Fly.io Regions"
+	case "aws":
+		return "AWS Regions"
+	case "local":
+		return "Local"
+	default:
+		return pl
+	}
 }
 
 var regionsCmd = &cobra.Command{
@@ -26,7 +38,7 @@ var regionsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		locations, err := locations(client)
+		locations, err := mapLocations(client)
 		if err != nil {
 			return err
 		}
@@ -35,57 +47,66 @@ var regionsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		_, exist := locations["local"]
+		if exist {
+			closest = "local"
+		}
 
 		columns := make([]interface{}, 0)
-
-		ids := maps.Keys(locations)
-
-		awsIds := make([]string, 0, len(ids))
-		flyIds := make([]string, 0, len(ids))
-
-		for _, id := range ids {
-			if strings.HasPrefix(id, "aws-") {
-				awsIds = append(awsIds, id)
-			} else {
-				flyIds = append(flyIds, id)
-			}
-		}
-
-		sort.Strings(awsIds)
-		sort.Strings(flyIds)
-
 		columns = append(columns, "ID↓")
 		columns = append(columns, "LOCATION")
+		singlePlatform := len(locations) == 1
+		platforms := maps.Keys(locations)
+		// Try to provide stable ordering for better UX
+		// Fly comes first if present because the bottom of
+		// the list is what is seen more prominently.
+		priorities := map[string]int{
+			"fly":   0,
+			"aws":   1,
+			"local": 2,
+		}
+		sort.Slice(platforms, func(i, j int) bool {
+			iPriority, iExists := priorities[platforms[i]]
+			jPriority, jExists := priorities[platforms[j]]
 
-		flyTbl := turso.LocationsTable(columns)
-		awsTbl := turso.LocationsTable(columns)
+			if iExists && jExists {
+				return iPriority < jPriority
+			}
 
-		if len(flyIds) > 0 {
-			fmt.Println(internal.Emph("Fly.io Regions:"))
-			for _, location := range flyIds {
-				description := locations[location]
+			if iExists {
+				return true
+			}
+
+			if jExists {
+				return false
+			}
+			return platforms[i] < platforms[j]
+		})
+
+		for idx, platform := range platforms {
+			locs := locations[platform]
+
+			ids := maps.Keys(locs)
+			sort.Strings(ids)
+			tbl := turso.LocationsTable(columns)
+
+			if !singlePlatform {
+				fmt.Println(internal.Emph(platformName(platform)))
+			}
+			for _, location := range ids {
+				description := locs[location]
 				if location == closest {
 					description = fmt.Sprintf("%s  [default]", description)
-					flyTbl.AddRow(internal.Emph(location), internal.Emph(description))
+					tbl.AddRow(internal.Emph(location), internal.Emph(description))
 				} else {
-					flyTbl.AddRow(location, description)
+					tbl.AddRow(location, description)
 				}
 			}
-			flyTbl.Print()
-			fmt.Println("")
-		}
-
-		fmt.Println(internal.Emph("AWS Regions:"))
-		for _, location := range awsIds {
-			description := locations[location]
-			if location == closest {
-				description = fmt.Sprintf("%s  [default]", description)
-				awsTbl.AddRow(internal.Emph(location), internal.Emph(description))
-			} else {
-				awsTbl.AddRow(location, description)
+			tbl.Print()
+			if idx != len(locations)-1 {
+				fmt.Println()
 			}
 		}
-		awsTbl.Print()
 		return nil
 	},
 }
