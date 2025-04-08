@@ -53,7 +53,7 @@ func (o DatabaseListOptions) Encode() string {
 }
 
 type ListResponse struct {
-	Databases []Database `json:"databases"`
+	Databases  []Database  `json:"databases"`
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
@@ -523,7 +523,7 @@ type Pagination struct {
 }
 
 type BranchListOptions struct {
-	Limit int
+	Limit  int
 	Cursor string
 }
 
@@ -539,13 +539,13 @@ func (o BranchListOptions) Encode() string {
 }
 
 type ListBranchesResponse struct {
-	Databases []BranchResponse `json:"databases"`
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Databases  []BranchResponse `json:"databases"`
+	Pagination *Pagination      `json:"pagination,omitempty"`
 }
 
 func (d *DatabasesClient) ListBranches(database string, options BranchListOptions) ([]Database, error) {
 	branchesUrl := d.URL(fmt.Sprintf("/%s/branches", database))
-	
+
 	if params := options.Encode(); params != "" {
 		branchesUrl += "?" + params
 	}
@@ -579,8 +579,6 @@ func (d *DatabasesClient) ListBranches(database string, options BranchListOption
 	for i, branch := range resp.Databases {
 		databases[i] = Database{Name: branch.Name}
 	}
-
-
 
 	return databases, nil
 }
