@@ -31,6 +31,8 @@ type DatabasesClient client
 type DatabaseListOptions struct {
 	Group  string
 	Schema string
+	Limit  int
+	Cursor string
 }
 
 func (o DatabaseListOptions) Encode() string {
@@ -41,7 +43,18 @@ func (o DatabaseListOptions) Encode() string {
 	if o.Schema != "" {
 		query.Set("schema", o.Schema)
 	}
+	if o.Limit > 0 {
+		query.Set("limit", fmt.Sprintf("%d", o.Limit))
+	}
+	if o.Cursor != "" {
+		query.Set("cursor", o.Cursor)
+	}
 	return query.Encode()
+}
+
+type ListResponse struct {
+	Databases []Database `json:"databases"`
+	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
 func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) {
@@ -71,6 +84,16 @@ func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) 
 	}
 	resp, err := unmarshal[ListResponse](r)
 	return resp.Databases, err
+	if err != nil {
+		return nil, err
+	}
+
+	// If there's pagination info with a next cursor, display it
+	if resp.Pagination != nil && resp.Pagination.Next != nil {
+		fmt.Printf("More results available. Use --cursor %s to get the next page\n\n", *resp.Pagination.Next)
+	}
+
+	return resp.Databases, nil
 }
 
 func (d *DatabasesClient) Delete(database string) error {
@@ -495,6 +518,10 @@ func (d *DatabasesClient) URL(suffix string) string {
 	return prefix + "/databases" + suffix
 }
 
+
+type Pagination struct {
+	Next *string `json:"next"`
+}
 type DatabaseConfig struct {
 	AllowAttach      *bool `json:"allow_attach"`
 	DeleteProtection *bool `json:"delete_protection"`

@@ -15,6 +15,8 @@ func init() {
 	dbCmd.AddCommand(listCmd)
 	listCmd.Flags().StringVarP(&groupFilter, "group", "g", "", "Filter databases by group")
 	listCmd.Flags().StringVarP(&schemaFilter, "schema", "s", "", "Filter databases by schema")
+	listCmd.Flags().IntVar(&paginationLimit, "limit", 0, "Limit the number of results returned")
+	listCmd.Flags().StringVar(&paginationCursor, "cursor", "", "Cursor for pagination")
 }
 
 var listCmd = &cobra.Command{
@@ -32,6 +34,8 @@ var listCmd = &cobra.Command{
 		options := turso.DatabaseListOptions{
 			Group:  groupFilter,
 			Schema: schemaFilter,
+			Limit:  paginationLimit,
+			Cursor: paginationCursor,
 		}
 		databases, err := client.Databases.List(options)
 		if err != nil {
