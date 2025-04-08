@@ -57,7 +57,7 @@ type ListResponse struct {
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
-func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) {
+func (d *DatabasesClient) List(options DatabaseListOptions) (ListResponse, error) {
 	path := d.URL("")
 
 	if options := options.Encode(); options != "" {
@@ -66,30 +66,25 @@ func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) 
 
 	r, err := d.client.Get(path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get database listing: %s", err)
+		return ListResponse{}, fmt.Errorf("failed to get database listing: %s", err)
 	}
 	defer r.Body.Close()
 
 	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
-		return nil, notMemberErr(org)
+		return ListResponse{}, notMemberErr(org)
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
+		return ListResponse{}, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
 	}
 
 	resp, err := unmarshal[ListResponse](r)
 	if err != nil {
-		return nil, err
+		return ListResponse{}, err
 	}
 
-	// If there's pagination info with a next cursor, display it
-	if resp.Pagination != nil && resp.Pagination.Next != nil {
-		fmt.Printf("More results available. Use --cursor %s to get the next page\n\n", *resp.Pagination.Next)
-	}
-
-	return resp.Databases, nil
+	return resp, nil
 }
 
 func (d *DatabasesClient) Delete(database string) error {
@@ -543,7 +538,7 @@ type ListBranchesResponse struct {
 	Pagination *Pagination      `json:"pagination,omitempty"`
 }
 
-func (d *DatabasesClient) ListBranches(database string, options BranchListOptions) ([]Database, error) {
+func (d *DatabasesClient) ListBranches(database string, options BranchListOptions) (ListResponse, error) {
 	branchesUrl := d.URL(fmt.Sprintf("/%s/branches", database))
 
 	if params := options.Encode(); params != "" {
@@ -551,27 +546,22 @@ func (d *DatabasesClient) ListBranches(database string, options BranchListOption
 	}
 	r, err := d.client.Get(branchesUrl, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list branches of %s: %s", database, err)
+		return ListResponse{}, fmt.Errorf("failed to list branches of %s: %s", database, err)
 	}
 	defer r.Body.Close()
 
 	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
-		return nil, notMemberErr(org)
+		return ListResponse{}, notMemberErr(org)
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to list branches: %w", parseResponseError(r))
+		return ListResponse{}, fmt.Errorf("failed to list branches: %w", parseResponseError(r))
 	}
 
 	resp, err := unmarshal[ListBranchesResponse](r)
 	if err != nil {
-		return nil, err
-	}
-
-	// If there's pagination info with a next cursor, display it
-	if resp.Pagination != nil && resp.Pagination.Next != nil {
-		fmt.Printf("More results available. Use --cursor %s to get the next page\n\n", *resp.Pagination.Next)
+		return ListResponse{}, err
 	}
 
 	// Convert BranchResponse to Database format
@@ -580,7 +570,10 @@ func (d *DatabasesClient) ListBranches(database string, options BranchListOption
 		databases[i] = Database{Name: branch.Name}
 	}
 
-	return databases, nil
+	return ListResponse{
+		Databases:  databases,
+		Pagination: resp.Pagination,
+	}, nil
 }
 
 type DatabaseConfig struct {

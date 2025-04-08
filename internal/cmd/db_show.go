@@ -19,10 +19,39 @@ func init() {
 	showCmd.Flags().BoolVar(&showInstanceUrlsFlag, "instance-urls", false, "Show URL for the HTTP API of all existing instances")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
 	showCmd.Flags().BoolVar(&showBranchesFlag, "branches", false, "Show a list of branches for this database.")
-	showCmd.Flags().IntVar(&paginationLimit, "limit", 0, "Limit the number of results returned")
-	showCmd.Flags().StringVar(&paginationCursor, "cursor", "", "Cursor for pagination")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
 	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstanceName)
+}
+
+type BranchFetcher struct {
+	client *turso.Client
+	parent string
+}
+
+func (bf *BranchFetcher) FetchPage(pageSize int, cursor *string) (turso.ListResponse, error) {
+	cursorStr := ""
+	if cursor != nil {
+		cursorStr = *cursor
+	}
+
+	options := turso.BranchListOptions{
+		Limit:  pageSize,
+		Cursor: cursorStr,
+	}
+
+	r, err := bf.client.Databases.ListBranches(bf.parent, options)
+	if err != nil {
+		return turso.ListResponse{}, err
+	}
+
+	for i, database := range r.Databases {
+		db, err := getDatabase(bf.client, database.Name, false)
+		if err != nil {
+			return turso.ListResponse{}, err
+		}
+		r.Databases[i] = db
+	}
+	return r, nil
 }
 
 var showCmd = &cobra.Command{
@@ -57,25 +86,11 @@ var showCmd = &cobra.Command{
 		}
 
 		if showBranchesFlag {
-			options := turso.BranchListOptions{
-				Limit:  paginationLimit,
-				Cursor: paginationCursor,
+			fetcher := &BranchFetcher{
+				client: client,
+				parent: db.Name,
 			}
-			branches, err := client.Databases.ListBranches(db.Name, options)
-			if err != nil {
-				return fmt.Errorf("could not get branches of database %s: %w", db.Name, err)
-			}
-
-			headers := []string{"Name"}
-			data := [][]string{}
-
-			for _, branch := range branches {
-				data = append(data, []string{branch.Name})
-			}
-
-			fmt.Printf("Branches for database %s:\n\n", internal.Emph(db.Name))
-			printTable(headers, data)
-			return nil
+			return printDatabaseList(fetcher)
 		}
 
 		instances, dbUsage, err := instancesAndUsage(client, db.Name)
