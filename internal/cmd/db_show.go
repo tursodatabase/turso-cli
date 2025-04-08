@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {
@@ -17,6 +18,9 @@ func init() {
 	showCmd.Flags().BoolVar(&showHttpUrlFlag, "http-url", false, "Show HTTP URL for the database HTTP API.")
 	showCmd.Flags().BoolVar(&showInstanceUrlsFlag, "instance-urls", false, "Show URL for the HTTP API of all existing instances")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
+	showCmd.Flags().BoolVar(&showBranchesFlag, "branches", false, "Show a list of branches for this database.")
+	showCmd.Flags().IntVar(&paginationLimit, "limit", 0, "Limit the number of results returned")
+	showCmd.Flags().StringVar(&paginationCursor, "cursor", "", "Cursor for pagination")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
 	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstanceName)
 }
@@ -49,6 +53,28 @@ var showCmd = &cobra.Command{
 
 		if showHttpUrlFlag {
 			fmt.Println(getDatabaseHttpUrl(&db))
+			return nil
+		}
+
+		if showBranchesFlag {
+			options := turso.BranchListOptions{
+				Limit:  paginationLimit,
+				Cursor: paginationCursor,
+			}
+			branches, err := client.Databases.ListBranches(db.Name, options)
+			if err != nil {
+				return fmt.Errorf("could not get branches of database %s: %w", db.Name, err)
+			}
+
+			headers := []string{"Name"}
+			data := [][]string{}
+
+			for _, branch := range branches {
+				data = append(data, []string{branch.Name})
+			}
+
+			fmt.Printf("Branches for database %s:\n\n", internal.Emph(db.Name))
+			printTable(headers, data)
 			return nil
 		}
 

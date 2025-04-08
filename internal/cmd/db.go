@@ -15,6 +15,7 @@ var (
 	showHttpUrlFlag      bool
 	showInstanceUrlsFlag bool
 	showInstanceUrlFlag  string
+	showBranchesFlag     bool
 	paginationLimit      int
 	paginationCursor     string
 )

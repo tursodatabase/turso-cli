@@ -79,11 +79,7 @@ func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) 
 		return nil, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
 	}
 
-	type ListResponse struct {
-		Databases []Database `json:"databases"`
-	}
 	resp, err := unmarshal[ListResponse](r)
-	return resp.Databases, err
 	if err != nil {
 		return nil, err
 	}
@@ -518,10 +514,77 @@ func (d *DatabasesClient) URL(suffix string) string {
 	return prefix + "/databases" + suffix
 }
 
+type BranchResponse struct {
+	Name string `json:"name"`
+}
 
 type Pagination struct {
 	Next *string `json:"next"`
 }
+
+type BranchListOptions struct {
+	Limit int
+	Cursor string
+}
+
+func (o BranchListOptions) Encode() string {
+	query := url.Values{}
+	if o.Limit > 0 {
+		query.Set("limit", fmt.Sprintf("%d", o.Limit))
+	}
+	if o.Cursor != "" {
+		query.Set("cursor", o.Cursor)
+	}
+	return query.Encode()
+}
+
+type ListBranchesResponse struct {
+	Databases []BranchResponse `json:"databases"`
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
+func (d *DatabasesClient) ListBranches(database string, options BranchListOptions) ([]Database, error) {
+	branchesUrl := d.URL(fmt.Sprintf("/%s/branches", database))
+	
+	if params := options.Encode(); params != "" {
+		branchesUrl += "?" + params
+	}
+	r, err := d.client.Get(branchesUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list branches of %s: %s", database, err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return nil, notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list branches: %w", parseResponseError(r))
+	}
+
+	resp, err := unmarshal[ListBranchesResponse](r)
+	if err != nil {
+		return nil, err
+	}
+
+	// If there's pagination info with a next cursor, display it
+	if resp.Pagination != nil && resp.Pagination.Next != nil {
+		fmt.Printf("More results available. Use --cursor %s to get the next page\n\n", *resp.Pagination.Next)
+	}
+
+	// Convert BranchResponse to Database format
+	databases := make([]Database, len(resp.Databases))
+	for i, branch := range resp.Databases {
+		databases[i] = Database{Name: branch.Name}
+	}
+
+
+
+	return databases, nil
+}
+
 type DatabaseConfig struct {
 	AllowAttach      *bool `json:"allow_attach"`
 	DeleteProtection *bool `json:"delete_protection"`
