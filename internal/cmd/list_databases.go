@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
+
+	"golang.org/x/term"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -189,8 +192,14 @@ func printDatabaseList(fetcher PageFetcher) error {
 		return nil
 	}
 
+	pageSize := 1
+	_, height, err := term.GetSize(int(os.Stdout.Fd()))
+	if err == nil && height > 4 {
+		pageSize = height - 3
+	}
+
 	model := dbListModel{
-		pageSize: 10,
+		pageSize: pageSize,
 		fetcher:  fetcher,
 	}
 
