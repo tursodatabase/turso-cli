@@ -16,8 +16,6 @@ var (
 	showInstanceUrlsFlag bool
 	showInstanceUrlFlag  string
 	showBranchesFlag     bool
-	paginationLimit      int
-	paginationCursor     string
 )
 
 func getInstanceNames(client *turso.Client, dbName string) []string {
