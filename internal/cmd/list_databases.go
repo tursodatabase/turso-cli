@@ -172,7 +172,7 @@ func printDatabaseList(fetcher PageFetcher) error {
 		var cursor *string
 
 		for {
-			r, err := fetchPage(fetcher, 100, cursor)
+			r, err := fetchPage(fetcher, 1000, cursor)
 			if err != nil {
 				return err
 			}
