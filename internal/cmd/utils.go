@@ -104,10 +104,6 @@ func formatBool(b bool) string {
 	return "No"
 }
 
-func getDatabaseLocations(db turso.Database) string {
-	return formatLocations(db.Regions, db.PrimaryRegion)
-}
-
 func formatLocations(locations []string, primary string) string {
 	formatted := make([]string, 0, len(locations))
 	for _, location := range locations {

@@ -31,6 +31,8 @@ type DatabasesClient client
 type DatabaseListOptions struct {
 	Group  string
 	Schema string
+	Limit  int
+	Cursor string
 }
 
 func (o DatabaseListOptions) Encode() string {
@@ -41,10 +43,21 @@ func (o DatabaseListOptions) Encode() string {
 	if o.Schema != "" {
 		query.Set("schema", o.Schema)
 	}
+	if o.Limit > 0 {
+		query.Set("limit", fmt.Sprintf("%d", o.Limit))
+	}
+	if o.Cursor != "" {
+		query.Set("cursor", o.Cursor)
+	}
 	return query.Encode()
 }
 
-func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) {
+type ListResponse struct {
+	Databases  []Database  `json:"databases"`
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
+func (d *DatabasesClient) List(options DatabaseListOptions) (ListResponse, error) {
 	path := d.URL("")
 
 	if options := options.Encode(); options != "" {
@@ -53,24 +66,25 @@ func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) 
 
 	r, err := d.client.Get(path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get database listing: %s", err)
+		return ListResponse{}, fmt.Errorf("failed to get database listing: %s", err)
 	}
 	defer r.Body.Close()
 
 	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
-		return nil, notMemberErr(org)
+		return ListResponse{}, notMemberErr(org)
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
+		return ListResponse{}, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
 	}
 
-	type ListResponse struct {
-		Databases []Database `json:"databases"`
-	}
 	resp, err := unmarshal[ListResponse](r)
-	return resp.Databases, err
+	if err != nil {
+		return ListResponse{}, err
+	}
+
+	return resp, nil
 }
 
 func (d *DatabasesClient) Delete(database string) error {
@@ -493,6 +507,73 @@ func (d *DatabasesClient) URL(suffix string) string {
 		prefix = "/v1/organizations/" + d.client.Org
 	}
 	return prefix + "/databases" + suffix
+}
+
+type BranchResponse struct {
+	Name string `json:"name"`
+}
+
+type Pagination struct {
+	Next *string `json:"next"`
+}
+
+type BranchListOptions struct {
+	Limit  int
+	Cursor string
+}
+
+func (o BranchListOptions) Encode() string {
+	query := url.Values{}
+	if o.Limit > 0 {
+		query.Set("limit", fmt.Sprintf("%d", o.Limit))
+	}
+	if o.Cursor != "" {
+		query.Set("cursor", o.Cursor)
+	}
+	return query.Encode()
+}
+
+type ListBranchesResponse struct {
+	Databases  []BranchResponse `json:"databases"`
+	Pagination *Pagination      `json:"pagination,omitempty"`
+}
+
+func (d *DatabasesClient) ListBranches(database string, options BranchListOptions) (ListResponse, error) {
+	branchesUrl := d.URL(fmt.Sprintf("/%s/branches", database))
+
+	if params := options.Encode(); params != "" {
+		branchesUrl += "?" + params
+	}
+	r, err := d.client.Get(branchesUrl, nil)
+	if err != nil {
+		return ListResponse{}, fmt.Errorf("failed to list branches of %s: %s", database, err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return ListResponse{}, notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return ListResponse{}, fmt.Errorf("failed to list branches: %w", parseResponseError(r))
+	}
+
+	resp, err := unmarshal[ListBranchesResponse](r)
+	if err != nil {
+		return ListResponse{}, err
+	}
+
+	// Convert BranchResponse to Database format
+	databases := make([]Database, len(resp.Databases))
+	for i, branch := range resp.Databases {
+		databases[i] = Database{Name: branch.Name}
+	}
+
+	return ListResponse{
+		Databases:  databases,
+		Pagination: resp.Pagination,
+	}, nil
 }
 
 type DatabaseConfig struct {
