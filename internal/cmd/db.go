@@ -152,12 +152,27 @@ func readLocations(settings *settings.Settings, client *turso.Client) (map[strin
 		return locations, nil
 	}
 
-	locations, err := client.Locations.List()
+	locationsMap, err := mapLocations(client)
 	if err != nil {
 		return nil, err
 	}
 
+	locations := make(map[string]string, 32)
+	for _, platformLocations := range locationsMap {
+		for loc, desc := range platformLocations {
+			locations[loc] = desc
+		}
+	}
+
 	setLocationsCache(locations)
+	return locations, nil
+}
+
+func mapLocations(client *turso.Client) (map[string]map[string]string, error) {
+	locations, err := client.Organizations.Locations()
+	if err != nil {
+		return nil, err
+	}
 	return locations, nil
 }
 
