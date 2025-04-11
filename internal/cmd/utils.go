@@ -265,6 +265,11 @@ func getTursoUrl() string {
 	return url
 }
 
+func getTursoProxyUrl() string {
+	config, _ := settings.ReadSettings() // ok to ignore, we'll fallback to default
+	return config.GetProxyURL()
+}
+
 func promptConfirmation(prompt string) (bool, error) {
 	reader := bufio.NewReader(os.Stdin)
 
