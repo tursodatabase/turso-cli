@@ -23,7 +23,7 @@ type Database struct {
 	Group         string
 	Sleeping      bool
 	Schema        string
-	IsSchema      bool `json:"is_schema" mapstructure:"is_schema"`
+	IsSchema      bool      `json:"is_schema" mapstructure:"is_schema"`
 	Parent        *Database `json:"parent,omitempty"`
 }
 
