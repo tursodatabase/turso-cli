@@ -24,6 +24,7 @@ type Database struct {
 	Sleeping      bool
 	Schema        string
 	IsSchema      bool `json:"is_schema" mapstructure:"is_schema"`
+	Parent        *Database `json:"parent,omitempty"`
 }
 
 type DatabasesClient client
@@ -33,6 +34,7 @@ type DatabaseListOptions struct {
 	Schema string
 	Limit  int
 	Cursor string
+	Parent string
 }
 
 func (o DatabaseListOptions) Encode() string {
@@ -48,6 +50,9 @@ func (o DatabaseListOptions) Encode() string {
 	}
 	if o.Cursor != "" {
 		query.Set("cursor", o.Cursor)
+	}
+	if o.Parent != "" {
+		query.Set("parent", o.Parent)
 	}
 	return query.Encode()
 }
@@ -509,71 +514,8 @@ func (d *DatabasesClient) URL(suffix string) string {
 	return prefix + "/databases" + suffix
 }
 
-type BranchResponse struct {
-	Name string `json:"name"`
-}
-
 type Pagination struct {
 	Next *string `json:"next"`
-}
-
-type BranchListOptions struct {
-	Limit  int
-	Cursor string
-}
-
-func (o BranchListOptions) Encode() string {
-	query := url.Values{}
-	if o.Limit > 0 {
-		query.Set("limit", fmt.Sprintf("%d", o.Limit))
-	}
-	if o.Cursor != "" {
-		query.Set("cursor", o.Cursor)
-	}
-	return query.Encode()
-}
-
-type ListBranchesResponse struct {
-	Databases  []BranchResponse `json:"databases"`
-	Pagination *Pagination      `json:"pagination,omitempty"`
-}
-
-func (d *DatabasesClient) ListBranches(database string, options BranchListOptions) (ListResponse, error) {
-	branchesUrl := d.URL(fmt.Sprintf("/%s/branches", database))
-
-	if params := options.Encode(); params != "" {
-		branchesUrl += "?" + params
-	}
-	r, err := d.client.Get(branchesUrl, nil)
-	if err != nil {
-		return ListResponse{}, fmt.Errorf("failed to list branches of %s: %s", database, err)
-	}
-	defer r.Body.Close()
-
-	org := d.client.Org
-	if isNotMemberErr(r.StatusCode, org) {
-		return ListResponse{}, notMemberErr(org)
-	}
-
-	if r.StatusCode != http.StatusOK {
-		return ListResponse{}, fmt.Errorf("failed to list branches: %w", parseResponseError(r))
-	}
-
-	resp, err := unmarshal[ListBranchesResponse](r)
-	if err != nil {
-		return ListResponse{}, err
-	}
-
-	// Convert BranchResponse to Database format
-	databases := make([]Database, len(resp.Databases))
-	for i, branch := range resp.Databases {
-		databases[i] = Database{Name: branch.Name}
-	}
-
-	return ListResponse{
-		Databases:  databases,
-		Pagination: resp.Pagination,
-	}, nil
 }
 
 type DatabaseConfig struct {

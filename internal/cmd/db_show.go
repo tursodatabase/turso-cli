@@ -34,12 +34,13 @@ func (bf *BranchFetcher) FetchPage(pageSize int, cursor *string) (turso.ListResp
 		cursorStr = *cursor
 	}
 
-	options := turso.BranchListOptions{
+	options := turso.DatabaseListOptions{
 		Limit:  pageSize,
 		Cursor: cursorStr,
+		Parent: bf.parent,
 	}
 
-	r, err := bf.client.Databases.ListBranches(bf.parent, options)
+	r, err := bf.client.Databases.List(options)
 	if err != nil {
 		return turso.ListResponse{}, err
 	}
@@ -88,7 +89,7 @@ var showCmd = &cobra.Command{
 		if showBranchesFlag {
 			fetcher := &BranchFetcher{
 				client: client,
-				parent: db.Name,
+				parent: db.ID,
 			}
 			return printDatabaseList(fetcher)
 		}
@@ -132,6 +133,9 @@ var showCmd = &cobra.Command{
 		fmt.Println("ID:                ", db.ID)
 		if db.Group != "" {
 			fmt.Println("Group:             ", db.Group)
+		}
+		if db.Parent != nil {
+			fmt.Println("Parent:            ", db.Parent.Name)
 		}
 		if db.Version != "" {
 			fmt.Println("Version:           ", db.Version)
