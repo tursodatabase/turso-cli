@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 func init() {
@@ -17,8 +18,41 @@ func init() {
 	showCmd.Flags().BoolVar(&showHttpUrlFlag, "http-url", false, "Show HTTP URL for the database HTTP API.")
 	showCmd.Flags().BoolVar(&showInstanceUrlsFlag, "instance-urls", false, "Show URL for the HTTP API of all existing instances")
 	showCmd.Flags().StringVar(&showInstanceUrlFlag, "instance-url", "", "Show URL for the HTTP API of a selected instance of a database. Instance is selected by instance name.")
+	showCmd.Flags().BoolVar(&showBranchesFlag, "branches", false, "Show a list of branches for this database.")
 	showCmd.RegisterFlagCompletionFunc("instance-url", completeInstanceName)
 	showCmd.RegisterFlagCompletionFunc("instance-ws-url", completeInstanceName)
+}
+
+type BranchFetcher struct {
+	client *turso.Client
+	parent string
+}
+
+func (bf *BranchFetcher) FetchPage(pageSize int, cursor *string) (turso.ListResponse, error) {
+	cursorStr := ""
+	if cursor != nil {
+		cursorStr = *cursor
+	}
+
+	options := turso.DatabaseListOptions{
+		Limit:  pageSize,
+		Cursor: cursorStr,
+		Parent: bf.parent,
+	}
+
+	r, err := bf.client.Databases.List(options)
+	if err != nil {
+		return turso.ListResponse{}, err
+	}
+
+	for i, database := range r.Databases {
+		db, err := getDatabase(bf.client, database.Name, false)
+		if err != nil {
+			return turso.ListResponse{}, err
+		}
+		r.Databases[i] = db
+	}
+	return r, nil
 }
 
 var showCmd = &cobra.Command{
@@ -50,6 +84,14 @@ var showCmd = &cobra.Command{
 		if showHttpUrlFlag {
 			fmt.Println(getDatabaseHttpUrl(&db))
 			return nil
+		}
+
+		if showBranchesFlag {
+			fetcher := &BranchFetcher{
+				client: client,
+				parent: db.ID,
+			}
+			return printDatabaseList(fetcher)
 		}
 
 		instances, dbUsage, err := instancesAndUsage(client, db.Name)
@@ -91,6 +133,9 @@ var showCmd = &cobra.Command{
 		fmt.Println("ID:                ", db.ID)
 		if db.Group != "" {
 			fmt.Println("Group:             ", db.Group)
+		}
+		if db.Parent != nil {
+			fmt.Println("Parent:            ", db.Parent.Name)
 		}
 		if db.Version != "" {
 			fmt.Println("Version:           ", db.Version)

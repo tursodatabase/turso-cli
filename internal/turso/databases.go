@@ -23,7 +23,8 @@ type Database struct {
 	Group         string
 	Sleeping      bool
 	Schema        string
-	IsSchema      bool `json:"is_schema" mapstructure:"is_schema"`
+	IsSchema      bool      `json:"is_schema" mapstructure:"is_schema"`
+	Parent        *Database `json:"parent,omitempty"`
 }
 
 type DatabasesClient client
@@ -31,6 +32,9 @@ type DatabasesClient client
 type DatabaseListOptions struct {
 	Group  string
 	Schema string
+	Limit  int
+	Cursor string
+	Parent string
 }
 
 func (o DatabaseListOptions) Encode() string {
@@ -41,10 +45,24 @@ func (o DatabaseListOptions) Encode() string {
 	if o.Schema != "" {
 		query.Set("schema", o.Schema)
 	}
+	if o.Limit > 0 {
+		query.Set("limit", fmt.Sprintf("%d", o.Limit))
+	}
+	if o.Cursor != "" {
+		query.Set("cursor", o.Cursor)
+	}
+	if o.Parent != "" {
+		query.Set("parent", o.Parent)
+	}
 	return query.Encode()
 }
 
-func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) {
+type ListResponse struct {
+	Databases  []Database  `json:"databases"`
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
+func (d *DatabasesClient) List(options DatabaseListOptions) (ListResponse, error) {
 	path := d.URL("")
 
 	if options := options.Encode(); options != "" {
@@ -53,24 +71,25 @@ func (d *DatabasesClient) List(options DatabaseListOptions) ([]Database, error) 
 
 	r, err := d.client.Get(path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get database listing: %s", err)
+		return ListResponse{}, fmt.Errorf("failed to get database listing: %s", err)
 	}
 	defer r.Body.Close()
 
 	org := d.client.Org
 	if isNotMemberErr(r.StatusCode, org) {
-		return nil, notMemberErr(org)
+		return ListResponse{}, notMemberErr(org)
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
+		return ListResponse{}, fmt.Errorf("failed to get database listing: %w", parseResponseError(r))
 	}
 
-	type ListResponse struct {
-		Databases []Database `json:"databases"`
-	}
 	resp, err := unmarshal[ListResponse](r)
-	return resp.Databases, err
+	if err != nil {
+		return ListResponse{}, err
+	}
+
+	return resp, nil
 }
 
 func (d *DatabasesClient) Delete(database string) error {
@@ -493,6 +512,10 @@ func (d *DatabasesClient) URL(suffix string) string {
 		prefix = "/v1/organizations/" + d.client.Org
 	}
 	return prefix + "/databases" + suffix
+}
+
+type Pagination struct {
+	Next *string `json:"next"`
 }
 
 type DatabaseConfig struct {

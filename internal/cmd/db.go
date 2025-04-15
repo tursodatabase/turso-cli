@@ -15,6 +15,7 @@ var (
 	showHttpUrlFlag      bool
 	showInstanceUrlsFlag bool
 	showInstanceUrlFlag  string
+	showBranchesFlag     bool
 )
 
 func getInstanceNames(client *turso.Client, dbName string) []string {
@@ -57,12 +58,12 @@ func getDatabases(client *turso.Client, fresh ...bool) ([]turso.Database, error)
 	if cachedNames := getDatabasesCache(); !skipCache && cachedNames != nil {
 		return cachedNames, nil
 	}
-	databases, err := client.Databases.List(turso.DatabaseListOptions{})
+	r, err := client.Databases.List(turso.DatabaseListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	setDatabasesCache(databases)
-	return databases, nil
+	setDatabasesCache(r.Databases)
+	return r.Databases, nil
 }
 
 func getDatabasesMap(client *turso.Client, fresh bool) (map[string]turso.Database, error) {
