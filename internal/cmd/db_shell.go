@@ -20,16 +20,10 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
-var proxy string
-
 func init() {
 	dbCmd.AddCommand(shellCmd)
 	addInstanceFlag(shellCmd, "Connect to the database at the specified instance.")
 	addLocationFlag(shellCmd, "Connect to the database at the specified location.")
-	shellCmd.Flags().StringVar(&proxy, "proxy", "", "Proxy to use for the connection.")
-	shellCmd.RegisterFlagCompletionFunc("proxy", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{}, cobra.ShellCompDirectiveNoFileComp
-	})
 	flags.AddAttachClaims(shellCmd)
 }
 
@@ -222,7 +216,7 @@ var shellCmd = &cobra.Command{
 
 		shellConfig := shell.ShellConfig{
 			DbUri:          dbUrl,
-			Proxy:          proxy,
+			Proxy:          getTursoProxyUrl(),
 			AuthToken:      authToken,
 			InF:            cmd.InOrStdin(),
 			OutF:           cmd.OutOrStdout(),
