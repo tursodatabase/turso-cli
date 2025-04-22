@@ -52,8 +52,8 @@ type ClosestLocationResponse struct {
 	Server string
 }
 
-func (c *LocationsClient) Closest() (string, error) {
-	r, err := c.client.Get("https://region.turso.io", nil)
+func (c *LocationsClient) Closest(regionUrl string) (string, error) {
+	r, err := c.client.Get(regionUrl, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to request closest: %s", err)
 	}
