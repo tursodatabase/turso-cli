@@ -1,7 +1,10 @@
 package turso
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/tursodatabase/turso-cli/internal"
@@ -357,6 +360,82 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 
 func (c *OrganizationsClient) MembersURL(suffix string) (string, error) {
 	return "/v1/organizations/" + c.client.Org + "/members" + suffix, nil
+}
+
+type AuditLogData map[string]interface{}
+
+type AuditLog struct {
+	Code        string       `json:"code,omitempty"`
+	Message     string       `json:"message,omitempty"`
+	Data        AuditLogData `json:"data,omitempty"`
+	Origin      string       `json:"origin,omitempty"`
+	Author      string       `json:"author,omitempty"`
+	CreatedAt   string       `json:"created_at,omitempty"`
+	City        string       `json:"city,omitempty"`
+	CountryCode string       `json:"country_code,omitempty"`
+	Latitude    string       `json:"latitude,omitempty"`
+	Longitude   string       `json:"longitude,omitempty"`
+	IP          string       `json:"ip,omitempty"`
+}
+
+type AuditLogsPagination struct {
+	PageSize   int    `json:"page_size,omitempty"`
+	Page       int    `json:"page,omitempty"`
+	Sort       string `json:"sort,omitempty"`
+	TotalRows  int    `json:"total_rows,omitempty"`
+	TotalPages int    `json:"total_pages,omitempty"`
+}
+
+type AuditLogsResponse struct {
+	AuditLogs  []AuditLog          `json:"audit_logs"`
+	Pagination AuditLogsPagination `json:"pagination"`
+}
+
+func (c *OrganizationsClient) AuditLogs(org string, page int, limit int) (AuditLogsResponse, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/audit-logs?page=%d&page_size=%d", org, page, limit)
+	r, err := c.client.Get(path, nil)
+	if err != nil {
+		return AuditLogsResponse{}, fmt.Errorf("failed to get audit logs: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode == http.StatusNotFound {
+		return AuditLogsResponse{}, fmt.Errorf("audit logs endpoint not found. This feature may not be available yet")
+	}
+
+	if r.StatusCode != http.StatusOK {
+
+		body, err := io.ReadAll(r.Body)
+		r.Body.Close()
+
+		r2 := &http.Response{
+			StatusCode: r.StatusCode,
+			Status:     r.Status,
+			Body:       io.NopCloser(bytes.NewReader(body)),
+		}
+
+		if err == nil && len(body) > 0 {
+			var errResp struct {
+				Error interface{} `json:"error"`
+				Code  string      `json:"code"`
+			}
+
+			if err := json.Unmarshal(body, &errResp); err == nil {
+				if errResp.Code == "feature_not_available_for_starter_plan" {
+					return AuditLogsResponse{}, fmt.Errorf("audit logs are not available on the starter plan - upgrade to access this feature")
+				}
+			}
+		}
+
+		return AuditLogsResponse{}, fmt.Errorf("failed to get audit logs: %w", parseResponseError(r2))
+	}
+
+	data, err := unmarshal[AuditLogsResponse](r)
+	if err != nil {
+		return AuditLogsResponse{}, fmt.Errorf("failed to deserialize audit logs response: %w", err)
+	}
+
+	return data, nil
 }
 
 func unsetOrganization() error {

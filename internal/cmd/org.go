@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
@@ -20,6 +22,11 @@ func init() {
 	orgCmd.AddCommand(orgSwitchCmd)
 	orgCmd.AddCommand(membersCmd)
 	orgCmd.AddCommand(invitesCmd)
+	orgCmd.AddCommand(auditLogsCmd)
+	auditLogsCmd.AddCommand(auditLogsListCmd)
+	auditLogsListCmd.Flags().IntP("page", "p", 1, "Page number")
+	auditLogsListCmd.Flags().IntP("limit", "s", 25, "Number of logs per page")
+	auditLogsListCmd.Flags().BoolP("verbose", "v", false, "Show detailed audit log information")
 	membersCmd.AddCommand(membersListCmd)
 	membersCmd.AddCommand(membersAddCmd)
 	membersCmd.AddCommand(membersRemoveCmd)
@@ -82,6 +89,101 @@ func switchToOrg(client *turso.Client, slug string, showHowToGoBack bool) error 
 var orgCmd = &cobra.Command{
 	Use:   "org",
 	Short: "Manage your organizations",
+}
+
+var auditLogsCmd = &cobra.Command{
+	Use:   "audit-logs",
+	Short: "Manage organization audit logs",
+}
+
+var auditLogsListCmd = &cobra.Command{
+	Use:               "list",
+	Short:             "List organization audit logs",
+	Args:              cobra.NoArgs,
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		page, err := cmd.Flags().GetInt("page")
+		if err != nil {
+			return err
+		}
+
+		limit, err := cmd.Flags().GetInt("limit")
+		if err != nil {
+			return err
+		}
+
+		s := prompt.Spinner("Fetching audit logs")
+		defer s.Stop()
+
+		settingsObj, err := settings.ReadSettings()
+		if err != nil {
+			return err
+		}
+		org := settingsObj.Organization()
+		if org == "" {
+			org = settingsObj.GetUsername()
+		}
+
+		auditLogs, err := client.Organizations.AuditLogs(org, page, limit)
+		s.Stop()
+		if err != nil {
+			return err
+		}
+
+		if len(auditLogs.AuditLogs) == 0 {
+			fmt.Println("No audit logs found.")
+			return nil
+		}
+
+		fmt.Printf("Showing %d of %d audit logs (page %d of %d):\n\n",
+			len(auditLogs.AuditLogs),
+			auditLogs.Pagination.TotalRows,
+			auditLogs.Pagination.Page,
+			auditLogs.Pagination.TotalPages)
+
+		verbose, _ := cmd.Flags().GetBool("verbose")
+
+		if verbose {
+
+			for _, log := range auditLogs.AuditLogs {
+				timestamp := internal.Emph(log.CreatedAt)
+				author := internal.Emph(log.Author)
+				origin := internal.Emph(log.Origin)
+				code := internal.Emph(log.Code)
+
+				fmt.Printf("%s: %s via %s performed %s\n", timestamp, author, origin, code)
+
+				if len(log.Data) > 0 {
+					fmt.Println("  Data:")
+					for key, value := range log.Data {
+						fmt.Printf("    %s: %v\n", key, value)
+					}
+				}
+				fmt.Println()
+			}
+		} else {
+
+			data := make([][]string, 0, len(auditLogs.AuditLogs))
+			for _, log := range auditLogs.AuditLogs {
+				timestamp := log.CreatedAt
+
+				if t, err := time.Parse(time.RFC3339, log.CreatedAt); err == nil {
+					timestamp = t.Format("2006-01-02 15:04:05")
+				}
+				data = append(data, []string{timestamp, log.Author, log.Code, log.Origin})
+			}
+			printTable([]string{"date", "author", "code", "origin"}, data)
+		}
+
+		return nil
+	},
 }
 
 var orgListCmd = &cobra.Command{

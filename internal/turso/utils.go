@@ -25,9 +25,17 @@ func marshal(data interface{}) (io.Reader, error) {
 }
 
 func parseResponseError(res *http.Response) error {
-	type ErrorResponse struct{ Error interface{} }
+	type ErrorResponse struct {
+		Error interface{} `json:"error"`
+		Code  string      `json:"code"`
+	}
 	if result, err := unmarshal[ErrorResponse](res); err == nil {
-		return fmt.Errorf("%s", result.Error)
+		if result.Code == "feature_not_available_for_starter_plan" {
+			return fmt.Errorf("%s", result.Error)
+		}
+		if result.Error != nil {
+			return fmt.Errorf("%v", result.Error)
+		}
 	}
 	return fmt.Errorf("response failed with status %s", res.Status)
 }
