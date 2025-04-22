@@ -24,17 +24,37 @@ func marshal(data interface{}) (io.Reader, error) {
 	return buf, err
 }
 
-func parseResponseError(res *http.Response) error {
-	type ErrorResponse struct {
-		Error interface{} `json:"error"`
-		Code  string      `json:"code"`
+type ErrorResponseDetails struct {
+	Error interface{} `json:"error"`
+	Code  string      `json:"code"`
+}
+
+func GetFeatureError(body []byte, feature string) error {
+	if len(body) == 0 {
+		return nil
 	}
-	if result, err := unmarshal[ErrorResponse](res); err == nil {
-		if result.Code == "feature_not_available_for_starter_plan" {
-			return fmt.Errorf("%s", result.Error)
-		}
-		if result.Error != nil {
-			return fmt.Errorf("%v", result.Error)
+
+	var errResp ErrorResponseDetails
+	if err := json.Unmarshal(body, &errResp); err != nil {
+		return nil
+	}
+
+	if errResp.Code == "feature_not_available_for_starter_plan" {
+		return fmt.Errorf("%s are not available on the starter plan - upgrade to access this feature", feature)
+	}
+	return nil
+}
+
+func parseResponseError(res *http.Response) error {
+	d, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("response failed with status %s", res.Status)
+	}
+
+	var errResp ErrorResponseDetails
+	if err := json.Unmarshal(d, &errResp); err == nil {
+		if errResp.Error != nil {
+			return fmt.Errorf("%v", errResp.Error)
 		}
 	}
 	return fmt.Errorf("response failed with status %s", res.Status)

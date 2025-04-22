@@ -2,7 +2,6 @@ package turso
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -404,29 +403,19 @@ func (c *OrganizationsClient) AuditLogs(org string, page int, limit int) (AuditL
 	}
 
 	if r.StatusCode != http.StatusOK {
-
 		body, err := io.ReadAll(r.Body)
 		r.Body.Close()
 
+		if err == nil {
+			if featureErr := GetFeatureError(body, "Audit logs"); featureErr != nil {
+				return AuditLogsResponse{}, featureErr
+			}
+		}
 		r2 := &http.Response{
 			StatusCode: r.StatusCode,
 			Status:     r.Status,
 			Body:       io.NopCloser(bytes.NewReader(body)),
 		}
-
-		if err == nil && len(body) > 0 {
-			var errResp struct {
-				Error interface{} `json:"error"`
-				Code  string      `json:"code"`
-			}
-
-			if err := json.Unmarshal(body, &errResp); err == nil {
-				if errResp.Code == "feature_not_available_for_starter_plan" {
-					return AuditLogsResponse{}, fmt.Errorf("audit logs are not available on the starter plan - upgrade to access this feature")
-				}
-			}
-		}
-
 		return AuditLogsResponse{}, fmt.Errorf("failed to get audit logs: %w", parseResponseError(r2))
 	}
 
