@@ -132,7 +132,6 @@ var auditLogsListCmd = &cobra.Command{
 		}
 
 		auditLogs, err := client.Organizations.AuditLogs(org, page, limit)
-		s.Stop()
 		if err != nil {
 			return err
 		}
