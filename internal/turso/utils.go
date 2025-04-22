@@ -40,7 +40,7 @@ func GetFeatureError(body []byte, feature string) error {
 	}
 
 	if errResp.Code == "feature_not_available_for_starter_plan" {
-		return fmt.Errorf("%s are not available on the starter plan - upgrade to access this feature", feature)
+		return fmt.Errorf("%s are not available on the free plan - upgrade to access this feature", feature)
 	}
 	return nil
 }
