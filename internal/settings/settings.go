@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -146,6 +147,17 @@ func (s *Settings) GetBaseURL() string {
 
 func (s *Settings) GetProxyURL() string {
 	return viper.GetString("proxyURL")
+}
+
+func (s *Settings) GetRegionURL() string {
+	baseURL := s.GetProxyURL()
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return "https://region.turso.io"
+	}
+
+	parsedURL.Host = "region." + parsedURL.Host
+	return parsedURL.String()
 }
 
 func (s *Settings) SetAutoupdate(autoupdate string) {
