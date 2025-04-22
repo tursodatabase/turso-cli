@@ -404,7 +404,6 @@ func (c *OrganizationsClient) AuditLogs(org string, page int, limit int) (AuditL
 
 	if r.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(r.Body)
-		r.Body.Close()
 
 		if err == nil {
 			if featureErr := GetFeatureError(body, "Audit logs"); featureErr != nil {
