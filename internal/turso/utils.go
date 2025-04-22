@@ -36,7 +36,7 @@ func GetFeatureError(body []byte, feature string) error {
 
 	var errResp ErrorResponseDetails
 	if err := json.Unmarshal(body, &errResp); err != nil {
-		return nil
+		return fmt.Errorf("failed to unmarshal error response: %w", err)
 	}
 
 	if errResp.Code == "feature_not_available_for_starter_plan" {
