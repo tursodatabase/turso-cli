@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"time"
 	"unicode/utf8"
 
 	"github.com/rodaine/table"
@@ -53,8 +52,8 @@ type ClosestLocationResponse struct {
 	Server string
 }
 
-func (c *LocationsClient) Closest() (string, error) {
-	r, err := c.client.Get("https://region.turso.io", nil)
+func (c *LocationsClient) Closest(regionUrl string) (string, error) {
+	r, err := c.client.Get(regionUrl, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to request closest: %s", err)
 	}
@@ -71,35 +70,6 @@ func (c *LocationsClient) Closest() (string, error) {
 	}
 
 	return data.Server, nil
-}
-
-func ProbeLocation(location string) *time.Duration {
-	client := &http.Client{Timeout: 2 * time.Second}
-	req, err := http.NewRequest("GET", "http://region.turso.io:8080/", nil)
-	if err != nil {
-		return nil
-	}
-	req.Header.Add("fly-prefer-region", location)
-
-	start := time.Now()
-	r, err := client.Do(req)
-	if err != nil {
-		return nil
-	}
-	defer r.Body.Close()
-
-	dur := time.Since(start)
-	if r.StatusCode != http.StatusOK {
-		return nil
-	}
-	data, err := unmarshal[ClosestLocationResponse](r)
-	if err != nil {
-		return nil
-	}
-	if data.Server != location {
-		return nil
-	}
-	return &dur
 }
 
 func LocationsTable(columns []interface{}) table.Table {

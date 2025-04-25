@@ -182,7 +182,13 @@ func closestLocation(client *turso.Client) (string, error) {
 		return closest, nil
 	}
 
-	closest, err := client.Locations.Closest()
+	settings, err := settings.ReadSettings()
+	if err != nil {
+		return "", fmt.Errorf("could not read settings file to probe for locations: %w", err)
+	}
+
+	regionUrl := settings.GetRegionURL()
+	closest, err := client.Locations.Closest(regionUrl)
 	if err != nil {
 		// We fallback to ams if we are unable to probe the closest location.
 		return "ams", err

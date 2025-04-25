@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -34,6 +35,7 @@ func ReadSettings() (*Settings, error) {
 	configPath := configdir.LocalConfig("turso")
 	viper.BindEnv("config-path", "TURSO_CONFIG_FOLDER")
 	viper.BindEnv("baseURL", "TURSO_API_BASEURL")
+	viper.BindEnv("proxyURL", "TURSO_PROXY_URL")
 
 	configPathFlag := viper.GetString("config-path")
 	if len(configPathFlag) > 0 {
@@ -141,6 +143,21 @@ func (s *Settings) GetUsername() string {
 
 func (s *Settings) GetBaseURL() string {
 	return viper.GetString("baseURL")
+}
+
+func (s *Settings) GetProxyURL() string {
+	return viper.GetString("proxyURL")
+}
+
+func (s *Settings) GetRegionURL() string {
+	baseURL := s.GetProxyURL()
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return "https://region.turso.io"
+	}
+
+	parsedURL.Host = "region." + parsedURL.Host
+	return parsedURL.String()
 }
 
 func (s *Settings) SetAutoupdate(autoupdate string) {
