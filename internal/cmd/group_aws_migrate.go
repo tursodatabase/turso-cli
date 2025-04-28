@@ -19,6 +19,7 @@ func init() {
 	groupCmd.AddCommand(groupAwsMigrationCmd)
 	groupAwsMigrationCmd.AddCommand(groupAwsMigrationInfoCmd)
 	groupAwsMigrationCmd.AddCommand(groupAwsMigrationStartCmd)
+	groupAwsMigrationCmd.AddCommand(groupAwsMigrationAbortCmd)
 }
 
 var groupAwsMigrationInfoCmd = &cobra.Command{
@@ -138,5 +139,60 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 				}
 			}
 		}
+	},
+}
+
+var groupAwsMigrationAbortCmd = &cobra.Command{
+	Use:               "abort <group-name>",
+	Short:             "Abort migration process of the group",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		group := args[0]
+		if group == "" {
+			return fmt.Errorf("the first argument must contain a group name")
+		}
+
+		cmd.SilenceUsage = true
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		_, err = client.Groups.Get(group)
+		if err != nil {
+			return err
+		}
+
+		info, err := client.Groups.GetAwsMigrationInfo(group)
+		if err != nil {
+			return err
+		}
+
+		if info.Status == "none" {
+			fmt.Printf("Migration is %v", internal.Emph("not started"))
+			return nil
+		} else if info.Status == "aborted" {
+			fmt.Printf("Migration is already %v", internal.Emph("aborted"))
+			return nil
+		} else if info.Status == "finished" {
+			fmt.Printf("Migration is already %v", internal.Emph("finished"))
+			return nil
+		}
+
+		ok, err := promptConfirmation(fmt.Sprintf("Are you sure you want to abort group migration %s from Fly to AWS?", internal.Emph(group)))
+		if err != nil {
+			return fmt.Errorf("could not get prompt confirmed by user: %w", err)
+		}
+
+		if !ok {
+			fmt.Println("Group migration abort cancelled by the user.")
+			return nil
+		}
+
+		spinner := prompt.Spinner(fmt.Sprintf("Migration of group %v aborted", group))
+		defer spinner.Stop()
+
+		return client.Groups.AbortAwsMigration(group)
 	},
 }

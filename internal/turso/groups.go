@@ -420,6 +420,21 @@ func (d *GroupsClient) StartAwsMigration(group string) error {
 	return nil
 }
 
+func (d *GroupsClient) AbortAwsMigration(group string) error {
+	url := d.URL(fmt.Sprintf("/%s/aws/migration/abort", group))
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to abort group migration: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err := parseResponseError(r)
+		return fmt.Errorf("failed to start group migration: %w", err)
+	}
+	return nil
+}
+
 func (d *GroupsClient) URL(suffix string) string {
 	prefix := "/v1"
 	if d.client.Org != "" {
