@@ -222,8 +222,11 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group 
 		return nil, fmt.Errorf("could not create database token: %w", err)
 	}
 
-	hostname := resp.Database.Hostname
-	tursoServerClient, err := NewTursoServerClient(hostname, token, d.client.cliVersion, d.client.Org)
+	baseURL, err := url.Parse(fmt.Sprintf("https://%s", resp.Database.Hostname))
+	if err != nil {
+		return nil, fmt.Errorf("unable to create TursoServerClient: %v", err)
+	}
+	tursoServerClient, err := NewTursoServerClient(baseURL, token, d.client.cliVersion, d.client.Org)
 	if err != nil {
 		return nil, fmt.Errorf("could not create Turso server client: %w", err)
 	}
@@ -260,6 +263,27 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group 
 
 	// Return the original database creation response
 	return resp, nil
+}
+
+func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata bool, overwrite bool) error {
+	if !overwrite {
+		if _, err := os.Stat(outputFile); err == nil {
+			return fmt.Errorf("file %s already exists, use `--overwrite` flag to overwrite it", outputFile)
+		}
+	}
+	token, err := d.Token(dbName, "1h", false, nil)
+	if err != nil {
+		return fmt.Errorf("could not create database token: %w", err)
+	}
+	baseURL, err := url.Parse(dbUrl)
+	if err != nil {
+		return fmt.Errorf("could not parse database URL: %w", err)
+	}
+	tursoServerClient, err := NewTursoServerClient(baseURL, token, d.client.cliVersion, d.client.Org)
+	if err != nil {
+		return fmt.Errorf("could not create Turso server client: %w", err)
+	}
+	return tursoServerClient.Export(outputFile, withMetadata)
 }
 
 func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
