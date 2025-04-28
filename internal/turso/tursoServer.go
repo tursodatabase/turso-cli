@@ -104,6 +104,9 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 		return fmt.Errorf("failed to fetch database info: %w", err)
 	}
 	defer res.Body.Close()
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("database software version does not support exporting")
+	}
 	if res.StatusCode != http.StatusOK {
 		return parseResponseError(res)
 	}
