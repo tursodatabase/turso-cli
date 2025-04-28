@@ -1,8 +1,11 @@
 package turso
 
 import (
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"net/http"
 	"net/url"
@@ -42,11 +45,7 @@ type TursoServerClient struct {
 	client *Client
 }
 
-func NewTursoServerClient(tenantHostname string, token string, cliVersion string, org string) (TursoServerClient, error) {
-	baseURL, err := url.Parse(fmt.Sprintf("https://%s", tenantHostname))
-	if err != nil {
-		return TursoServerClient{}, fmt.Errorf("unable to create TursoServerClient: %v", err)
-	}
+func NewTursoServerClient(baseURL *url.URL, token string, cliVersion string, org string) (TursoServerClient, error) {
 	newClient := New(baseURL, token, cliVersion, org)
 
 	return TursoServerClient{
@@ -96,5 +95,76 @@ func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(pr
 		return fmt.Errorf("upload failed with status code %d: %s", r.StatusCode, string(body))
 	}
 
+	return nil
+}
+
+func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
+	res, err := i.client.Get("/info", nil)
+	if err != nil {
+		return fmt.Errorf("failed to fetch database info: %w", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return parseResponseError(res)
+	}
+	var info struct {
+		CurrentGeneration int `json:"current_generation"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&info); err != nil {
+		return fmt.Errorf("failed to decode /info response: %w", err)
+	}
+
+	exportRes, err := i.client.Get(fmt.Sprintf("/export/%d", info.CurrentGeneration), nil)
+	if err != nil {
+		return fmt.Errorf("failed to fetch export: %w", err)
+	}
+	defer exportRes.Body.Close()
+	if exportRes.StatusCode != http.StatusOK {
+		return parseResponseError(exportRes)
+	}
+
+	out, err := os.Create(outputFile)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, exportRes.Body); err != nil {
+		return fmt.Errorf("failed to write export to file: %w", err)
+	}
+
+	if withMetadata {
+		out, err := os.Create(outputFile + "-info")
+		if err != nil {
+			return fmt.Errorf("failed to create info file: %w", err)
+		}
+		defer out.Close()
+
+		hasher := crc32.New(crc32.MakeTable(crc32.IEEE))
+		var versionBytes [4]byte
+		var durableFrameNumBytes [4]byte
+		var generationBytes [4]byte
+		binary.LittleEndian.PutUint32(versionBytes[:], 0)
+		binary.LittleEndian.PutUint32(durableFrameNumBytes[:], 0)
+		binary.LittleEndian.PutUint32(generationBytes[:], uint32(info.CurrentGeneration))
+		hasher.Write(versionBytes[:])
+		hasher.Write(durableFrameNumBytes[:])
+		hasher.Write(generationBytes[:])
+		hash := int(hasher.Sum32())
+
+		metadata := struct {
+			Hash            int `json:"hash"`
+			Version         int `json:"version"`
+			DurableFrameNum int `json:"durable_frame_num"`
+			Generation      int `json:"generation"`
+		}{
+			Hash:            hash,
+			Version:         0,
+			DurableFrameNum: 0,
+			Generation:      info.CurrentGeneration,
+		}
+		if err := json.NewEncoder(out).Encode(metadata); err != nil {
+			return fmt.Errorf("failed to write metadata to file: %w", err)
+		}
+	}
 	return nil
 }
