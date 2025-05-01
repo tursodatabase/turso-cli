@@ -152,7 +152,7 @@ func (s *Settings) GetProxyURL() string {
 func (s *Settings) GetRegionURL() string {
 	baseURL := s.GetProxyURL()
 	parsedURL, err := url.Parse(baseURL)
-	if err != nil {
+	if err != nil || baseURL == "" {
 		return "https://region.turso.io"
 	}
 
