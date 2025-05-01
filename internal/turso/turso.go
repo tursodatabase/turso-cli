@@ -1,17 +1,14 @@
 package turso
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/tursodatabase/turso-cli/internal/flags"
 )
@@ -104,26 +101,7 @@ func (t *Client) do(method, path string, body io.Reader, extraHeaders map[string
 	if err != nil {
 		return nil, err
 	}
-
-	var client = &http.Client{
-		// go seems to have issues resolving things like region.localhost:9090, while curl works fine.
-		// Make sure we can get it to work in those cases by resolving it manually.
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				host, port, err := net.SplitHostPort(addr)
-				if err != nil {
-					return nil, err
-				}
-
-				if strings.HasSuffix(host, ".localhost") {
-					return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", port))
-				}
-
-				return (&net.Dialer{}).DialContext(ctx, network, addr)
-			},
-		},
-	}
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
