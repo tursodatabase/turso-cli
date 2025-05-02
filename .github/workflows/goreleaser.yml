@@ -28,14 +28,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_TO_TAP }}
-      - name: Run GoReleaser to legacy tap
-        uses: goreleaser/goreleaser-action@v4
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean --config .goreleaser-legacy-tap.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_TO_LEGACY_TAP }}
       - name: Run GoReleaser to turso-cli repo
         uses: goreleaser/goreleaser-action@v4
         with:
