@@ -430,7 +430,7 @@ func (d *GroupsClient) AbortAwsMigration(group string) error {
 
 	if r.StatusCode != http.StatusOK {
 		err := parseResponseError(r)
-		return fmt.Errorf("failed to start group migration: %w", err)
+		return fmt.Errorf("failed to abort group migration: %w", err)
 	}
 	return nil
 }

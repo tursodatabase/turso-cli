@@ -121,7 +121,7 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Millisecond)
+		ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Minute)
 		defer cancel()
 
 		for {
