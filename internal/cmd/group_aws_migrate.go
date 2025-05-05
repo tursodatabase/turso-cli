@@ -50,11 +50,13 @@ var groupAwsMigrationInfoCmd = &cobra.Command{
 		}
 
 		if info.Status == "pending" {
-			fmt.Printf("Migration is %v\n%v", internal.Emph("in progress"), info.Comment)
+			fmt.Printf("Migration is %v\n%v\n", internal.Emph("in progress"), info.Comment)
 		} else if info.Status == "finished" {
-			fmt.Printf("Migration is %v", internal.Emph("finished"))
+			fmt.Printf("Migration is %v\n", internal.Emph("finished"))
+		} else if info.Status == "aborted" {
+			fmt.Printf("Migration was %v\n", internal.Emph("aborted"))
 		} else if info.Status == "none" {
-			fmt.Printf("Migration is %v\n\n%v", internal.Emph("not started"), info.Comment)
+			fmt.Printf("Migration is %v\n", internal.Emph("not started"))
 		}
 
 		return nil
@@ -89,10 +91,13 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 		}
 
 		if info.Status == "pending" {
-			fmt.Printf("Migration is %v\n%v", internal.Emph("in progress"), info.Comment)
+			fmt.Printf("Migration is %v\n%v\n", internal.Emph("in progress"), info.Comment)
 			return nil
 		} else if info.Status == "finished" {
-			fmt.Printf("Migration is %v", internal.Emph("finished"))
+			fmt.Printf("Migration is %v\n", internal.Emph("finished"))
+			return nil
+		} else if info.Status == "aborted" {
+			fmt.Printf("Migration was %v\nPlease, contact with support@turso.tech for further assistance with group migration\n", internal.Emph("aborted"))
 			return nil
 		}
 
