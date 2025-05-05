@@ -11,7 +11,7 @@ import (
 )
 
 var groupAwsMigrationCmd = &cobra.Command{
-	Use:   "migration",
+	Use:   "aws-migration",
 	Short: "Manage AWS migration of the group",
 }
 
@@ -50,13 +50,13 @@ var groupAwsMigrationInfoCmd = &cobra.Command{
 		}
 
 		if info.Status == "pending" {
-			fmt.Printf("Migration is %v\n%v\n", internal.Emph("in progress"), info.Comment)
+			fmt.Printf("AWS migration is %v\n%v\n", internal.Emph("in progress"), info.Comment)
 		} else if info.Status == "finished" {
-			fmt.Printf("Migration is %v\n", internal.Emph("finished"))
+			fmt.Printf("AWS migration is %v\n", internal.Emph("finished"))
 		} else if info.Status == "aborted" {
-			fmt.Printf("Migration was %v\n", internal.Emph("aborted"))
+			fmt.Printf("AWS migration was %v\n", internal.Emph("aborted"))
 		} else if info.Status == "none" {
-			fmt.Printf("Migration is %v\n", internal.Emph("not started"))
+			fmt.Printf("AWS migration is %v\n", internal.Emph("not started"))
 		}
 
 		return nil
@@ -65,7 +65,7 @@ var groupAwsMigrationInfoCmd = &cobra.Command{
 
 var groupAwsMigrationStartCmd = &cobra.Command{
 	Use:               "start <group-name>",
-	Short:             "Start migration process of the group",
+	Short:             "Start AWS migration process of the group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -91,13 +91,13 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 		}
 
 		if info.Status == "pending" {
-			fmt.Printf("Migration is %v\n%v\n", internal.Emph("in progress"), info.Comment)
+			fmt.Printf("AWS migration is %v\n%v\n", internal.Emph("in progress"), info.Comment)
 			return nil
 		} else if info.Status == "finished" {
-			fmt.Printf("Migration is %v\n", internal.Emph("finished"))
+			fmt.Printf("AWS migration is %v\n", internal.Emph("finished"))
 			return nil
 		} else if info.Status == "aborted" {
-			fmt.Printf("Migration was %v\nPlease, contact with support@turso.tech for further assistance with group migration\n", internal.Emph("aborted"))
+			fmt.Printf("AWS migration was %v\nPlease, contact with support@turso.tech for further assistance with group migration\n", internal.Emph("aborted"))
 			return nil
 		}
 
@@ -113,7 +113,7 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 			return nil
 		}
 
-		spinner := prompt.Spinner(fmt.Sprintf("Migration of group %v is in progress", group))
+		spinner := prompt.Spinner(fmt.Sprintf("AWS migration of group %v is in progress", group))
 		defer spinner.Stop()
 
 		err = client.Groups.StartAwsMigration(group)
@@ -121,14 +121,17 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Millisecond)
 		defer cancel()
 
 		for {
 			select {
 			case <-ctx.Done():
 				spinner.Stop()
-				fmt.Printf("Group %v migration still on-going\nCheck status few minutes later and contact support@turso.tech in case of any issues", internal.Emph(group))
+				fmt.Printf("AWS migration for group %v still on-going.\n\n"+
+					"You can check status of the migration with: `turso group migration info <group-name>`.\n"+
+					"If migrations for certain databases haven't started, you can abort the group migration with: `turso group migration abort <group-name>`.\n\n"+
+					"Contact support@turso.tech in case of any issues\n", internal.Emph(group))
 				return nil
 			case <-time.NewTimer(5 * time.Second).C:
 				info, err := client.Groups.GetAwsMigrationInfo(group)
@@ -149,7 +152,7 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 
 var groupAwsMigrationAbortCmd = &cobra.Command{
 	Use:               "abort <group-name>",
-	Short:             "Abort migration process of the group",
+	Short:             "Abort AWS migration process of the group",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -175,13 +178,13 @@ var groupAwsMigrationAbortCmd = &cobra.Command{
 		}
 
 		if info.Status == "none" {
-			fmt.Printf("Migration is %v", internal.Emph("not started"))
+			fmt.Printf("AWS migration is %v", internal.Emph("not started"))
 			return nil
 		} else if info.Status == "aborted" {
-			fmt.Printf("Migration is already %v", internal.Emph("aborted"))
+			fmt.Printf("AWS migration was already %v", internal.Emph("aborted"))
 			return nil
 		} else if info.Status == "finished" {
-			fmt.Printf("Migration is already %v", internal.Emph("finished"))
+			fmt.Printf("AWS migration was already %v", internal.Emph("finished"))
 			return nil
 		}
 
@@ -195,7 +198,7 @@ var groupAwsMigrationAbortCmd = &cobra.Command{
 			return nil
 		}
 
-		spinner := prompt.Spinner(fmt.Sprintf("Migration of group %v aborted", group))
+		spinner := prompt.Spinner(fmt.Sprintf("AWS migration of group %v aborted", group))
 		defer spinner.Stop()
 
 		return client.Groups.AbortAwsMigration(group)
