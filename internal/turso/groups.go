@@ -381,6 +381,60 @@ func (d *GroupsClient) Transfer(group string, to string) error {
 	return nil
 }
 
+type AwsMigrationInfo struct {
+	Status  string `json:"status"`
+	Comment string `json:"comment"`
+}
+
+func (d *GroupsClient) GetAwsMigrationInfo(group string) (AwsMigrationInfo, error) {
+	url := d.URL(fmt.Sprintf("/%s/aws/migration/info", group))
+	r, err := d.client.Get(url, nil)
+	if err != nil {
+		return AwsMigrationInfo{}, fmt.Errorf("failed to get group migration info: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err := parseResponseError(r)
+		return AwsMigrationInfo{}, fmt.Errorf("failed to get group migration info: %w", err)
+	}
+	result, err := unmarshal[AwsMigrationInfo](r)
+	if err != nil {
+		return AwsMigrationInfo{}, fmt.Errorf("failed to parse group migration info: %w", err)
+	}
+	return result, nil
+}
+
+func (d *GroupsClient) StartAwsMigration(group string) error {
+	url := d.URL(fmt.Sprintf("/%s/aws/migration/start", group))
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to start group migration: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err := parseResponseError(r)
+		return fmt.Errorf("failed to start group migration: %w", err)
+	}
+	return nil
+}
+
+func (d *GroupsClient) AbortAwsMigration(group string) error {
+	url := d.URL(fmt.Sprintf("/%s/aws/migration/abort", group))
+	r, err := d.client.Post(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to abort group migration: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err := parseResponseError(r)
+		return fmt.Errorf("failed to abort group migration: %w", err)
+	}
+	return nil
+}
+
 func (d *GroupsClient) URL(suffix string) string {
 	prefix := "/v1"
 	if d.client.Org != "" {
