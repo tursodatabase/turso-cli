@@ -221,7 +221,11 @@ func destroyGroup(client *turso.Client, name string) error {
 func groupsTable(groups []turso.Group) [][]string {
 	var data [][]string
 	for _, group := range groups {
-		row := []string{group.Name, formatLocations(group.Locations, group.Primary), group.Version, aggregateGroupStatus(group)}
+		version := "turso-server"
+		if group.Version != "tech-preview" {
+			version = group.Version
+		}
+		row := []string{group.Name, formatLocations(group.Locations, group.Primary), version, aggregateGroupStatus(group)}
 		data = append(data, row)
 	}
 	return data
