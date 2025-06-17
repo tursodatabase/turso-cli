@@ -12,6 +12,23 @@ const (
 	DB_CACHE_TTL_SECONDS = 30 * 60
 )
 
+func updateDatabaseCache(dbsToUpdate map[string]turso.Database) {
+	cache := getDatabasesCache()
+	if cache == nil {
+		return
+	}
+	for i, cached := range cache {
+		if update, ok := dbsToUpdate[cached.Name]; ok {
+			cache[i] = update
+			delete(dbsToUpdate, cached.Name)
+		}
+	}
+	for _, update := range dbsToUpdate {
+		cache = append(cache, update)
+	}
+	setDatabasesCache(cache)
+}
+
 func setDatabasesCache(dbNames []turso.Database) {
 	settings.SetCache(DB_CACHE_KEY, DB_CACHE_TTL_SECONDS, dbNames)
 }
