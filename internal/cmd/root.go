@@ -38,6 +38,8 @@ func requiresLogin(cmd *cobra.Command) bool {
 		"turso config set token",
 		"turso update",
 		"turso completion",
+		"turso __complete",
+		"turso __completeNoDesc",
 		"turso db shell",
 		"turso dev",
 	}
