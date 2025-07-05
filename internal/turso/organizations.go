@@ -2,6 +2,7 @@ package turso
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -445,5 +446,5 @@ func isNotMemberErr(status int, org string) bool {
 func notMemberErr(org string) error {
 	msg := fmt.Sprintf("you are not a member of organization %s. ", internal.Emph(org))
 	msg += fmt.Sprintf("%s is now configured to use your personal organization.", internal.Emph("turso"))
-	return fmt.Errorf(msg)
+	return errors.New(msg)
 }
