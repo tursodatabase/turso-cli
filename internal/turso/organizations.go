@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/settings"
@@ -377,21 +378,16 @@ type AuditLog struct {
 	IP          string       `json:"ip,omitempty"`
 }
 
-type AuditLogsPagination struct {
-	PageSize   int    `json:"page_size,omitempty"`
-	Page       int    `json:"page,omitempty"`
-	Sort       string `json:"sort,omitempty"`
-	TotalRows  int    `json:"total_rows,omitempty"`
-	TotalPages int    `json:"total_pages,omitempty"`
-}
-
 type AuditLogsResponse struct {
-	AuditLogs  []AuditLog          `json:"audit_logs"`
-	Pagination AuditLogsPagination `json:"pagination"`
+	AuditLogs []AuditLog `json:"audit_logs"`
+	Next      string     `json:"next"`
 }
 
-func (c *OrganizationsClient) AuditLogs(org string, page int, limit int) (AuditLogsResponse, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/audit-logs?page=%d&page_size=%d", org, page, limit)
+func (c *OrganizationsClient) AuditLogs(org, cursor string, limit int) (AuditLogsResponse, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/audit-logs?limit=%d", org, limit)
+	if cursor != "" {
+		path += "&cursor=" + url.QueryEscape(cursor)
+	}
 	r, err := c.client.Get(path, nil)
 	if err != nil {
 		return AuditLogsResponse{}, fmt.Errorf("failed to get audit logs: %w", err)
