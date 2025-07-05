@@ -112,7 +112,10 @@ func init() {
 	}
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	flags.AddDebugFlag(rootCmd)
-	flags.AddResetConfigFlag(rootCmd)
+	err := flags.AddResetConfigFlag(rootCmd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error adding reset config flag: %s", err)
+	}
 }
 
 func VerifyUserIsLoggedIn() {
