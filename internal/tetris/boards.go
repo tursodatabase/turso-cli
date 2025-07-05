@@ -23,7 +23,7 @@ func loadBoards() error {
 		aBoards.colors = make([][]tcell.Color, len(boardLoad.Mino))
 		aBoards.rotation = boardLoad.Rotation
 
-		for i := 0; i < len(boardLoad.Mino); i++ {
+		for i := range len(boardLoad.Mino) {
 			aBoards.colors[i] = make([]tcell.Color, len(boardLoad.Mino[i]))
 			for j := 0; j < len(boardLoad.Mino[i]); j++ {
 				switch boardLoad.Mino[i][j] {
