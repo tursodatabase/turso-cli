@@ -6,9 +6,12 @@ import (
 
 var resetConfig bool
 
-func AddResetConfigFlag(cmd *cobra.Command) {
+func AddResetConfigFlag(cmd *cobra.Command) error {
 	cmd.PersistentFlags().BoolVar(&resetConfig, "reset-config", false, "")
-	cmd.PersistentFlags().MarkHidden("reset-config")
+	if err := cmd.PersistentFlags().MarkHidden("reset-config"); err != nil {
+		return err
+	}
+	return nil
 }
 
 func ResetConfig() bool {
