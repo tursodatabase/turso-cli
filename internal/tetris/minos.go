@@ -90,12 +90,12 @@ func NewMinos() {
 func minosCloneRotateRight(minoBlocks MinoBlocks) MinoBlocks {
 	length := len(minoBlocks)
 	newMinoBlocks := make(MinoBlocks, length)
-	for i := 0; i < length; i++ {
+	for i := range length {
 		newMinoBlocks[i] = make([]tcell.Color, length)
 	}
 
-	for i := 0; i < length; i++ {
-		for j := 0; j < length; j++ {
+	for i := range length {
+		for j := range length {
 			newMinoBlocks[length-j-1][i] = minoBlocks[i][j]
 		}
 	}

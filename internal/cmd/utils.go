@@ -264,7 +264,7 @@ func getTursoUrl() string {
 func promptConfirmation(prompt string) (bool, error) {
 	reader := bufio.NewReader(os.Stdin)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		fmt.Printf("%s [y/n]: ", prompt)
 		input, err := reader.ReadString('\n')
 		if err != nil {
@@ -272,9 +272,10 @@ func promptConfirmation(prompt string) (bool, error) {
 		}
 
 		input = strings.ToLower(strings.TrimSpace(input))
-		if input == "y" || input == "yes" {
+		switch input {
+		case "y", "yes":
 			return true, nil
-		} else if input == "n" || input == "no" {
+		case "n", "no":
 			return false, nil
 		}
 
