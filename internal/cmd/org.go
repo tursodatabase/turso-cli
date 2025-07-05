@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -24,9 +26,9 @@ func init() {
 	orgCmd.AddCommand(invitesCmd)
 	orgCmd.AddCommand(auditLogsCmd)
 	auditLogsCmd.AddCommand(auditLogsListCmd)
-	auditLogsListCmd.Flags().IntP("page", "p", 1, "Page number")
-	auditLogsListCmd.Flags().IntP("limit", "s", 25, "Number of logs per page")
-	auditLogsListCmd.Flags().BoolP("verbose", "v", false, "Show detailed audit log information")
+	auditLogsListCmd.Flags().BoolP("verbose", "v", false, "Show full log data")
+	auditLogsListCmd.Flags().IntP("limit", "l", 25, "Items per page")
+	auditLogsListCmd.Flags().Bool("all", false, "Fetch all pages without stopping")
 	membersCmd.AddCommand(membersListCmd)
 	membersCmd.AddCommand(membersAddCmd)
 	membersCmd.AddCommand(membersRemoveCmd)
@@ -109,18 +111,15 @@ var auditLogsListCmd = &cobra.Command{
 			return err
 		}
 
-		page, err := cmd.Flags().GetInt("page")
-		if err != nil {
-			return err
+		limit, _ := cmd.Flags().GetInt("limit")
+		all, _ := cmd.Flags().GetBool("all")
+		verbose, _ := cmd.Flags().GetBool("verbose")
+		if limit != 0 && all {
+			return fmt.Errorf("cannot use --all together with --limit")
 		}
-
-		limit, err := cmd.Flags().GetInt("limit")
-		if err != nil {
-			return err
+		if limit <= 0 {
+			limit = 50
 		}
-
-		s := prompt.Spinner("Fetching audit logs")
-		defer s.Stop()
 
 		settingsObj, err := settings.ReadSettings()
 		if err != nil {
@@ -130,56 +129,7 @@ var auditLogsListCmd = &cobra.Command{
 		if org == "" {
 			org = settingsObj.GetUsername()
 		}
-
-		auditLogs, err := client.Organizations.AuditLogs(org, page, limit)
-		if err != nil {
-			return err
-		}
-
-		if len(auditLogs.AuditLogs) == 0 {
-			fmt.Println("No audit logs found.")
-			return nil
-		}
-
-		fmt.Printf("Showing %d of %d audit logs (page %d of %d):\n\n",
-			len(auditLogs.AuditLogs),
-			auditLogs.Pagination.TotalRows,
-			auditLogs.Pagination.Page,
-			auditLogs.Pagination.TotalPages)
-
-		verbose, _ := cmd.Flags().GetBool("verbose")
-
-		if verbose {
-
-			for _, log := range auditLogs.AuditLogs {
-				timestamp := internal.Emph(log.CreatedAt)
-				author := internal.Emph(log.Author)
-				origin := internal.Emph(log.Origin)
-				code := internal.Emph(log.Code)
-
-				fmt.Printf("%s: %s via %s performed %s\n", timestamp, author, origin, code)
-
-				if len(log.Data) > 0 {
-					fmt.Println("  Data:")
-					for key, value := range log.Data {
-						fmt.Printf("    %s: %v\n", key, value)
-					}
-				}
-				fmt.Println()
-			}
-		} else {
-
-			data := make([][]string, 0, len(auditLogs.AuditLogs))
-			for _, log := range auditLogs.AuditLogs {
-				timestamp := log.CreatedAt
-
-				if t, err := time.Parse(time.RFC3339, log.CreatedAt); err == nil {
-					timestamp = t.Format("2006-01-02 15:04:05")
-				}
-				data = append(data, []string{timestamp, log.Author, log.Code, log.Origin})
-			}
-			printTable([]string{"date", "author", "code", "origin"}, data)
-		}
+		displayAuditLog(limit, all, verbose, client, org)
 
 		return nil
 	},
@@ -632,4 +582,64 @@ func listOrganizations(client *turso.Client, fresh ...bool) ([]turso.Organizatio
 	}
 	setOrgsCache(orgs)
 	return orgs, nil
+}
+
+func displayAuditLog(limit int, all bool, verbose bool, client *turso.Client, org string) error {
+	cursor := ""
+	page := 1
+	for {
+		s := prompt.Spinner(fmt.Sprintf("Fetching page %d", page))
+		resp, err := client.Organizations.AuditLogs(org, cursor, limit)
+		s.Stop()
+		if err != nil {
+			return err
+		}
+		if len(resp.AuditLogs) == 0 {
+			if page == 1 {
+				fmt.Println("No audit logs found.")
+			}
+			break
+		}
+
+		if verbose {
+			for _, log := range resp.AuditLogs {
+				timestamp := internal.Emph(log.CreatedAt)
+				author := internal.Emph(log.Author)
+				origin := internal.Emph(log.Origin)
+				code := internal.Emph(log.Code)
+
+				fmt.Printf("%s: %s via %s performed %s\n", timestamp, author, origin, code)
+
+				if len(log.Data) > 0 {
+					fmt.Println("  Data:")
+					for key, value := range log.Data {
+						fmt.Printf("    %s: %v\n", key, value)
+					}
+				}
+				fmt.Println()
+			}
+		} else {
+			rows := make([][]string, 0, len(resp.AuditLogs))
+			for _, log := range resp.AuditLogs {
+				t := log.CreatedAt
+				if parsed, err := time.Parse(time.RFC3339, t); err == nil {
+					t = parsed.Format("2006-01-02 15:04:05")
+				}
+				rows = append(rows, []string{t, log.Author, log.Code, log.Origin})
+			}
+			printTable([]string{"date", "author", "code", "origin"}, rows)
+		}
+
+		if resp.Next == "" || len(resp.AuditLogs) < limit {
+			break
+		}
+
+		if !all {
+			fmt.Printf("- more available (page %d) - Press Enter to continue or Ctrl+C to stop -\n", page)
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
+		}
+		cursor = resp.Next
+		page++
+	}
+	return nil
 }
