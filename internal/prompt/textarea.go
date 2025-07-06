@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"errors"
 	"fmt"
 
 	ta "github.com/charmbracelet/bubbles/textarea"
@@ -47,7 +48,7 @@ func (m textarea) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case tea.KeyCtrlC:
 			m.done = true
-			m.err = fmt.Errorf("cancelled by user")
+			m.err = errors.New("cancelled by user")
 			return m, tea.Quit
 
 		default:

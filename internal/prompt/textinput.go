@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"errors"
 	"fmt"
 
 	ti "github.com/charmbracelet/bubbles/textinput"
@@ -40,7 +41,7 @@ func (m textinput) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			m.err = fmt.Errorf("cancelled by user")
+			m.err = errors.New("cancelled by user")
 			fallthrough
 		case tea.KeyEnter, tea.KeyEsc:
 			m.done = true
