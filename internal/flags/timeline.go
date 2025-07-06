@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -27,7 +28,7 @@ func validateTimeline(timeline string) error {
 	case "", "monthly", "yearly":
 		return nil
 	default:
-		return fmt.Errorf("timeline parameter must be either 'monthly' or 'yearly'")
+		return errors.New("timeline parameter must be either 'monthly' or 'yearly'")
 	}
 }
 
