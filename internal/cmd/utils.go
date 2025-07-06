@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -281,7 +282,7 @@ func promptConfirmation(prompt string) (bool, error) {
 		fmt.Println("Please answer with yes or no.")
 	}
 
-	return false, fmt.Errorf("could not get prompt confirmed by user")
+	return false, errors.New("could not get prompt confirmed by user")
 }
 
 func dbNameArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -345,7 +346,7 @@ func fetchLatestVersion() (string, error) {
 		return "", err
 	}
 	if len(versionResp.Version) == 0 {
-		return "", fmt.Errorf("got empty version for latest release")
+		return "", errors.New("got empty version for latest release")
 	}
 	return versionResp.Version, nil
 }

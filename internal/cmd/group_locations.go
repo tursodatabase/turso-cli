@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -38,7 +39,7 @@ var groupLocationsListCmd = &cobra.Command{
 
 		group := args[0]
 		if group == "" {
-			return fmt.Errorf("the first argument must contain a group name")
+			return errors.New("the first argument must contain a group name")
 		}
 
 		cmd.SilenceUsage = true
@@ -67,7 +68,7 @@ var groupLocationAddCmd = &cobra.Command{
 
 		groupName := args[0]
 		if groupName == "" {
-			return fmt.Errorf("the first argument must contain a group name")
+			return errors.New("the first argument must contain a group name")
 		}
 
 		cmd.SilenceUsage = true
@@ -146,7 +147,7 @@ var groupsLocationsRmCmd = &cobra.Command{
 
 		groupName := args[0]
 		if groupName == "" {
-			return fmt.Errorf("the group flag is required")
+			return errors.New("the group flag is required")
 		}
 
 		cmd.SilenceUsage = true

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -104,7 +105,7 @@ var groupsCreateCmd = &cobra.Command{
 		version := flags.Version()
 		if canaryFlag {
 			if version != "" {
-				return fmt.Errorf("cannot specify both --canary and --version flags")
+				return errors.New("cannot specify both --canary and --version flags")
 			}
 			version = "canary"
 		}

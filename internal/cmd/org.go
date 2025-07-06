@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -326,7 +327,7 @@ var orgDestroyCmd = &cobra.Command{
 		}
 
 		if settings.Organization() == slug {
-			return fmt.Errorf("cannot destroy current organization, please switch to another one first")
+			return errors.New("cannot destroy current organization, please switch to another one first")
 		}
 
 		if err = client.Organizations.Delete(slug); err != nil {
@@ -446,7 +447,7 @@ var membersAddCmd = &cobra.Command{
 
 		username := args[0]
 		if username == "" {
-			return fmt.Errorf("username cannot be empty")
+			return errors.New("username cannot be empty")
 		}
 
 		client, err := authedTursoClient()
@@ -481,7 +482,7 @@ var membersInviteCmd = &cobra.Command{
 
 		email := args[0]
 		if email == "" {
-			return fmt.Errorf("email cannot be empty")
+			return errors.New("email cannot be empty")
 		}
 
 		client, err := authedTursoClient()
@@ -514,7 +515,7 @@ var inviteRemoveCmd = &cobra.Command{
 
 		email := args[0]
 		if email == "" {
-			return fmt.Errorf("email cannot be empty")
+			return errors.New("email cannot be empty")
 		}
 
 		client, err := authedTursoClient()
@@ -579,7 +580,7 @@ var membersRemoveCmd = &cobra.Command{
 
 		username := args[0]
 		if username == "" {
-			return fmt.Errorf("username cannot be empty")
+			return errors.New("username cannot be empty")
 		}
 
 		client, err := authedTursoClient()

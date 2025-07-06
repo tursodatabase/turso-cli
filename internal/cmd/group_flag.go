@@ -54,19 +54,19 @@ func parseTimestampFlag() (*time.Time, error) {
 		return nil, nil
 	}
 	if fromDBFlag == "" {
-		return nil, fmt.Errorf("--timestamp cannot be used without specifying --from-db")
+		return nil, errors.New("--timestamp cannot be used without specifying --from-db")
 	}
 
 	timestamp, err := time.Parse(time.RFC3339, timestampFlag)
 	if err != nil {
-		return nil, fmt.Errorf("provided timestamp was not in RFC3339 format like '2023-09-29T10:16:13-03:00'")
+		return nil, errors.New("provided timestamp was not in RFC3339 format like '2023-09-29T10:16:13-03:00'")
 	}
 	return &timestamp, nil
 }
 
 func parseDBSeedFlags(client *turso.Client, isAWS bool) (*turso.DBSeed, error) {
 	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag, fromCSVFlag) > 1 {
-		return nil, fmt.Errorf("only one of --from prefixed flags can be used at a time")
+		return nil, errors.New("only one of --from prefixed flags can be used at a time")
 	}
 
 	timestamp, err := parseTimestampFlag()
@@ -74,10 +74,10 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool) (*turso.DBSeed, error) {
 		return nil, err
 	}
 	if fromCSVFlag != "" && csvTableNameFlag == "" {
-		return nil, fmt.Errorf("--csv-table-name must be used with --from-csv")
+		return nil, errors.New("--csv-table-name must be used with --from-csv")
 	}
 	if csvTableNameFlag != "" && fromCSVFlag == "" {
-		return nil, fmt.Errorf("--from-csv must be used with --csv-table-name")
+		return nil, errors.New("--from-csv must be used with --csv-table-name")
 	}
 
 	if fromDBFlag != "" {
@@ -145,10 +145,10 @@ func validateDumpFile(name string) (*os.File, error) {
 		return nil, fmt.Errorf("could not stat file %s: %w", name, err)
 	}
 	if fileStat.Size() == 0 {
-		return nil, fmt.Errorf("dump file is empty")
+		return nil, errors.New("dump file is empty")
 	}
 	if fileStat.Size() > MaxDumpFileSizeBytes {
-		return nil, fmt.Errorf("dump file is too large. max allowed size is 2GB")
+		return nil, errors.New("dump file is too large. max allowed size is 2GB")
 	}
 	if err := checkDumpFileFirstLines(name, file); err != nil {
 		return nil, fmt.Errorf("invalid dump file: %w", err)
@@ -161,17 +161,17 @@ func checkDumpFileFirstLines(name string, file *os.File) error {
 	scanner.Scan()
 	if scanner.Text() != "PRAGMA foreign_keys=OFF;" {
 		if checkSQLiteFile(name) == nil {
-			return fmt.Errorf("you're trying to use a SQLite database file as a dump. Use the --from-db flag instead of --from-dump")
+			return errors.New("you're trying to use a SQLite database file as a dump. Use the --from-db flag instead of --from-dump")
 		}
-		return fmt.Errorf("file doesn't look like a dump: first line should be 'PRAGMA foreign_keys=OFF;'")
+		return errors.New("file doesn't look like a dump: first line should be 'PRAGMA foreign_keys=OFF;'")
 	}
 
 	scanner.Scan()
 	if scanner.Text() != "BEGIN TRANSACTION;" {
 		if checkSQLiteFile(name) == nil {
-			return fmt.Errorf("you're trying to use a SQLite database file as a dump. Use --from-db instead")
+			return errors.New("you're trying to use a SQLite database file as a dump. Use --from-db instead")
 		}
-		return fmt.Errorf("file doesn't look like a dump: second line should be 'BEGIN TRANSACTION;'")
+		return errors.New("file doesn't look like a dump: second line should be 'BEGIN TRANSACTION;'")
 	}
 
 	if _, err := file.Seek(0, 0); err != nil {
@@ -231,7 +231,7 @@ func sqliteFileIntegrityChecks(file string) error {
 	}
 
 	if fileInfo.Size() > MaxAWSDBSizeBytes {
-		return fmt.Errorf("database file size exceeds maximum allowed size of 20 GB")
+		return errors.New("database file size exceeds maximum allowed size of 20 GB")
 	}
 
 	if flags.Debug() {
@@ -323,7 +323,7 @@ func checkFileExists(file string) error {
 func checkSQLiteAvailable() error {
 	_, err := exec.LookPath("sqlite3")
 	if errors.Is(err, exec.ErrNotFound) {
-		return fmt.Errorf("could not find sqlite3 on your system. Please install it to use the --from-file flag or use --from-dump instead")
+		return errors.New("could not find sqlite3 on your system. Please install it to use the --from-file flag or use --from-dump instead")
 	}
 	return err
 }
