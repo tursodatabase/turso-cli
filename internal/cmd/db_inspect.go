@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dustin/go-humanize"
@@ -26,7 +27,7 @@ var dbInspectCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if name == "" {
-			return fmt.Errorf("please specify a database name")
+			return errors.New("please specify a database name")
 		}
 		cmd.SilenceUsage = true
 

@@ -2,6 +2,7 @@ package turso
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -215,7 +216,7 @@ func (c *OrganizationsClient) ListMembers() ([]Member, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("only organization admins or owners can list members")
+		return nil, errors.New("only organization admins or owners can list members")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -248,7 +249,7 @@ func (c *OrganizationsClient) AddMember(username, role string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("only organization admins or owners can add members")
+		return errors.New("only organization admins or owners can add members")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -273,7 +274,7 @@ func (c *OrganizationsClient) InviteMember(email, role string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("only organization admins or owners can invite members")
+		return errors.New("only organization admins or owners can invite members")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -293,7 +294,7 @@ func (c *OrganizationsClient) DeleteInvite(email string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("only organization admins or owners can invite members")
+		return errors.New("only organization admins or owners can invite members")
 	}
 
 	if r.StatusCode == http.StatusNotFound {
@@ -317,7 +318,7 @@ func (c *OrganizationsClient) ListInvites() ([]Invite, error) {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return []Invite{}, fmt.Errorf("only organization admins or owners can list invites")
+		return []Invite{}, errors.New("only organization admins or owners can list invites")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -347,7 +348,7 @@ func (c *OrganizationsClient) RemoveMember(username string) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("only organization admins or owners can remove members")
+		return errors.New("only organization admins or owners can remove members")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -399,7 +400,7 @@ func (c *OrganizationsClient) AuditLogs(org string, page int, limit int) (AuditL
 	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusNotFound {
-		return AuditLogsResponse{}, fmt.Errorf("audit logs endpoint not found. This feature may not be available yet")
+		return AuditLogsResponse{}, errors.New("audit logs endpoint not found. This feature may not be available yet")
 	}
 
 	if r.StatusCode != http.StatusOK {
@@ -445,5 +446,5 @@ func isNotMemberErr(status int, org string) bool {
 func notMemberErr(org string) error {
 	msg := fmt.Sprintf("you are not a member of organization %s. ", internal.Emph(org))
 	msg += fmt.Sprintf("%s is now configured to use your personal organization.", internal.Emph("turso"))
-	return fmt.Errorf(msg)
+	return errors.New(msg)
 }

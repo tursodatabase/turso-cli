@@ -34,7 +34,7 @@ var replicateCmd = &cobra.Command{
 		}
 		dbName := args[0]
 		if dbName == "" {
-			return fmt.Errorf("you must specify a database name to replicate it")
+			return errors.New("you must specify a database name to replicate it")
 		}
 
 		database, err := getDatabase(client, dbName, true)
@@ -42,7 +42,7 @@ var replicateCmd = &cobra.Command{
 			return err
 		}
 		if strings.HasPrefix(database.PrimaryRegion, "aws-") {
-			return fmt.Errorf("replication is not available on AWS at the moment")
+			return errors.New("replication is not available on AWS at the moment")
 		}
 
 		location, err := getReplicateLocation(client, args, database)
@@ -174,7 +174,7 @@ func getReplicateLocation(client *turso.Client, args []string, database turso.Da
 
 	location := pickLocation(locations, database.Regions)
 	if location == "" {
-		return "", fmt.Errorf("you must specify a database location ID to replicate it")
+		return "", errors.New("you must specify a database location ID to replicate it")
 	}
 
 	return location, nil

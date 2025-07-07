@@ -1,7 +1,7 @@
 package flags
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/spf13/cobra"
 )
@@ -22,10 +22,10 @@ func CSVSeparator() (rune, error) {
 
 func validateCSVSeparator(csvSeparatorValue string) error {
 	if len(csvSeparatorValue) > 1 {
-		return fmt.Errorf("csv separator must be a single character")
+		return errors.New("csv separator must be a single character")
 	}
 	if csvSeparatorValue == "" {
-		return fmt.Errorf("csv separator must not be empty")
+		return errors.New("csv separator must not be empty")
 	}
 	return nil
 }

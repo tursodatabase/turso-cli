@@ -1,6 +1,7 @@
 package turso
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -63,7 +64,7 @@ func New(base *url.URL, token string, cliVersion string, org string) *Client {
 
 func (t *Client) newRequest(method, urlPath string, body io.Reader, extraHeaders map[string]string) (*http.Request, error) {
 	if _, exists := extraHeaders["Content-Type"]; !exists {
-		return nil, fmt.Errorf("content type is required")
+		return nil, errors.New("content type is required")
 	}
 	url, err := url.Parse(t.baseUrl.String())
 	if err != nil {

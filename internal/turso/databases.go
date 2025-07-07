@@ -3,6 +3,7 @@ package turso
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -457,7 +458,7 @@ func (d *DatabasesClient) Transfer(database, org string) error {
 	}
 	r, err := d.client.Post(url, bodyReader)
 	if err != nil {
-		return fmt.Errorf("failed to transfer database")
+		return errors.New("failed to transfer database")
 	}
 	defer r.Body.Close()
 

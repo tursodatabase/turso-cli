@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ func validateExpiration(expiration string) error {
 		return nil
 	}
 	if !strings.HasSuffix(expiration, "d") {
-		return fmt.Errorf("expiration must be either 'never' or in days (e.g. 7d)")
+		return errors.New("expiration must be either 'never' or in days (e.g. 7d)")
 	}
 	daysStr := strings.TrimSuffix(expiration, "d")
 	days, err := strconv.Atoi(daysStr)
@@ -40,7 +41,7 @@ func validateExpiration(expiration string) error {
 		return err
 	}
 	if days < 1 {
-		return fmt.Errorf("expiration must be at least 1 day")
+		return errors.New("expiration must be at least 1 day")
 	}
 	return nil
 }

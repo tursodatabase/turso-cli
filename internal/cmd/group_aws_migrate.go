@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -30,7 +31,7 @@ var groupAwsMigrationInfoCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		group := args[0]
 		if group == "" {
-			return fmt.Errorf("the first argument must contain a group name")
+			return errors.New("the first argument must contain a group name")
 		}
 
 		cmd.SilenceUsage = true
@@ -71,7 +72,7 @@ var groupAwsMigrationStartCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		group := args[0]
 		if group == "" {
-			return fmt.Errorf("the first argument must contain a group name")
+			return errors.New("the first argument must contain a group name")
 		}
 
 		cmd.SilenceUsage = true
@@ -158,7 +159,7 @@ var groupAwsMigrationAbortCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		group := args[0]
 		if group == "" {
-			return fmt.Errorf("the first argument must contain a group name")
+			return errors.New("the first argument must contain a group name")
 		}
 
 		cmd.SilenceUsage = true

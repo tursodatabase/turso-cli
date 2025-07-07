@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -340,7 +341,7 @@ func (a authCallback) Result() (string, error) {
 		return result, nil
 	case <-time.After(5 * time.Minute):
 		_ = a.server.Shutdown(context.Background())
-		return "", fmt.Errorf("authentication timed out, try again")
+		return "", errors.New("authentication timed out, try again")
 	}
 }
 

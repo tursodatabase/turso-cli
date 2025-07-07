@@ -1,7 +1,7 @@
 package flags
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/spf13/cobra"
 )
@@ -26,7 +26,7 @@ func validateInvoiceType(invoiceType string) error {
 	case "issued", "all", "upcoming":
 		return nil
 	default:
-		return fmt.Errorf("type parameter must be either 'all' or 'upcoming' or 'issued'")
+		return errors.New("type parameter must be either 'all' or 'upcoming' or 'issued'")
 	}
 }
 

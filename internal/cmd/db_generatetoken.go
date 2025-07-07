@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ var dbGenerateTokenCmd = &cobra.Command{
 		}
 		token, err := getToken(client, database, expiration, flags.ReadOnly(), groupTokenFlag, claim)
 		if err != nil {
-			return fmt.Errorf("your database does not support token generation")
+			return errors.New("your database does not support token generation")
 		}
 		fmt.Println(token)
 		return nil
@@ -68,7 +69,7 @@ func getToken(client *turso.Client, database turso.Database, expiration string, 
 		return client.Databases.Token(database.Name, expiration, readOnly, claim)
 	}
 	if group && database.Group == "" {
-		return "", fmt.Errorf("--group flag can only be set with group databases")
+		return "", errors.New("--group flag can only be set with group databases")
 	}
 	return client.Groups.Token(database.Group, expiration, readOnly, claim)
 }

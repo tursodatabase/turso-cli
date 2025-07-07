@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -65,7 +66,7 @@ func update(client *turso.Client, name string) error {
 	version := db.Version
 
 	if err := client.Databases.Update(name, groupBoolFlag); err != nil {
-		return fmt.Errorf("error updating database")
+		return errors.New("error updating database")
 	}
 
 	s.Stop()

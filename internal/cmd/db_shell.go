@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -54,7 +55,7 @@ func getURL(db *turso.Database, client *turso.Client, http bool, primaryOnly boo
 			}
 		}
 
-		return "", fmt.Errorf("primary not found")
+		return "", errors.New("primary not found")
 	}
 
 	instances, err := client.Instances.List(db.Name)
@@ -73,7 +74,7 @@ func getURL(db *turso.Database, client *turso.Client, http bool, primaryOnly boo
 	if instanceFlag != "" {
 		return "", fmt.Errorf("instance %s for db %s not found", instanceFlag, db.Name)
 	}
-	return "", fmt.Errorf("impossible")
+	return "", errors.New("impossible")
 }
 
 func getDbURLForDump(u string) string {
@@ -93,7 +94,7 @@ var shellCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		nameOrUrl := args[0]
 		if nameOrUrl == "" {
-			return fmt.Errorf("please specify a database name")
+			return errors.New("please specify a database name")
 		}
 		cmd.SilenceUsage = true
 
@@ -106,7 +107,7 @@ var shellCmd = &cobra.Command{
 		sql := ""
 		if len(args) == 2 {
 			if len(args[1]) == 0 {
-				return fmt.Errorf("no SQL command to execute")
+				return errors.New("no SQL command to execute")
 			}
 			if args[1] == ".dump" {
 				isDump = true
@@ -176,7 +177,7 @@ var shellCmd = &cobra.Command{
 			}
 
 			if countNonEmpty(authTokenSnake, authTokenCamel, jwt) > 1 {
-				return fmt.Errorf("please use at most one of the following query parameters: 'auth_token', 'authToken', 'jwt'")
+				return errors.New("please use at most one of the following query parameters: 'auth_token', 'authToken', 'jwt'")
 			}
 
 			if authTokenSnake != "" {

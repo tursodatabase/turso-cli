@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -42,7 +43,7 @@ var configSetAutoUpdateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		value := args[0]
 		if value != "on" && value != "off" {
-			return fmt.Errorf("autoupdate must be either 'on' or 'off'")
+			return errors.New("autoupdate must be either 'on' or 'off'")
 		}
 
 		cmd.SilenceUsage = true
@@ -75,7 +76,7 @@ var configSetTokenCmd = &cobra.Command{
 
 		token := args[0]
 		if !isJwtTokenValid(token) {
-			return fmt.Errorf("invalid token")
+			return errors.New("invalid token")
 		}
 
 		config.SetToken(token)
