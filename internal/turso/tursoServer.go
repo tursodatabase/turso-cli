@@ -1,6 +1,7 @@
 package turso
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -98,6 +99,10 @@ func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(pr
 	return nil
 }
 
+type ExportInfo struct {
+	CurrentGeneration int `json:"current_generation"`
+}
+
 func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 	res, err := i.client.Get("/info", nil)
 	if err != nil {
@@ -107,9 +112,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 	if res.StatusCode != http.StatusOK {
 		return parseResponseError(res)
 	}
-	var info struct {
-		CurrentGeneration int `json:"current_generation"`
-	}
+	var info ExportInfo
 	if err := json.NewDecoder(res.Body).Decode(&info); err != nil {
 		return fmt.Errorf("failed to decode /info response: %w", err)
 	}
@@ -132,39 +135,176 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 		return fmt.Errorf("failed to write export to file: %w", err)
 	}
 
+	lastFrameNo, err := i.ExportWAL(outputFile, &info)
+	if err != nil {
+		return fmt.Errorf("failed to export WAL: %w", err)
+	}
 	if withMetadata {
-		out, err := os.Create(outputFile + "-info")
-		if err != nil {
-			return fmt.Errorf("failed to create info file: %w", err)
-		}
-		defer out.Close()
-
-		hasher := crc32.New(crc32.MakeTable(crc32.IEEE))
-		var versionBytes [4]byte
-		var durableFrameNumBytes [4]byte
-		var generationBytes [4]byte
-		binary.LittleEndian.PutUint32(versionBytes[:], 0)
-		binary.LittleEndian.PutUint32(durableFrameNumBytes[:], 0)
-		binary.LittleEndian.PutUint32(generationBytes[:], uint32(info.CurrentGeneration))
-		hasher.Write(versionBytes[:])
-		hasher.Write(durableFrameNumBytes[:])
-		hasher.Write(generationBytes[:])
-		hash := int(hasher.Sum32())
-
-		metadata := struct {
-			Hash            int `json:"hash"`
-			Version         int `json:"version"`
-			DurableFrameNum int `json:"durable_frame_num"`
-			Generation      int `json:"generation"`
-		}{
-			Hash:            hash,
-			Version:         0,
-			DurableFrameNum: 0,
-			Generation:      info.CurrentGeneration,
-		}
-		if err := json.NewEncoder(out).Encode(metadata); err != nil {
-			return fmt.Errorf("failed to write metadata to file: %w", err)
+		if err := i.ExportMetadata(outputFile, &info, lastFrameNo); err != nil {
+			return fmt.Errorf("failed to export metadata: %w", err)
 		}
 	}
+
+	return nil
+}
+
+func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo) (int, error) {
+	walFile := outputFile + "-wal"
+	walOut, err := os.Create(walFile)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create WAL file: %w", err)
+	}
+	defer walOut.Close()
+
+	var saltBytes [8]byte
+	if _, err := rand.Read(saltBytes[:]); err != nil {
+		return 0, fmt.Errorf("failed to generate random salt values: %w", err)
+	}
+	salt1 := binary.BigEndian.Uint32(saltBytes[0:4]) // Random salt-1
+	salt2 := binary.BigEndian.Uint32(saltBytes[4:8]) // Random salt-2
+
+	walHeader := make([]byte, 32)
+	binary.BigEndian.PutUint32(walHeader[0:4], 0x377f0682) // Magic number
+	binary.BigEndian.PutUint32(walHeader[4:8], 3007000)    // File format version
+	binary.BigEndian.PutUint32(walHeader[8:12], 4096)      // Database page size
+	binary.BigEndian.PutUint32(walHeader[12:16], 0)        // Checkpoint sequence number
+	binary.BigEndian.PutUint32(walHeader[16:20], salt1)    // Salt-1 (must match frames)
+	binary.BigEndian.PutUint32(walHeader[20:24], salt2)    // Salt-2 (must match frames)
+
+	s0 := uint32(0)
+	s1 := uint32(0)
+
+	for i := 0; i < 24; i += 8 {
+		x0 := binary.LittleEndian.Uint32(walHeader[i : i+4])
+		x1 := binary.LittleEndian.Uint32(walHeader[i+4 : i+8])
+		s0 += x0 + s1
+		s1 += x1 + s0
+	}
+
+	binary.BigEndian.PutUint32(walHeader[24:28], s0)
+	binary.BigEndian.PutUint32(walHeader[28:32], s1)
+
+	if _, err := walOut.Write(walHeader); err != nil {
+		return 0, fmt.Errorf("failed to write WAL header: %w", err)
+	}
+
+	const batchSize = 128
+	frameNo := 1
+	lastFrameNo := 0
+
+	for {
+		walRes, err := i.client.Get(fmt.Sprintf("/sync/%d/%d/%d", info.CurrentGeneration, frameNo, frameNo+batchSize), nil)
+		if err != nil {
+			if frameNo == 1 {
+				break
+			}
+			return lastFrameNo, fmt.Errorf("failed to fetch WAL frames: %w", err)
+		}
+
+		if walRes.StatusCode == http.StatusBadRequest || walRes.StatusCode == http.StatusInternalServerError {
+			walRes.Body.Close()
+			break
+		}
+		if walRes.StatusCode != http.StatusOK {
+			walRes.Body.Close()
+			if frameNo == 1 {
+				break
+			}
+			return lastFrameNo, parseResponseError(walRes)
+		}
+
+		frames, err := io.ReadAll(walRes.Body)
+		walRes.Body.Close()
+		if err != nil {
+			return lastFrameNo, fmt.Errorf("failed to read WAL frames: %w", err)
+		}
+
+		if len(frames) == 0 {
+			break
+		}
+
+		frameSize := 4120
+		framesInBatch := len(frames) / frameSize
+
+		for i := 0; i < framesInBatch; i++ {
+			offset := i * frameSize
+			if offset+frameSize > len(frames) {
+				return lastFrameNo, fmt.Errorf("invalid frame data: expected %d bytes, got %d", frameSize, len(frames)-offset)
+			}
+			frame := frames[offset : offset+frameSize]
+
+			binary.BigEndian.PutUint32(frame[8:12], salt1)
+			binary.BigEndian.PutUint32(frame[12:16], salt2)
+
+			x0 := binary.LittleEndian.Uint32(frame[0:4])
+			x1 := binary.LittleEndian.Uint32(frame[4:8])
+			s0 += x0 + s1
+			s1 += x1 + s0
+
+			for j := 24; j < frameSize; j += 8 {
+				x0 := binary.LittleEndian.Uint32(frame[j : j+4])
+				x1 := binary.LittleEndian.Uint32(frame[j+4 : j+8])
+				s0 += x0 + s1
+				s1 += x1 + s0
+			}
+
+			binary.BigEndian.PutUint32(frame[16:20], s0)
+			binary.BigEndian.PutUint32(frame[20:24], s1)
+
+			if _, err := walOut.Write(frame); err != nil {
+				return lastFrameNo, fmt.Errorf("failed to write WAL frame: %w", err)
+			}
+
+			lastFrameNo = frameNo + i
+		}
+
+		if framesInBatch < batchSize {
+			break
+		}
+
+		frameNo += framesInBatch
+	}
+
+	if err := walOut.Sync(); err != nil {
+		return lastFrameNo, fmt.Errorf("failed to sync WAL file: %w", err)
+	}
+
+	return lastFrameNo, nil
+}
+
+func (i *TursoServerClient) ExportMetadata(outputFile string, info *ExportInfo, durableFrameNum int) error {
+	out, err := os.Create(outputFile + "-info")
+	if err != nil {
+		return fmt.Errorf("failed to create info file: %w", err)
+	}
+	defer out.Close()
+
+	hasher := crc32.New(crc32.MakeTable(crc32.IEEE))
+	var versionBytes [4]byte
+	var durableFrameNumBytes [4]byte
+	var generationBytes [4]byte
+	binary.LittleEndian.PutUint32(versionBytes[:], 0)
+	binary.LittleEndian.PutUint32(durableFrameNumBytes[:], uint32(durableFrameNum))
+	binary.LittleEndian.PutUint32(generationBytes[:], uint32(info.CurrentGeneration))
+	hasher.Write(versionBytes[:])
+	hasher.Write(durableFrameNumBytes[:])
+	hasher.Write(generationBytes[:])
+	hash := int(hasher.Sum32())
+
+	metadata := struct {
+		Hash            int `json:"hash"`
+		Version         int `json:"version"`
+		DurableFrameNum int `json:"durable_frame_num"`
+		Generation      int `json:"generation"`
+	}{
+		Hash:            hash,
+		Version:         0,
+		DurableFrameNum: durableFrameNum,
+		Generation:      info.CurrentGeneration,
+	}
+	if err := json.NewEncoder(out).Encode(metadata); err != nil {
+		return fmt.Errorf("failed to write metadata to file: %w", err)
+	}
+
 	return nil
 }
