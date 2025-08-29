@@ -336,7 +336,7 @@ func (d *GroupsClient) Update(group string, version, extensions string) error {
 	url := d.URL(fmt.Sprintf("/%s/update", group))
 	r, err := d.client.Post(url, body)
 	if err != nil {
-		return fmt.Errorf("failed to rotate database keys: %w", err)
+		return fmt.Errorf("failed to update group: %w", err)
 	}
 	defer r.Body.Close()
 
@@ -347,6 +347,32 @@ func (d *GroupsClient) Update(group string, version, extensions string) error {
 
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to update group: %w", parseResponseError(r))
+	}
+
+	return nil
+}
+
+func (d *GroupsClient) Rename(oldName, newName string) error {
+	type Body struct{ Name string }
+	body, err := marshal(Body{Name: newName})
+	if err != nil {
+		return fmt.Errorf("could not serialize request body: %w", err)
+	}
+
+	url := d.URL(fmt.Sprintf("/%s/rename", oldName))
+	r, err := d.client.Post(url, body)
+	if err != nil {
+		return fmt.Errorf("failed to rename group: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to rename group: %w", parseResponseError(r))
 	}
 
 	return nil
