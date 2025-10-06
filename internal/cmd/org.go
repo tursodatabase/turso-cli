@@ -47,7 +47,7 @@ func init() {
 
 	orgCmd.AddCommand(jwksCmd)
 	jwksCmd.AddCommand(jwksList)
-	jwksCmd.AddCommand(jwksList)
+	jwksCmd.AddCommand(jwksRemove)
 	jwksCmd.AddCommand(jwksSave)
 	jwksCmd.AddCommand(jwksTemplate)
 
@@ -58,7 +58,7 @@ func init() {
 	jwksTemplate.Flags().StringVarP(&jwksDatabase, "database", "d", "", "database")
 	jwksTemplate.Flags().StringVarP(&jwksGroup, "group", "g", "", "group")
 	jwksTemplate.Flags().StringVarP(&jwksScope, "scope", "s", "full-access", "claims scope (full-access or read-only)")
-	jwksTemplate.Flags().StringArrayVarP(&jwksPermissions, "permissions", "p", nil, "fine-grained permissions in format <table-name|all>:<action1>,...\n(e.g: -p all:read -p comments:insert)")
+	jwksTemplate.Flags().StringArrayVarP(&jwksPermissions, "permissions", "p", nil, "fine-grained permissions in format <table-name|all>:<action1>,...\n(e.g: -p all:data_read -p comments:data_insert)")
 }
 
 func switchToOrg(client *turso.Client, slug string, showHowToGoBack bool) error {
