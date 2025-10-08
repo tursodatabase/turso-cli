@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -58,7 +58,7 @@ func init() {
 	jwksTemplate.Flags().StringVarP(&jwksDatabase, "database", "d", "", "database")
 	jwksTemplate.Flags().StringVarP(&jwksGroup, "group", "g", "", "group")
 	jwksTemplate.Flags().StringVarP(&jwksScope, "scope", "s", "full-access", "claims scope (full-access or read-only)")
-	jwksTemplate.Flags().StringArrayVarP(&jwksPermissions, "permissions", "p", nil, "fine-grained permissions in format <table-name|all>:<action1>,...\n(e.g: -p all:data_read -p comments:data_insert)")
+	flags.AddFineGrainedPermissions(jwksTemplate)
 }
 
 func switchToOrg(client *turso.Client, slug string, showHowToGoBack bool) error {
@@ -725,26 +725,16 @@ var jwksTemplate = &cobra.Command{
 		if jwksGroup != "" {
 			group = &jwksGroup
 		}
+		permissions, err := flags.FineGrainedPermissionsFlags()
+		if err != nil {
+			return err
+		}
 		params := turso.OrgJwksTemplateParams{
-			Database: database,
-			Group:    group,
-			Scope:    jwksScope,
+			Database:    database,
+			Group:       group,
+			Scope:       jwksScope,
+			Permissions: permissions,
 		}
-		for _, permission := range jwksPermissions {
-			tokens := strings.SplitN(permission, ":", 2)
-			if len(tokens) != 2 {
-				return fmt.Errorf("invalid permission format: '%v'", permission)
-			}
-			var tableNames []string
-			if tokens[0] != "all" {
-				tableNames = append(tableNames, tokens[0])
-			}
-			params.Permissions = append(params.Permissions, turso.FineGrainedPermissions{
-				TableNames:        tableNames,
-				AllowedOperations: strings.Split(tokens[1], ","),
-			})
-		}
-
 		template, err := client.Organizations.JwksTemplate(org.Slug, params)
 		if err != nil {
 			return err

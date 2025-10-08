@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 )
 
@@ -187,16 +188,11 @@ type OrgJwksTemplate struct {
 	Template json.RawMessage `json:"template"`
 }
 
-type FineGrainedPermissions struct {
-	TableNames        []string `json:"t"`
-	AllowedOperations []string `json:"a"`
-}
-
 type OrgJwksTemplateParams struct {
-	Database    *string                  `json:"database"`
-	Group       *string                  `json:"group"`
-	Scope       string                   `json:"scope"`
-	Permissions []FineGrainedPermissions `json:"permissions"`
+	Database    *string                        `json:"database"`
+	Group       *string                        `json:"group"`
+	Scope       string                         `json:"scope"`
+	Permissions []flags.FineGrainedPermissions `json:"permissions"`
 }
 
 func (c *OrganizationsClient) JwksTemplate(org string, param OrgJwksTemplateParams) (string, error) {

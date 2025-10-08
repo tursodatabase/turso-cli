@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 )
 
@@ -218,7 +219,7 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 //     turso-server will perform validations on the file and 'activate' the db if everything is ok.
 func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group string, uploadFilepath string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
 	// Create a short-lived DB token for the newly created database to facilitate the upload
-	token, err := d.Token(resp.Database.Name, "1h", false, nil)
+	token, err := d.Token(resp.Database.Name, "1h", false, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not create database token: %w", err)
 	}
@@ -272,7 +273,7 @@ func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata 
 			return fmt.Errorf("file %s already exists, use `--overwrite` flag to overwrite it", outputFile)
 		}
 	}
-	token, err := d.Token(dbName, "1h", false, nil)
+	token, err := d.Token(dbName, "1h", false, nil, nil)
 	if err != nil {
 		return fmt.Errorf("could not create database token: %w", err)
 	}
@@ -336,17 +337,24 @@ func (d *DatabasesClient) UploadDump(dbFile *os.File) (string, error) {
 }
 
 type DatabaseTokenRequest struct {
-	Permissions *PermissionsClaim `json:"permissions,omitempty"`
+	Permissions            *PermissionsClaim              `json:"permissions,omitempty"`
+	FineGrainedPermissions []flags.FineGrainedPermissions `json:"fine_grained_permissions,omitempty"`
 }
 
-func (d *DatabasesClient) Token(database string, expiration string, readOnly bool, permissions *PermissionsClaim) (string, error) {
+func (d *DatabasesClient) Token(
+	database string,
+	expiration string,
+	readOnly bool,
+	permissions *PermissionsClaim,
+	fineGrainedPermissions []flags.FineGrainedPermissions,
+) (string, error) {
 	authorization := ""
 	if readOnly {
 		authorization = "&authorization=read-only"
 	}
 	url := d.URL(fmt.Sprintf("/%s/auth/tokens?expiration=%s%s", database, expiration, authorization))
 
-	req := DatabaseTokenRequest{permissions}
+	req := DatabaseTokenRequest{Permissions: permissions, FineGrainedPermissions: fineGrainedPermissions}
 	body, err := marshal(req)
 	if err != nil {
 		return "", fmt.Errorf("could not serialize request body: %w", err)

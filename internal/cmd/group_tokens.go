@@ -88,6 +88,7 @@ func init() {
 	flags.AddExpiration(groupCreateTokenCmd)
 	flags.AddReadOnly(groupCreateTokenCmd)
 	flags.AddAttachClaims(groupCreateTokenCmd)
+	flags.AddFineGrainedPermissions(groupCreateTokenCmd)
 }
 
 var groupCreateTokenCmd = &cobra.Command{
@@ -122,7 +123,11 @@ var groupCreateTokenCmd = &cobra.Command{
 				ReadAttach: turso.Entities{DBNames: flags.AttachClaims()},
 			}
 		}
-		token, err := client.Groups.Token(group.Name, expiration, flags.ReadOnly(), claim)
+		permission, err := flags.FineGrainedPermissionsFlags()
+		if err != nil {
+			return err
+		}
+		token, err := client.Groups.Token(group.Name, expiration, flags.ReadOnly(), claim, permission)
 		if err != nil {
 			return fmt.Errorf("error creating token: %w", err)
 		}
