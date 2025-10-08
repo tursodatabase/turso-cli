@@ -19,7 +19,6 @@ var jwksRegion string
 var jwksDatabase string
 var jwksGroup string
 var jwksScope string
-var jwksPermissions []string
 
 func init() {
 	rootCmd.AddCommand(orgCmd)
