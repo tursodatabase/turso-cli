@@ -2,12 +2,14 @@ package turso
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 )
 
@@ -171,6 +173,110 @@ func (c *OrganizationsClient) Locations() (OrgLocations, error) {
 		return OrgLocations{}, err
 	}
 	return body.Locations, nil
+}
+
+type OrgJwks struct {
+	JwksName string `json:"jwks_name"`
+	JwksUrl  string `json:"jwks_url"`
+}
+
+type OrgJwksList struct {
+	Jwks []OrgJwks `json:"jwks"`
+}
+
+type OrgJwksTemplate struct {
+	Template json.RawMessage `json:"template"`
+}
+
+type OrgJwksTemplateParams struct {
+	Database    *string                        `json:"database"`
+	Group       *string                        `json:"group"`
+	Scope       string                         `json:"scope"`
+	Permissions []flags.FineGrainedPermissions `json:"permissions"`
+}
+
+func (c *OrganizationsClient) JwksTemplate(org string, param OrgJwksTemplateParams) (string, error) {
+	request, err := marshal(param)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal jwks template request body: %s", err)
+	}
+	r, err := c.client.Get(fmt.Sprintf("/v2/organizations/%v/jwks-template", org), request)
+	if err != nil {
+		return "", fmt.Errorf("failed to get org jwks template: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[struct{ Error string }](r)
+		return "", fmt.Errorf("failed to get org jwks template: %s", err.Error)
+	}
+
+	body, err := unmarshal[OrgJwksTemplate](r)
+	if err != nil {
+		return "", err
+	}
+	json, err := body.Template.MarshalJSON()
+	if err != nil {
+		return "", err
+	}
+	return string(json), nil
+}
+
+func (c *OrganizationsClient) ListJwks(org string) ([]OrgJwks, error) {
+	r, err := c.client.Get(fmt.Sprintf("/v2/organizations/%v/jwks", org), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get org jwks: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[struct{ Error string }](r)
+		return nil, fmt.Errorf("failed to get org jwks: %s", err.Error)
+	}
+
+	body, err := unmarshal[OrgJwksList](r)
+	if err != nil {
+		return nil, err
+	}
+	return body.Jwks, nil
+}
+
+func (c *OrganizationsClient) SaveJwks(org string, name, url, region string) error {
+	body, err := marshal(map[string]any{"jwks_url": url, "region": region})
+	if err != nil {
+		return fmt.Errorf("failed to marshal save jwks request body: %s", err)
+	}
+	r, err := c.client.Put(fmt.Sprintf("/v2/organizations/%v/jwks/%v", org, name), body)
+	if err != nil {
+		return fmt.Errorf("failed to save org jwks: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[struct{ Error string }](r)
+		return fmt.Errorf("failed to save org jwks: %v", err.Error)
+	}
+
+	return nil
+}
+
+func (c *OrganizationsClient) RemoveJwks(org string, name, region string) error {
+	body, err := marshal(map[string]any{"region": region})
+	if err != nil {
+		return fmt.Errorf("failed to marshal remove jwks request body: %s", err)
+	}
+	r, err := c.client.Delete(fmt.Sprintf("/v2/organizations/%v/jwks/%v", org, name), body)
+	if err != nil {
+		return fmt.Errorf("failed to remove org jwks: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		err, _ := unmarshal[struct{ Error string }](r)
+		return fmt.Errorf("failed to remove org jwks: %v", err.Error)
+	}
+
+	return nil
 }
 
 func (c *OrganizationsClient) SetOverages(slug string, toggle bool) error {

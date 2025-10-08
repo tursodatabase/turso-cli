@@ -8,12 +8,17 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/settings"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
 var adminFlag bool
+var jwksRegion string
+var jwksDatabase string
+var jwksGroup string
+var jwksScope string
 
 func init() {
 	rootCmd.AddCommand(orgCmd)
@@ -38,6 +43,21 @@ func init() {
 	orgCmd.AddCommand(orgBillingCmd)
 	membersAddCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Add the user as an admin")
 	membersInviteCmd.Flags().BoolVarP(&adminFlag, "admin", "a", false, "Invite the user as an admin")
+
+	orgCmd.AddCommand(jwksCmd)
+	jwksCmd.AddCommand(jwksList)
+	jwksCmd.AddCommand(jwksRemove)
+	jwksCmd.AddCommand(jwksSave)
+	jwksCmd.AddCommand(jwksTemplate)
+
+	jwksSave.Flags().StringVarP(&jwksRegion, "region", "r", "", "region")
+	jwksSave.Flags().MarkHidden("region")
+	jwksRemove.Flags().StringVarP(&jwksRegion, "region", "r", "", "region")
+	jwksRemove.Flags().MarkHidden("region")
+	jwksTemplate.Flags().StringVarP(&jwksDatabase, "database", "d", "", "database")
+	jwksTemplate.Flags().StringVarP(&jwksGroup, "group", "g", "", "group")
+	jwksTemplate.Flags().StringVarP(&jwksScope, "scope", "s", "full-access", "claims scope (full-access or read-only)")
+	flags.AddFineGrainedPermissions(jwksTemplate)
 }
 
 func switchToOrg(client *turso.Client, slug string, showHowToGoBack bool) error {
@@ -620,6 +640,165 @@ func BillingPortal() error {
 	}
 
 	return billingPortal(org)
+}
+
+func currentOrg(client *turso.Client) (turso.Organization, error) {
+	orgs, err := client.Organizations.List()
+	if err != nil {
+		return turso.Organization{}, err
+	}
+
+	settingsObj, err := settings.ReadSettings()
+	if err != nil {
+		return turso.Organization{}, err
+	}
+
+	current := settingsObj.Organization()
+
+	for _, org := range orgs {
+		if isCurrentOrg(org, current) {
+			return org, nil
+		}
+	}
+	return turso.Organization{}, fmt.Errorf("current organization is not set")
+}
+
+var jwksCmd = &cobra.Command{
+	Use:   "jwks",
+	Short: "[BETA] Manage your organization external JWKS sources",
+}
+
+var jwksList = &cobra.Command{
+	Use:               "list",
+	Short:             "List saved external JWKS sources",
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		org, err := currentOrg(client)
+		if err != nil {
+			return err
+		}
+
+		jwksList, err := client.Organizations.ListJwks(org.Slug)
+		if err != nil {
+			return err
+		}
+		table := make([][]string, 0)
+		for _, jwks := range jwksList {
+			table = append(table, []string{jwks.JwksName, jwks.JwksUrl})
+		}
+		printTable([]string{"name", "url"}, table)
+		return nil
+	},
+}
+
+var jwksTemplate = &cobra.Command{
+	Use:               "template",
+	Short:             "Generate JWT claims template for external auth provider",
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		org, err := currentOrg(client)
+		if err != nil {
+			return err
+		}
+
+		var database *string
+		var group *string
+
+		if jwksDatabase != "" {
+			database = &jwksDatabase
+		}
+		if jwksGroup != "" {
+			group = &jwksGroup
+		}
+		permissions, err := flags.FineGrainedPermissionsFlags()
+		if err != nil {
+			return err
+		}
+		params := turso.OrgJwksTemplateParams{
+			Database:    database,
+			Group:       group,
+			Scope:       jwksScope,
+			Permissions: permissions,
+		}
+		template, err := client.Organizations.JwksTemplate(org.Slug, params)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%v\n", internal.Emph(template))
+		return nil
+	},
+}
+
+var jwksSave = &cobra.Command{
+	Use:               "save <name> <url>",
+	Short:             "Save external JWKS source with given name and URL (e.g. save clerk https://.../.well-known/jwks.json)",
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		name, url := args[0], args[1]
+
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		org, err := currentOrg(client)
+		if err != nil {
+			return err
+		}
+
+		err = client.Organizations.SaveJwks(org.Slug, name, url, jwksRegion)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("JWKS %v saved for organization %s.\n", internal.Emph(name), internal.Emph(org.Slug))
+		return nil
+	},
+}
+
+var jwksRemove = &cobra.Command{
+	Use:               "remove <name>",
+	Short:             "Remove external JWKS source with given name",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: noFilesArg,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+
+		name := args[0]
+
+		client, err := authedTursoClient()
+		if err != nil {
+			return err
+		}
+
+		org, err := currentOrg(client)
+		if err != nil {
+			return err
+		}
+
+		err = client.Organizations.RemoveJwks(org.Slug, name, jwksRegion)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("JWKS %v removed from organization %s.\n", internal.Emph(name), internal.Emph(org.Slug))
+		return nil
+	},
 }
 
 func listOrganizations(client *turso.Client, fresh ...bool) ([]turso.Organization, error) {

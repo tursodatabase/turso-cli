@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/tursodatabase/turso-cli/internal"
+	"github.com/tursodatabase/turso-cli/internal/flags"
 )
 
 type GroupsClient client
@@ -267,17 +268,24 @@ type PermissionsClaim struct {
 }
 
 type GroupTokenRequest struct {
-	Permissions *PermissionsClaim `json:"permissions,omitempty"`
+	Permissions            *PermissionsClaim              `json:"permissions,omitempty"`
+	FineGrainedPermissions []flags.FineGrainedPermissions `json:"fine_grained_permissions,omitempty"`
 }
 
-func (d *GroupsClient) Token(group string, expiration string, readOnly bool, permissions *PermissionsClaim) (string, error) {
+func (d *GroupsClient) Token(
+	group string,
+	expiration string,
+	readOnly bool,
+	permissions *PermissionsClaim,
+	fineGrainedPermissions []flags.FineGrainedPermissions,
+) (string, error) {
 	authorization := ""
 	if readOnly {
 		authorization = "&authorization=read-only"
 	}
 	url := d.URL(fmt.Sprintf("/%s/auth/tokens?expiration=%s%s", group, expiration, authorization))
 
-	req := GroupTokenRequest{permissions}
+	req := GroupTokenRequest{Permissions: permissions, FineGrainedPermissions: fineGrainedPermissions}
 	body, err := marshal(req)
 	if err != nil {
 		return "", fmt.Errorf("could not serialize request body: %w", err)
