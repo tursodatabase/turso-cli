@@ -314,7 +314,7 @@ func getPlan(name string, plans []turso.Plan) turso.Plan {
 }
 
 func billingPortal(currentOrg string) error {
-	url := "https://app.turso.tech/" + currentOrg + "/settings/billing"
+	url := "https://app.turso.tech/" + currentOrg + "/billing"
 	msg := "Opening your browser at:"
 	if err := browser.OpenURL(url); err != nil {
 		msg = "Access the following URL to manage your payment methods:"
