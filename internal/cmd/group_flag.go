@@ -65,7 +65,7 @@ func parseTimestampFlag() (*time.Time, error) {
 	return &timestamp, nil
 }
 
-func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string) (*turso.DBSeed, error) {
+func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string, multipart bool) (*turso.DBSeed, error) {
 	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag, fromCSVFlag) > 1 {
 		return nil, errors.New("only one of --from prefixed flags can be used at a time")
 	}
@@ -86,7 +86,7 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string) (*turso.D
 	}
 
 	if fromFileFlag != "" {
-		return handleDBFile(client, fromFileFlag, isAWS, cipher)
+		return handleDBFile(client, fromFileFlag, isAWS, cipher, multipart)
 	}
 
 	if fromDumpFlag != "" {
@@ -323,20 +323,21 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 	return nil
 }
 
-func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
+func handleDBFileAWS(file string, cipher string, multipart bool) (*turso.DBSeed, error) {
 	if err := sqliteFileIntegrityChecks(file, cipher); err != nil {
 		return nil, err
 	}
 
 	seed := &turso.DBSeed{
-		Type:     "database_upload",
-		Filepath: file,
+		Type:      "database_upload",
+		Filepath:  file,
+		Multipart: multipart,
 	}
 
 	return seed, nil
 }
 
-func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) (*turso.DBSeed, error) {
+func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string, multipart bool) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
@@ -345,7 +346,7 @@ func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) 
 	}
 
 	if isAWS {
-		return handleDBFileAWS(file, cipher)
+		return handleDBFileAWS(file, cipher, multipart)
 	}
 
 	if err := checkSQLiteFile(file); err != nil {
@@ -445,7 +446,7 @@ func handleCSVFile(client *turso.Client, file, csvTableName string, separator ru
 		return nil, err
 	}
 
-	seed, err := handleDBFile(client, tempDB.Name(), false, cipher)
+	seed, err := handleDBFile(client, tempDB.Name(), false, cipher, multipart)
 	if err != nil {
 		return nil, err
 	}

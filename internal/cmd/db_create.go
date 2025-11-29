@@ -113,7 +113,7 @@ func CreateDatabase(name string) error {
 		return err
 	}
 
-	seed, err := parseDBSeedFlags(client, isAWS, remoteEncryptionCipherFlag)
+	seed, err := parseDBSeedFlags(client, isAWS, remoteEncryptionCipherFlag, multipartFlag)
 	if err != nil {
 		return err
 	}
