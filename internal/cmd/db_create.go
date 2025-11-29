@@ -83,7 +83,7 @@ func CreateDatabase(name string) error {
 	}
 
 	isAWS := strings.HasPrefix(group.Primary, "aws-")
-	seed, err := parseDBSeedFlags(client, isAWS)
+	seed, err := parseDBSeedFlags(client, isAWS, multipartFlag)
 	if err != nil {
 		return err
 	}

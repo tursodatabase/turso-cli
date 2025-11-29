@@ -160,6 +160,10 @@ func (t *Client) PostBinary(path string, body io.Reader) (*http.Response, error)
 	return t.do("POST", path, body, Header("Content-Type", "application/octet-stream"))
 }
 
+func (t *Client) PutBinary(path string, body io.Reader) (*http.Response, error) {
+	return t.do("PUT", path, body, Header("Content-Type", "application/octet-stream"))
+}
+
 func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {
 	return t.do("PATCH", path, body, Header("Content-Type", "application/json"))
 }

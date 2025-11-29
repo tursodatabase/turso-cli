@@ -99,6 +99,127 @@ func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(pr
 	return nil
 }
 
+// MultipartUploadResponse represents the response from initiating a multipart upload
+type MultipartUploadResponse struct {
+	ChunkSize int64 `json:"chunk_size"`
+}
+
+// UploadFileMultipart uploads a database file using the multipart upload flow.
+func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", filepath, err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get file stats for %s: %w", filepath, err)
+	}
+
+	totalSize := stat.Size()
+	startTime := time.Now()
+
+	chunkSize, err := i.startMultipartUpload()
+	if err != nil {
+		return err
+	}
+
+	uploadedBytes, err := i.uploadChunks(chunkSize, file, totalSize, startTime, onUploadProgress)
+	if err != nil {
+		return err
+	}
+
+	err2 := i.finalizeUpload(err)
+	if err2 != nil {
+		return err2
+	}
+
+	elapsedTime := time.Since(startTime)
+	onUploadProgress(100, uploadedBytes, totalSize, elapsedTime, true)
+
+	return nil
+}
+
+func (i *TursoServerClient) startMultipartUpload() (int64, error) {
+	r, err := i.client.PutBinary("/v2/upload", nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to initiate multipart upload: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return 0, fmt.Errorf("initiate multipart upload failed with status code %d and error reading response: %v", r.StatusCode, err)
+		}
+		return 0, fmt.Errorf("initiate multipart upload failed with status code %d: %s", r.StatusCode, string(body))
+	}
+
+	var uploadResp MultipartUploadResponse
+	if err := json.NewDecoder(r.Body).Decode(&uploadResp); err != nil {
+		return 0, fmt.Errorf("failed to decode multipart upload response: %w", err)
+	}
+
+	return uploadResp.ChunkSize, nil
+}
+
+func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
+	var uploadedBytes int64 = 0
+	chunkID := 0
+
+	for uploadedBytes < totalSize {
+		remaining := totalSize - uploadedBytes
+		currentChunkSize := chunkSize
+		if remaining < chunkSize {
+			currentChunkSize = remaining
+		}
+
+		chunkReader := io.LimitReader(file, currentChunkSize)
+		chunkPath := fmt.Sprintf("/v2/upload/chunk/%d", chunkID)
+
+		r, err := i.client.PutBinary(chunkPath, chunkReader)
+		if err != nil {
+			return 0, fmt.Errorf("failed to upload chunk %d: %w", chunkID, err)
+		}
+
+		if r.StatusCode != http.StatusOK && r.StatusCode != http.StatusCreated {
+			if body, err := io.ReadAll(r.Body); err != nil {
+				r.Body.Close()
+				return 0, fmt.Errorf("upload chunk %d failed with status code %d and error reading response: %v", chunkID, r.StatusCode, err)
+			} else {
+				r.Body.Close()
+				return 0, fmt.Errorf("upload chunk %d failed with status code %d: %s", chunkID, r.StatusCode, string(body))
+			}
+		}
+
+		uploadedBytes += currentChunkSize
+		progressPct := int(float64(uploadedBytes) / float64(totalSize) * 100)
+		elapsedTime := time.Since(startTime)
+		onUploadProgress(progressPct, uploadedBytes, totalSize, elapsedTime, false)
+
+		chunkID++
+	}
+	return uploadedBytes, nil
+}
+
+func (i *TursoServerClient) finalizeUpload(err error) error {
+	r, err := i.client.Post("/v2/upload/finalize", nil)
+	if err != nil {
+		return fmt.Errorf("failed to finalize multipart upload: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("finalize multipart upload failed with status code %d and error reading response: %v", r.StatusCode, err)
+		}
+		return fmt.Errorf("finalize multipart upload failed with status code %d: %s", r.StatusCode, string(body))
+	}
+	return nil
+}
+
 type ExportInfo struct {
 	CurrentGeneration int `json:"current_generation"`
 }
