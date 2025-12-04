@@ -173,6 +173,7 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (int64, error) {
 	return uploadResp.ChunkSize, nil
 }
 
+// TODO make it possible to resume upload (remember successful chunks)
 func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
 	var uploadedBytes int64 = 0
 	chunkID := 0
@@ -215,7 +216,7 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 }
 
 func (i *TursoServerClient) finalizeUpload(err error) error {
-	r, err := i.client.Post("/v2/upload/finalize", nil)
+	r, err := i.client.Put("/v2/upload/finalize", nil)
 	if err != nil {
 		return fmt.Errorf("failed to finalize multipart upload: %w", err)
 	}
