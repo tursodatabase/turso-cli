@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 
 	"github.com/tursodatabase/turso-cli/internal/flags"
 )
@@ -162,6 +163,13 @@ func (t *Client) PostBinary(path string, body io.Reader) (*http.Response, error)
 
 func (t *Client) PutBinary(path string, body io.Reader) (*http.Response, error) {
 	return t.do("PUT", path, body, Header("Content-Type", "application/octet-stream"))
+}
+
+func (t *Client) PutBinaryWithLength(path string, body io.Reader, contentLength int64) (*http.Response, error) {
+	return t.do("PUT", path, body, map[string]string{
+		"Content-Type":   "application/octet-stream",
+		"Content-Length": strconv.FormatInt(contentLength, 10),
+	})
 }
 
 func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {

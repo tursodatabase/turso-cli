@@ -187,19 +187,21 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 		chunkReader := io.LimitReader(file, currentChunkSize)
 		chunkPath := fmt.Sprintf("/v2/upload/chunk/%d", chunkID)
 
-		r, err := i.client.PutBinary(chunkPath, chunkReader)
+		r, err := i.client.PutBinaryWithLength(chunkPath, chunkReader, currentChunkSize)
 		if err != nil {
 			return 0, fmt.Errorf("failed to upload chunk %d: %w", chunkID, err)
 		}
 
 		if r.StatusCode != http.StatusOK && r.StatusCode != http.StatusCreated {
 			if body, err := io.ReadAll(r.Body); err != nil {
-				r.Body.Close()
+				_ = r.Body.Close()
 				return 0, fmt.Errorf("upload chunk %d failed with status code %d and error reading response: %v", chunkID, r.StatusCode, err)
 			} else {
-				r.Body.Close()
+				_ = r.Body.Close()
 				return 0, fmt.Errorf("upload chunk %d failed with status code %d: %s", chunkID, r.StatusCode, string(body))
 			}
+		} else {
+			_ = r.Body.Close()
 		}
 
 		uploadedBytes += currentChunkSize
