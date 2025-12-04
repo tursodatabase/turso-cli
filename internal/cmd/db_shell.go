@@ -40,6 +40,11 @@ func getURL(db *turso.Database, client *turso.Client, http bool, primaryOnly boo
 		scheme = "https"
 	}
 
+	if isLocalDevelopmentDb(db) {
+		// for locally running dbs, we fallback to http scheme
+		scheme = "http"
+	}
+
 	if instanceFlag == "" && locationFlag == "" {
 		if !primaryOnly {
 			return getUrl(db, nil, scheme), nil
