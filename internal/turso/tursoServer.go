@@ -120,7 +120,7 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgres
 	totalSize := stat.Size()
 	startTime := time.Now()
 
-	chunkSize, err := i.startMultipartUpload()
+	chunkSize, err := i.startMultipartUpload(totalSize)
 	if err != nil {
 		return err
 	}
@@ -141,8 +141,17 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgres
 	return nil
 }
 
-func (i *TursoServerClient) startMultipartUpload() (int64, error) {
-	r, err := i.client.PutBinary("/v2/upload", nil)
+func (i *TursoServerClient) startMultipartUpload(dbSize int64) (int64, error) {
+	requestBody := map[string]int64{
+		"db_size_bytes": dbSize,
+	}
+
+	body, err := marshal(requestBody)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal multipart upload request: %w", err)
+	}
+
+	r, err := i.client.Put("/v2/upload/start", body)
 	if err != nil {
 		return 0, fmt.Errorf("failed to initiate multipart upload: %w", err)
 	}
