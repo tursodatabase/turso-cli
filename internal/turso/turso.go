@@ -103,6 +103,13 @@ func (t *Client) do(method, path string, body io.Reader, extraHeaders map[string
 	if err != nil {
 		return nil, err
 	}
+	if contentLength, ok := extraHeaders["Content-Length"]; ok {
+		length, err := strconv.Atoi(contentLength)
+		if err != nil {
+			return nil, err
+		}
+		req.ContentLength = int64(length)
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
