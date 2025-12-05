@@ -103,8 +103,15 @@ type ExportInfo struct {
 	CurrentGeneration int `json:"current_generation"`
 }
 
-func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
-	res, err := i.client.Get("/info", nil)
+const EncryptionKeyHeader = "x-turso-encryption-key"
+const EncryptionCipherHeader = "x-turso-encryption-cipher"
+
+func (i *TursoServerClient) Export(outputFile string, withMetadata bool, remoteEncryptionKey string) error {
+	headers := map[string]string{}
+	if remoteEncryptionKey != "" {
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
+	res, err := i.client.GetWithHeaders("/info", nil, headers)
 	if err != nil {
 		return fmt.Errorf("failed to fetch database info: %w", err)
 	}
@@ -117,7 +124,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 		return fmt.Errorf("failed to decode /info response: %w", err)
 	}
 
-	exportRes, err := i.client.Get(fmt.Sprintf("/export/%d", info.CurrentGeneration), nil)
+	exportRes, err := i.client.GetWithHeaders(fmt.Sprintf("/export/%d", info.CurrentGeneration), nil, headers)
 	if err != nil {
 		return fmt.Errorf("failed to fetch export: %w", err)
 	}
@@ -135,7 +142,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 		return fmt.Errorf("failed to write export to file: %w", err)
 	}
 
-	lastFrameNo, err := i.ExportWAL(outputFile, &info)
+	lastFrameNo, err := i.ExportWAL(outputFile, &info, remoteEncryptionKey)
 	if err != nil {
 		return fmt.Errorf("failed to export WAL: %w", err)
 	}
@@ -148,7 +155,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 	return nil
 }
 
-func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo) (int, error) {
+func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo, remoteEncryptionKey string) (int, error) {
 	walFile := outputFile + "-wal"
 	walOut, err := os.Create(walFile)
 	if err != nil {
@@ -191,9 +198,13 @@ func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo) (int,
 	const batchSize = 128
 	frameNo := 1
 	lastFrameNo := 0
+	headers := map[string]string{}
+	if remoteEncryptionKey != "" {
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
 
 	for {
-		walRes, err := i.client.Get(fmt.Sprintf("/sync/%d/%d/%d", info.CurrentGeneration, frameNo, frameNo+batchSize), nil)
+		walRes, err := i.client.GetWithHeaders(fmt.Sprintf("/sync/%d/%d/%d", info.CurrentGeneration, frameNo, frameNo+batchSize), nil, headers)
 		if err != nil {
 			if frameNo == 1 {
 				break

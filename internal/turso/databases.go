@@ -267,7 +267,7 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group 
 	return resp, nil
 }
 
-func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata bool, overwrite bool) error {
+func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata bool, overwrite bool, remoteEncryptionKey string) error {
 	if !overwrite {
 		if _, err := os.Stat(outputFile); err == nil {
 			return fmt.Errorf("file %s already exists, use `--overwrite` flag to overwrite it", outputFile)
@@ -285,7 +285,7 @@ func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata 
 	if err != nil {
 		return fmt.Errorf("could not create Turso server client: %w", err)
 	}
-	return tursoServerClient.Export(outputFile, withMetadata)
+	return tursoServerClient.Export(outputFile, withMetadata, remoteEncryptionKey)
 }
 
 func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {
