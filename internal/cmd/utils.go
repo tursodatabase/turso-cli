@@ -87,7 +87,11 @@ func getInstanceUrl(db *turso.Database, inst *turso.Instance) string {
 }
 
 func getDatabaseHttpUrl(db *turso.Database) string {
-	return getUrl(db, nil, "https")
+	scheme := "https"
+	if isLocalDevelopmentDb(db) {
+		scheme = "http"
+	}
+	return getUrl(db, nil, scheme)
 }
 
 func getUrl(db *turso.Database, inst *turso.Instance, scheme string) string {
@@ -371,4 +375,9 @@ func isInteractive() bool {
 
 func isTerminal(f *os.File) bool {
 	return isatty.IsTerminal(f.Fd()) || isatty.IsCygwinTerminal(f.Fd())
+}
+
+// isLocalDevelopmentDb checks if the db is running on a local server.
+func isLocalDevelopmentDb(db *turso.Database) bool {
+	return db.PrimaryRegion == "local"
 }
