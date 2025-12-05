@@ -16,17 +16,18 @@ import (
 )
 
 type Database struct {
-	ID            string `json:"dbId" mapstructure:"dbId"`
-	Name          string
-	Regions       []string
-	PrimaryRegion string
-	Hostname      string
-	Version       string
-	Group         string
-	Sleeping      bool
-	Schema        string
-	IsSchema      bool      `json:"is_schema" mapstructure:"is_schema"`
-	Parent        *Database `json:"parent,omitempty"`
+	ID               string `json:"dbId" mapstructure:"dbId"`
+	Name             string
+	Regions          []string
+	PrimaryRegion    string
+	Hostname         string
+	Version          string
+	Group            string
+	Sleeping         bool
+	Schema           string
+	IsSchema         bool      `json:"is_schema" mapstructure:"is_schema"`
+	Parent           *Database `json:"parent,omitempty"`
+	EncryptionCipher string    `json:"encryption_cipher,omitempty"`
 }
 
 type DatabasesClient client
