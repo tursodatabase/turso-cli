@@ -58,7 +58,7 @@ func NewTursoServerClient(baseURL *url.URL, token string, cliVersion string, org
 // UploadFile uploads a database file to the Turso server.
 // it assumes a SQLite file exists at 'filepath'.
 // it streams the file to the server, and calls the onProgress callback with the progress of the upload.
-func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+func (i *TursoServerClient) UploadFile(filepath, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filepath, err)
@@ -81,8 +81,14 @@ func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(pr
 		lastUpdate: -1, // Ensure first update is always sent
 	}
 
+	headers := map[string]string{}
+	if remoteEncryptionCipher != "" {
+		headers[EncryptionCipherHeader] = remoteEncryptionCipher
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
+
 	// Send POST request with streaming body
-	r, err := i.client.PostBinary("/v1/upload", progressTracker)
+	r, err := i.client.PostBinary("/v1/upload", progressTracker, headers)
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
