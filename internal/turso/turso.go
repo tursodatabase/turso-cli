@@ -96,10 +96,6 @@ func (t *Client) newRequest(method, urlPath string, body io.Reader, extraHeaders
 
 func (t *Client) do(method, path string, body io.Reader, extraHeaders map[string]string) (*http.Response, error) {
 	req, err := t.newRequest(method, path, body, extraHeaders)
-	var reqDump string
-	if flags.Debug() {
-		reqDump = dumpRequest(req)
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +105,11 @@ func (t *Client) do(method, path string, body io.Reader, extraHeaders map[string
 			return nil, err
 		}
 		req.ContentLength = int64(length)
+		req.TransferEncoding = nil
+	}
+	var reqDump string
+	if flags.Debug() {
+		reqDump = dumpRequest(req)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
