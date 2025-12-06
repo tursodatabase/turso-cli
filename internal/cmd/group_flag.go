@@ -64,7 +64,7 @@ func parseTimestampFlag() (*time.Time, error) {
 	return &timestamp, nil
 }
 
-func parseDBSeedFlags(client *turso.Client, isAWS bool) (*turso.DBSeed, error) {
+func parseDBSeedFlags(client *turso.Client, isAWS bool, multipart bool) (*turso.DBSeed, error) {
 	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag, fromCSVFlag) > 1 {
 		return nil, errors.New("only one of --from prefixed flags can be used at a time")
 	}
@@ -85,7 +85,7 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool) (*turso.DBSeed, error) {
 	}
 
 	if fromFileFlag != "" {
-		return handleDBFile(client, fromFileFlag, isAWS)
+		return handleDBFile(client, fromFileFlag, isAWS, multipart)
 	}
 
 	if fromDumpFlag != "" {
@@ -271,20 +271,21 @@ func sqliteFileIntegrityChecks(file string) error {
 	return nil
 }
 
-func handleDBFileAWS(file string) (*turso.DBSeed, error) {
+func handleDBFileAWS(file string, multipart bool) (*turso.DBSeed, error) {
 	if err := sqliteFileIntegrityChecks(file); err != nil {
 		return nil, err
 	}
 
 	seed := &turso.DBSeed{
-		Type:     "database_upload",
-		Filepath: file,
+		Type:      "database_upload",
+		Filepath:  file,
+		Multipart: multipart,
 	}
 
 	return seed, nil
 }
 
-func handleDBFile(client *turso.Client, file string, isAWS bool) (*turso.DBSeed, error) {
+func handleDBFile(client *turso.Client, file string, isAWS bool, multipart bool) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
@@ -293,7 +294,7 @@ func handleDBFile(client *turso.Client, file string, isAWS bool) (*turso.DBSeed,
 	}
 
 	if isAWS {
-		return handleDBFileAWS(file)
+		return handleDBFileAWS(file, multipart)
 	}
 
 	if err := checkSQLiteFile(file); err != nil {
@@ -393,7 +394,7 @@ func handleCSVFile(client *turso.Client, file, csvTableName string, separator ru
 		return nil, err
 	}
 
-	seed, err := handleDBFile(client, tempDB.Name(), false)
+	seed, err := handleDBFile(client, tempDB.Name(), false, false)
 	if err != nil {
 		return nil, err
 	}

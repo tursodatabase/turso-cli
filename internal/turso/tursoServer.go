@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"syscall"
 	"time"
 )
 
@@ -55,10 +56,26 @@ func NewTursoServerClient(baseURL *url.URL, token string, cliVersion string, org
 	}, nil
 }
 
-// UploadFile uploads a database file to the Turso server.
+const multipartThresholdBytes = 100 * 1024 * 1024 // 100MB
+
+// UploadFile uploads a file to the turso server
+func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+	stat, err := os.Stat(filepath)
+	if err != nil {
+		return fmt.Errorf("failed to stat file %s: %w", filepath, err)
+	}
+
+	if stat.Size() > multipartThresholdBytes {
+		return i.UploadFileMultipart(filepath, onUploadProgress)
+	}
+
+	return i.uploadFileSinglePart(filepath, onUploadProgress)
+}
+
+// uploadFileSinglePart uploads a database file to the Turso server using a single request.
 // it assumes a SQLite file exists at 'filepath'.
 // it streams the file to the server, and calls the onProgress callback with the progress of the upload.
-func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+func (i *TursoServerClient) uploadFileSinglePart(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filepath, err)
@@ -96,6 +113,144 @@ func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(pr
 		return fmt.Errorf("upload failed with status code %d: %s", r.StatusCode, string(body))
 	}
 
+	return nil
+}
+
+// MultipartUploadResponse represents the response from initiating a multipart upload
+type MultipartUploadResponse struct {
+	ChunkSize int64 `json:"chunk_size"`
+}
+
+// UploadFileMultipart uploads a database file using the multipart upload flow.
+func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", filepath, err)
+	}
+	defer file.Close()
+
+	// Place an exclusive lock on the file to prevent modifications during upload
+	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
+		return fmt.Errorf("failed to lock file %s: %w", filepath, err)
+	}
+	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get file stats for %s: %w", filepath, err)
+	}
+
+	totalSize := stat.Size()
+	startTime := time.Now()
+
+	chunkSize, err := i.startMultipartUpload(totalSize)
+	if err != nil {
+		return err
+	}
+
+	uploadedBytes, err := i.uploadChunks(chunkSize, file, totalSize, startTime, onUploadProgress)
+	if err != nil {
+		return err
+	}
+
+	err2 := i.finalizeUpload(err)
+	if err2 != nil {
+		return err2
+	}
+
+	elapsedTime := time.Since(startTime)
+	onUploadProgress(100, uploadedBytes, totalSize, elapsedTime, true)
+
+	return nil
+}
+
+func (i *TursoServerClient) startMultipartUpload(dbSize int64) (int64, error) {
+	requestBody := map[string]int64{
+		"db_size_bytes": dbSize,
+	}
+
+	body, err := marshal(requestBody)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal multipart upload request: %w", err)
+	}
+
+	r, err := i.client.Put("/v2/upload/start", body)
+	if err != nil {
+		return 0, fmt.Errorf("failed to initiate multipart upload: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return 0, fmt.Errorf("initiate multipart upload failed with status code %d and error reading response: %v", r.StatusCode, err)
+		}
+		return 0, fmt.Errorf("initiate multipart upload failed with status code %d: %s", r.StatusCode, string(body))
+	}
+
+	var uploadResp MultipartUploadResponse
+	if err := json.NewDecoder(r.Body).Decode(&uploadResp); err != nil {
+		return 0, fmt.Errorf("failed to decode multipart upload response: %w", err)
+	}
+
+	return uploadResp.ChunkSize, nil
+}
+
+func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
+	var uploadedBytes int64 = 0
+	chunkID := 0
+
+	for uploadedBytes < totalSize {
+		remaining := totalSize - uploadedBytes
+		currentChunkSize := chunkSize
+		if remaining < chunkSize {
+			currentChunkSize = remaining
+		}
+
+		chunkReader := io.LimitReader(file, currentChunkSize)
+		chunkPath := fmt.Sprintf("/v2/upload/chunk/%d", chunkID)
+
+		r, err := i.client.PutBinaryWithLength(chunkPath, chunkReader, currentChunkSize)
+		if err != nil {
+			return 0, fmt.Errorf("failed to upload chunk %d: %w", chunkID, err)
+		}
+
+		if r.StatusCode != http.StatusOK && r.StatusCode != http.StatusCreated {
+			if body, err := io.ReadAll(r.Body); err != nil {
+				_ = r.Body.Close()
+				return 0, fmt.Errorf("upload chunk %d failed with status code %d and error reading response: %v", chunkID, r.StatusCode, err)
+			} else {
+				_ = r.Body.Close()
+				return 0, fmt.Errorf("upload chunk %d failed with status code %d: %s", chunkID, r.StatusCode, string(body))
+			}
+		} else {
+			_ = r.Body.Close()
+		}
+
+		uploadedBytes += currentChunkSize
+		progressPct := int(float64(uploadedBytes) / float64(totalSize) * 100)
+		elapsedTime := time.Since(startTime)
+		onUploadProgress(progressPct, uploadedBytes, totalSize, elapsedTime, false)
+
+		chunkID++
+	}
+	return uploadedBytes, nil
+}
+
+func (i *TursoServerClient) finalizeUpload(err error) error {
+	r, err := i.client.Put("/v2/upload/finalize", nil)
+	if err != nil {
+		return fmt.Errorf("failed to finalize multipart upload: %w", err)
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("finalize multipart upload failed with status code %d and error reading response: %v", r.StatusCode, err)
+		}
+		return fmt.Errorf("finalize multipart upload failed with status code %d: %s", r.StatusCode, string(body))
+	}
 	return nil
 }
 
