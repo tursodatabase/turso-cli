@@ -55,10 +55,26 @@ func NewTursoServerClient(baseURL *url.URL, token string, cliVersion string, org
 	}, nil
 }
 
-// UploadFile uploads a database file to the Turso server.
+const multipartThresholdBytes = 100 * 1024 * 1024 // 100MB
+
+// UploadFile uploads a file to the turso server
+func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+	stat, err := os.Stat(filepath)
+	if err != nil {
+		return fmt.Errorf("failed to stat file %s: %w", filepath, err)
+	}
+
+	if stat.Size() > multipartThresholdBytes {
+		return i.UploadFileMultipart(filepath, onUploadProgress)
+	}
+
+	return i.uploadFileSinglePart(filepath, onUploadProgress)
+}
+
+// uploadFileSinglePart uploads a database file to the Turso server using a single request.
 // it assumes a SQLite file exists at 'filepath'.
 // it streams the file to the server, and calls the onProgress callback with the progress of the upload.
-func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+func (i *TursoServerClient) uploadFileSinglePart(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filepath, err)
@@ -118,6 +134,7 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgres
 	}
 
 	totalSize := stat.Size()
+	initialModTime := stat.ModTime()
 	startTime := time.Now()
 
 	chunkSize, err := i.startMultipartUpload(totalSize)
@@ -125,7 +142,7 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgres
 		return err
 	}
 
-	uploadedBytes, err := i.uploadChunks(chunkSize, file, totalSize, startTime, onUploadProgress)
+	uploadedBytes, err := i.uploadChunks(chunkSize, file, totalSize, filepath, initialModTime, startTime, onUploadProgress)
 	if err != nil {
 		return err
 	}
@@ -173,8 +190,7 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (int64, error) {
 	return uploadResp.ChunkSize, nil
 }
 
-// TODO make it possible to resume upload (remember successful chunks)
-func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
+func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, filepath string, initialModTime time.Time, startTime time.Time, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
 	var uploadedBytes int64 = 0
 	chunkID := 0
 
