@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"syscall"
 	"time"
 )
 
@@ -128,13 +129,18 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgres
 	}
 	defer file.Close()
 
+	// Place an exclusive lock on the file to prevent modifications during upload
+	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err != nil {
+		return fmt.Errorf("failed to lock file %s: %w", filepath, err)
+	}
+	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+
 	stat, err := file.Stat()
 	if err != nil {
 		return fmt.Errorf("failed to get file stats for %s: %w", filepath, err)
 	}
 
 	totalSize := stat.Size()
-	initialModTime := stat.ModTime()
 	startTime := time.Now()
 
 	chunkSize, err := i.startMultipartUpload(totalSize)
@@ -142,7 +148,7 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, onUploadProgres
 		return err
 	}
 
-	uploadedBytes, err := i.uploadChunks(chunkSize, file, totalSize, filepath, initialModTime, startTime, onUploadProgress)
+	uploadedBytes, err := i.uploadChunks(chunkSize, file, totalSize, startTime, onUploadProgress)
 	if err != nil {
 		return err
 	}
@@ -190,7 +196,7 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (int64, error) {
 	return uploadResp.ChunkSize, nil
 }
 
-func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, filepath string, initialModTime time.Time, startTime time.Time, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
+func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
 	var uploadedBytes int64 = 0
 	chunkID := 0
 
