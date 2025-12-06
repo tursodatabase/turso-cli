@@ -218,7 +218,7 @@ var shellCmd = &cobra.Command{
 		}
 
 		if db != nil && db.Sleeping {
-			return fmt.Errorf("Your DB might be archived. Please run `turso group unarchive " + db.Group + "` to unarchive it")
+			return fmt.Errorf("your DB might be archived. Please run `turso group unarchive %s` to unarchive it", db.Group)
 		}
 		connectionInfo := getConnectionInfo(urlString, db)
 		schemaDb := false
