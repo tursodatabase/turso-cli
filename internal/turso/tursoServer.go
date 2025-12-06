@@ -82,7 +82,7 @@ func (i *TursoServerClient) UploadFile(filepath, remoteEncryptionCipher, remoteE
 	}
 
 	headers := map[string]string{}
-	if remoteEncryptionCipher != "" {
+	if remoteEncryptionCipher != "" && remoteEncryptionKey != "" {
 		headers[EncryptionCipherHeader] = remoteEncryptionCipher
 		headers[EncryptionKeyHeader] = remoteEncryptionKey
 	}

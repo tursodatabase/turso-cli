@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -93,6 +94,10 @@ func CreateDatabase(name string) error {
 	version := "latest"
 	if canaryFlag {
 		version = "canary"
+	}
+
+	if err = validateEncryptionFlags(); err != nil {
+		return err
 	}
 
 	if err := ensureGroup(client, groupName, groups, location, version); err != nil {
@@ -210,4 +215,30 @@ func locationFromFlag(client *turso.Client, group turso.Group, groups []turso.Gr
 func shouldAutoCreateGroup(name string, groups []turso.Group) bool {
 	// we only create the default group automatically
 	return name == "default" && len(groups) == 0
+}
+
+func validateEncryptionFlags() error {
+	if remoteEncryptionKeyFlag == "" && remoteEncryptionCipherFlag == "" {
+		return nil
+	}
+	// if key flag is empty, then user passed only the cipher, which is invalid
+	if remoteEncryptionKeyFlag == "" {
+		return fmt.Errorf("remote encryption key must be provided when remote encryption cipher is set")
+	}
+
+	// if key is provided, lets verify its in base64 encoded
+	_, err := base64.StdEncoding.DecodeString(remoteEncryptionKeyFlag)
+	if err != nil {
+		return fmt.Errorf("encryption key (%s) is not valid base64: %w", remoteEncryptionKeyFlag, err)
+	}
+
+	if remoteEncryptionCipherFlag != "" {
+		return nil
+	}
+
+	// if cipher is empty, then it is only valid in case of forks and for everything else we need to have it set
+	if fromDBFlag == "" {
+		return fmt.Errorf("remote encryption cipher must be provided when remote encryption key is set")
+	}
+	return nil
 }
