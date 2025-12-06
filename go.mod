@@ -1,8 +1,6 @@
 module github.com/tursodatabase/turso-cli
 
-go 1.22
-
-toolchain go1.22.0
+go 1.24.0
 
 require (
 	github.com/Clever/csvlint v0.3.0
@@ -22,8 +20,13 @@ require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
-	golang.org/x/exp v0.0.0-20240716160929-1d5bc16f04a8
-	golang.org/x/sync v0.7.0
+	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39
+	golang.org/x/sync v0.18.0
+)
+
+require (
+	github.com/libsql/sqlite-antlr4-parser v0.0.0-20240721121621-c0bdc870f11c // indirect
+	github.com/tursodatabase/go-libsql v0.0.0-20251025125656-00da49cd4a6e // indirect
 )
 
 require (
@@ -32,7 +35,6 @@ require (
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/charmbracelet/lipgloss v0.6.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
-	github.com/coder/websocket v1.8.12 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
@@ -45,7 +47,6 @@ require (
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
@@ -58,7 +59,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
-	github.com/tursodatabase/libsql-client-go v0.0.0-20240902231107-85af5b9d094d // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
@@ -68,3 +68,5 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/libsql/libsql-shell-go => github.com/avinassh/libsql-shell-go v0.9.4-0.20251206140354-71d07655d394
