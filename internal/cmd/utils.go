@@ -15,6 +15,7 @@ import (
 
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -259,10 +260,12 @@ func deleteDatabaseInstance(client *turso.Client, database, instance string) err
 
 func getTursoUrl() string {
 	config, _ := settings.ReadSettings() // ok to ignore, we'll fallback to default
+	viper.AllowEmptyEnv(true)
 	url := config.GetBaseURL()
 	if url == "" {
 		url = tursoDefaultBaseURL
 	}
+	viper.AllowEmptyEnv(false)
 	return url
 }
 
