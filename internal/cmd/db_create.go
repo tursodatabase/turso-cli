@@ -108,7 +108,7 @@ func CreateDatabase(name string) error {
 	spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(groupName)))
 	defer spinner.Stop()
 
-	if _, err = client.Databases.Create(name, location, "", "", groupName, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag, remoteEncryptionCipherFlag, remoteEncryptionKeyFlag, spinner); err != nil {
+	if _, err = client.Databases.Create(name, location, "", "", groupName, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag, remoteEncryptionCipherFlag, remoteEncryptionKeyFlag(), spinner); err != nil {
 		return fmt.Errorf("could not create database %s: %w", name, err)
 	}
 
@@ -218,18 +218,19 @@ func shouldAutoCreateGroup(name string, groups []turso.Group) bool {
 }
 
 func validateEncryptionFlags() error {
-	if remoteEncryptionKeyFlag == "" && remoteEncryptionCipherFlag == "" {
+	remoteEncryptionKey := remoteEncryptionKeyFlag()
+	if remoteEncryptionKey == "" && remoteEncryptionCipherFlag == "" {
 		return nil
 	}
 	// if key flag is empty, then user passed only the cipher, which is invalid
-	if remoteEncryptionKeyFlag == "" {
+	if remoteEncryptionKey == "" {
 		return fmt.Errorf("remote encryption key must be provided when remote encryption cipher is set")
 	}
 
 	// if key is provided, lets verify its in base64 encoded
-	_, err := base64.StdEncoding.DecodeString(remoteEncryptionKeyFlag)
+	_, err := base64.StdEncoding.DecodeString(remoteEncryptionKey)
 	if err != nil {
-		return fmt.Errorf("encryption key (%s) is not valid base64: %w", remoteEncryptionKeyFlag, err)
+		return fmt.Errorf("encryption key (%s) is not valid base64: %w", remoteEncryptionKey, err)
 	}
 
 	if remoteEncryptionCipherFlag != "" {

@@ -231,7 +231,7 @@ var shellCmd = &cobra.Command{
 			DbUri:               dbUrl,
 			Proxy:               proxy,
 			AuthToken:           authToken,
-			RemoteEncryptionKey: remoteEncryptionKeyFlag,
+			RemoteEncryptionKey: remoteEncryptionKeyFlag(),
 			InF:                 cmd.InOrStdin(),
 			OutF:                cmd.OutOrStdout(),
 			ErrF:                cmd.ErrOrStderr(),

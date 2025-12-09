@@ -50,7 +50,7 @@ func ExportDatabase(dbName, outputFile string, withMetadata bool, overwrite bool
 		return fmt.Errorf("failed to find database: %w", err)
 	}
 	dbUrl := getDatabaseHttpUrl(&db)
-	err = client.Databases.Export(dbName, dbUrl, outputFile, withMetadata, overwrite, remoteEncryptionKeyFlag)
+	err = client.Databases.Export(dbName, dbUrl, outputFile, withMetadata, overwrite, remoteEncryptionKeyFlag())
 	if err != nil {
 		return err
 	}
