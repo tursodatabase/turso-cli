@@ -16,17 +16,18 @@ import (
 )
 
 type Database struct {
-	ID            string `json:"dbId" mapstructure:"dbId"`
-	Name          string
-	Regions       []string
-	PrimaryRegion string
-	Hostname      string
-	Version       string
-	Group         string
-	Sleeping      bool
-	Schema        string
-	IsSchema      bool      `json:"is_schema" mapstructure:"is_schema"`
-	Parent        *Database `json:"parent,omitempty"`
+	ID               string `json:"dbId" mapstructure:"dbId"`
+	Name             string
+	Regions          []string
+	PrimaryRegion    string
+	Hostname         string
+	Version          string
+	Group            string
+	Sleeping         bool
+	Schema           string
+	IsSchema         bool      `json:"is_schema" mapstructure:"is_schema"`
+	Parent           *Database `json:"parent,omitempty"`
+	EncryptionCipher string    `json:"encryption_cipher,omitempty"`
 }
 
 type DatabasesClient client
@@ -133,19 +134,25 @@ type DBSeed struct {
 	Filepath string `json:"-"`
 }
 
-type CreateDatabaseBody struct {
-	Name       string  `json:"name"`
-	Location   string  `json:"location"`
-	Image      string  `json:"image,omitempty"`
-	Extensions string  `json:"extensions,omitempty"`
-	Group      string  `json:"group,omitempty"`
-	Seed       *DBSeed `json:"seed,omitempty"`
-	Schema     string  `json:"schema,omitempty"`
-	IsSchema   bool    `json:"is_schema,omitempty"`
-	SizeLimit  string  `json:"size_limit,omitempty"`
+type RemoteEncryption struct {
+	EncryptionKey    string `json:"encryption_key"`
+	EncryptionCipher string `json:"encryption_cipher"`
 }
 
-func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed, sizeLimit string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
+type CreateDatabaseBody struct {
+	Name             string            `json:"name"`
+	Location         string            `json:"location"`
+	Image            string            `json:"image,omitempty"`
+	Extensions       string            `json:"extensions,omitempty"`
+	Group            string            `json:"group,omitempty"`
+	Seed             *DBSeed           `json:"seed,omitempty"`
+	Schema           string            `json:"schema,omitempty"`
+	IsSchema         bool              `json:"is_schema,omitempty"`
+	SizeLimit        string            `json:"size_limit,omitempty"`
+	RemoteEncryption *RemoteEncryption `json:"remote_encryption,omitempty"`
+}
+
+func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed, sizeLimit, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
 	isTursoServerUpload := seed != nil && seed.Type == "database_upload" && seed.Filepath != ""
 	var uploadFilepath string
 	var params CreateDatabaseBody
@@ -163,7 +170,14 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 			Seed:     seed,
 		}
 	} else {
-		params = CreateDatabaseBody{name, location, image, extensions, group, seed, schema, isSchema, sizeLimit}
+		params = CreateDatabaseBody{name, location, image, extensions, group, seed, schema, isSchema, sizeLimit, nil}
+	}
+
+	if remoteEncryptionKey != "" {
+		params.RemoteEncryption = &RemoteEncryption{
+			EncryptionKey:    remoteEncryptionKey,
+			EncryptionCipher: remoteEncryptionCipher,
+		}
 	}
 
 	body, err := marshal(params)
@@ -196,7 +210,7 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 	}
 
 	if isTursoServerUpload {
-		if _, err = d.UploadDatabaseAWS(data, group, uploadFilepath, spinner); err != nil {
+		if _, err = d.UploadDatabaseAWS(data, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, spinner); err != nil {
 			// Clean up the database if the upload fails
 			if deleteErr := d.Delete(data.Database.Name); deleteErr != nil {
 				fmt.Printf("%v", deleteErr)
@@ -217,7 +231,7 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 //     This call happens in DatabasesClient.Create() above, after which it calls this function.
 //  2. This function creates a DB token for the newly-created DB, and then calls turso-server to upload the database file.
 //     turso-server will perform validations on the file and 'activate' the db if everything is ok.
-func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group string, uploadFilepath string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
+func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
 	// Create a short-lived DB token for the newly created database to facilitate the upload
 	token, err := d.Token(resp.Database.Name, "1h", false, nil, nil)
 	if err != nil {
@@ -235,7 +249,7 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group 
 
 	// Upload the database file
 	spinner.Text(fmt.Sprintf("Uploading database %s in group %s, this may take a while...", internal.Emph(resp.Database.Name), internal.Emph(group)))
-	err = tursoServerClient.UploadFile(uploadFilepath, func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
+	err = tursoServerClient.UploadFile(uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
 		totalSeconds := int(elapsedTime.Seconds())
 		minutes := totalSeconds / 60
 		seconds := totalSeconds % 60
@@ -267,7 +281,7 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group 
 	return resp, nil
 }
 
-func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata bool, overwrite bool) error {
+func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata bool, overwrite bool, remoteEncryptionKey string) error {
 	if !overwrite {
 		if _, err := os.Stat(outputFile); err == nil {
 			return fmt.Errorf("file %s already exists, use `--overwrite` flag to overwrite it", outputFile)
@@ -285,7 +299,7 @@ func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata 
 	if err != nil {
 		return fmt.Errorf("could not create Turso server client: %w", err)
 	}
-	return tursoServerClient.Export(outputFile, withMetadata)
+	return tursoServerClient.Export(outputFile, withMetadata, remoteEncryptionKey)
 }
 
 func (d *DatabasesClient) Seed(name string, dbFile *os.File) error {

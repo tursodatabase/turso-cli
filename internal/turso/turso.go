@@ -148,6 +148,9 @@ func (t *Client) Get(path string, body io.Reader) (*http.Response, error) {
 }
 
 func (t *Client) GetWithHeaders(path string, body io.Reader, headers map[string]string) (*http.Response, error) {
+	if headers == nil {
+		headers = make(map[string]string)
+	}
 	headers["Content-Type"] = "application/json"
 	return t.do("GET", path, body, headers)
 }
@@ -156,8 +159,12 @@ func (t *Client) Post(path string, body io.Reader) (*http.Response, error) {
 	return t.do("POST", path, body, Header("Content-Type", "application/json"))
 }
 
-func (t *Client) PostBinary(path string, body io.Reader) (*http.Response, error) {
-	return t.do("POST", path, body, Header("Content-Type", "application/octet-stream"))
+func (t *Client) PostBinary(path string, body io.Reader, headers map[string]string) (*http.Response, error) {
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+	headers["Content-Type"] = "application/octet-stream"
+	return t.do("POST", path, body, headers)
 }
 
 func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {

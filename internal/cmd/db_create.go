@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -37,6 +38,8 @@ func init() {
 	addSchemaFlag(createCmd)
 	addTypeFlag(createCmd)
 	addSizeLimitFlag(createCmd)
+	addRemoteEncryptionCipherFlag(createCmd)
+	addRemoteEncryptionKeyFlag(createCmd)
 }
 
 var createCmd = &cobra.Command{
@@ -93,6 +96,10 @@ func CreateDatabase(name string) error {
 		version = "canary"
 	}
 
+	if err = validateEncryptionFlags(); err != nil {
+		return err
+	}
+
 	if err := ensureGroup(client, groupName, groups, location, version); err != nil {
 		return err
 	}
@@ -101,7 +108,7 @@ func CreateDatabase(name string) error {
 	spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(groupName)))
 	defer spinner.Stop()
 
-	if _, err = client.Databases.Create(name, location, "", "", groupName, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag, spinner); err != nil {
+	if _, err = client.Databases.Create(name, location, "", "", groupName, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag, remoteEncryptionCipherFlag, remoteEncryptionKeyFlag(), spinner); err != nil {
 		return fmt.Errorf("could not create database %s: %w", name, err)
 	}
 
@@ -208,4 +215,31 @@ func locationFromFlag(client *turso.Client, group turso.Group, groups []turso.Gr
 func shouldAutoCreateGroup(name string, groups []turso.Group) bool {
 	// we only create the default group automatically
 	return name == "default" && len(groups) == 0
+}
+
+func validateEncryptionFlags() error {
+	remoteEncryptionKey := remoteEncryptionKeyFlag()
+	if remoteEncryptionKey == "" && remoteEncryptionCipherFlag == "" {
+		return nil
+	}
+	// if key flag is empty, then user passed only the cipher, which is invalid
+	if remoteEncryptionKey == "" {
+		return fmt.Errorf("remote encryption key must be provided when remote encryption cipher is set")
+	}
+
+	// if key is provided, lets verify its in base64 encoded
+	_, err := base64.StdEncoding.DecodeString(remoteEncryptionKey)
+	if err != nil {
+		return fmt.Errorf("encryption key (%s) is not valid base64: %w", remoteEncryptionKey, err)
+	}
+
+	if remoteEncryptionCipherFlag != "" {
+		return nil
+	}
+
+	// if cipher is empty, then it is only valid in case of forks and for everything else we need to have it set
+	if fromDBFlag == "" {
+		return fmt.Errorf("remote encryption cipher must be provided when remote encryption key is set")
+	}
+	return nil
 }

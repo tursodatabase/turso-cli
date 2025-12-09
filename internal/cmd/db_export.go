@@ -50,7 +50,7 @@ func ExportDatabase(dbName, outputFile string, withMetadata bool, overwrite bool
 		return fmt.Errorf("failed to find database: %w", err)
 	}
 	dbUrl := getDatabaseHttpUrl(&db)
-	err = client.Databases.Export(dbName, dbUrl, outputFile, withMetadata, overwrite)
+	err = client.Databases.Export(dbName, dbUrl, outputFile, withMetadata, overwrite, remoteEncryptionKeyFlag())
 	if err != nil {
 		return err
 	}
@@ -61,5 +61,6 @@ func init() {
 	exportCmd.Flags().BoolVar(&withMetadata, "with-metadata", false, "Include metadata in the export.")
 	exportCmd.Flags().BoolVar(&overwriteExport, "overwrite", false, "Overwrite output file if it exists.")
 	exportCmd.Flags().StringVar(&outputFile, "output-file", "", "Specify the output file name (default: <database>.db)")
+	addRemoteEncryptionKeyFlag(exportCmd)
 	dbCmd.AddCommand(exportCmd)
 }

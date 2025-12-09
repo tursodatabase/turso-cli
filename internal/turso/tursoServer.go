@@ -58,7 +58,7 @@ func NewTursoServerClient(baseURL *url.URL, token string, cliVersion string, org
 // UploadFile uploads a database file to the Turso server.
 // it assumes a SQLite file exists at 'filepath'.
 // it streams the file to the server, and calls the onProgress callback with the progress of the upload.
-func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+func (i *TursoServerClient) UploadFile(filepath, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filepath, err)
@@ -81,8 +81,14 @@ func (i *TursoServerClient) UploadFile(filepath string, onUploadProgress func(pr
 		lastUpdate: -1, // Ensure first update is always sent
 	}
 
+	headers := map[string]string{}
+	if remoteEncryptionCipher != "" && remoteEncryptionKey != "" {
+		headers[EncryptionCipherHeader] = remoteEncryptionCipher
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
+
 	// Send POST request with streaming body
-	r, err := i.client.PostBinary("/v1/upload", progressTracker)
+	r, err := i.client.PostBinary("/v1/upload", progressTracker, headers)
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
@@ -103,8 +109,15 @@ type ExportInfo struct {
 	CurrentGeneration int `json:"current_generation"`
 }
 
-func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
-	res, err := i.client.Get("/info", nil)
+const EncryptionKeyHeader = "x-turso-encryption-key"
+const EncryptionCipherHeader = "x-turso-encryption-cipher"
+
+func (i *TursoServerClient) Export(outputFile string, withMetadata bool, remoteEncryptionKey string) error {
+	headers := map[string]string{}
+	if remoteEncryptionKey != "" {
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
+	res, err := i.client.GetWithHeaders("/info", nil, headers)
 	if err != nil {
 		return fmt.Errorf("failed to fetch database info: %w", err)
 	}
@@ -117,7 +130,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 		return fmt.Errorf("failed to decode /info response: %w", err)
 	}
 
-	exportRes, err := i.client.Get(fmt.Sprintf("/export/%d", info.CurrentGeneration), nil)
+	exportRes, err := i.client.GetWithHeaders(fmt.Sprintf("/export/%d", info.CurrentGeneration), nil, headers)
 	if err != nil {
 		return fmt.Errorf("failed to fetch export: %w", err)
 	}
@@ -135,7 +148,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 		return fmt.Errorf("failed to write export to file: %w", err)
 	}
 
-	lastFrameNo, err := i.ExportWAL(outputFile, &info)
+	lastFrameNo, err := i.ExportWAL(outputFile, &info, remoteEncryptionKey)
 	if err != nil {
 		return fmt.Errorf("failed to export WAL: %w", err)
 	}
@@ -148,7 +161,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool) error {
 	return nil
 }
 
-func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo) (int, error) {
+func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo, remoteEncryptionKey string) (int, error) {
 	walFile := outputFile + "-wal"
 	walOut, err := os.Create(walFile)
 	if err != nil {
@@ -191,9 +204,13 @@ func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo) (int,
 	const batchSize = 128
 	frameNo := 1
 	lastFrameNo := 0
+	headers := map[string]string{}
+	if remoteEncryptionKey != "" {
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
 
 	for {
-		walRes, err := i.client.Get(fmt.Sprintf("/sync/%d/%d/%d", info.CurrentGeneration, frameNo, frameNo+batchSize), nil)
+		walRes, err := i.client.GetWithHeaders(fmt.Sprintf("/sync/%d/%d/%d", info.CurrentGeneration, frameNo, frameNo+batchSize), nil, headers)
 		if err != nil {
 			if frameNo == 1 {
 				break

@@ -27,6 +27,7 @@ func init() {
 	dbCmd.AddCommand(shellCmd)
 	addInstanceFlag(shellCmd, "Connect to the database at the specified instance.")
 	addLocationFlag(shellCmd, "Connect to the database at the specified location.")
+	addRemoteEncryptionKeyFlag(shellCmd)
 	shellCmd.Flags().StringVar(&proxy, "proxy", "", "Proxy to use for the connection.")
 	shellCmd.RegisterFlagCompletionFunc("proxy", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
@@ -227,15 +228,16 @@ var shellCmd = &cobra.Command{
 		}
 
 		shellConfig := shell.ShellConfig{
-			DbUri:          dbUrl,
-			Proxy:          proxy,
-			AuthToken:      authToken,
-			InF:            cmd.InOrStdin(),
-			OutF:           cmd.OutOrStdout(),
-			ErrF:           cmd.ErrOrStderr(),
-			HistoryMode:    enums.PerDatabaseHistory,
-			HistoryName:    "turso",
-			WelcomeMessage: &connectionInfo,
+			DbUri:               dbUrl,
+			Proxy:               proxy,
+			AuthToken:           authToken,
+			RemoteEncryptionKey: remoteEncryptionKeyFlag(),
+			InF:                 cmd.InOrStdin(),
+			OutF:                cmd.OutOrStdout(),
+			ErrF:                cmd.ErrOrStderr(),
+			HistoryMode:         enums.PerDatabaseHistory,
+			HistoryName:         "turso",
+			WelcomeMessage:      &connectionInfo,
 			AfterDbConnectionCallback: func() {
 				spinner.Stop()
 			},

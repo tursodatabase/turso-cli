@@ -149,6 +149,9 @@ var showCmd = &cobra.Command{
 		if db.Schema != "" {
 			fmt.Println("Schema:            ", db.Schema)
 		}
+		if db.EncryptionCipher != "" {
+			fmt.Println("Encryption:        ", db.EncryptionCipher)
+		}
 
 		fmt.Println()
 
