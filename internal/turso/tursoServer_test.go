@@ -175,7 +175,6 @@ func createTestFileWithContent(t *testing.T, content []byte) string {
 func createTestFile(t *testing.T, size int64) string {
 	t.Helper()
 
-	// Generate deterministic data pattern
 	pattern := []byte("TESTDATA")
 	content := make([]byte, size)
 	for i := int64(0); i < size; i++ {
@@ -925,4 +924,132 @@ func TestProgressReader_BytesReadAccurate(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, int64(500), lastUploadedBytes)
+}
+
+func TestProgressReader_WithBaseBytes(t *testing.T) {
+	// Simulate reading from a second chunk of a 200-byte total upload
+	// where the first chunk (100 bytes) has already been uploaded.
+	data := strings.Repeat("x", 100) // Second chunk: 100 bytes
+	reader := strings.NewReader(data)
+
+	var progressUpdates []struct {
+		pct      int
+		uploaded int64
+		total    int64
+	}
+
+	pr := &progressReader{
+		reader:    reader,
+		totalSize: 200,
+		baseBytes: 100,
+		startTime: time.Now(),
+		onProgress: func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
+			progressUpdates = append(progressUpdates, struct {
+				pct      int
+				uploaded int64
+				total    int64
+			}{progressPct, uploadedBytes, totalBytes})
+		},
+		lastUpdate: 50,
+	}
+
+	buf := make([]byte, 10)
+	for {
+		_, err := pr.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+
+	require.NotEmpty(t, progressUpdates, "expected progress updates")
+
+	firstUpdate := progressUpdates[0]
+	require.Greater(t, firstUpdate.pct, 50, "first progress update should be > 50%%")
+
+	for i, update := range progressUpdates {
+		require.Greater(t, update.uploaded, int64(100), "update %d: uploadedBytes should be > 100 (baseBytes)", i)
+		require.Equal(t, int64(200), update.total, "update %d: totalBytes should be 200", i)
+	}
+
+	lastUpdate := progressUpdates[len(progressUpdates)-1]
+	require.Equal(t, 100, lastUpdate.pct, "final progress should be 100%%")
+	require.Equal(t, int64(200), lastUpdate.uploaded, "final uploadedBytes should be 200")
+}
+
+func TestProgressReader_CumulativeAcrossChunks(t *testing.T) {
+	totalSize := int64(300)
+	chunkSize := int64(100)
+
+	var allUpdates []struct {
+		pct      int
+		uploaded int64
+	}
+
+	// Simulate reading 3 chunks
+	var baseBytes int64 = 0
+	lastPct := -1
+
+	for chunk := 0; chunk < 3; chunk++ {
+		data := bytes.Repeat([]byte("x"), int(chunkSize))
+		reader := bytes.NewReader(data)
+
+		pr := &progressReader{
+			reader:    reader,
+			totalSize: totalSize,
+			baseBytes: baseBytes,
+			startTime: time.Now(),
+			onProgress: func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
+				allUpdates = append(allUpdates, struct {
+					pct      int
+					uploaded int64
+				}{progressPct, uploadedBytes})
+			},
+			lastUpdate: lastPct,
+		}
+
+		// Read all of this chunk
+		buf := make([]byte, 10)
+		for {
+			_, err := pr.Read(buf)
+			if err == io.EOF {
+				break
+			}
+			require.NoError(t, err)
+		}
+
+		baseBytes += chunkSize
+		lastPct = pr.lastUpdate
+	}
+
+	require.NotEmpty(t, allUpdates, "expected progress updates")
+	require.LessOrEqual(t, allUpdates[0].pct, 10, "first update should be low")
+	require.Equal(t, 100, allUpdates[len(allUpdates)-1].pct, "last update should be 100%%")
+	for i := 1; i < len(allUpdates); i++ {
+		require.GreaterOrEqual(t, allUpdates[i].pct, allUpdates[i-1].pct, "progress went backwards: %d%% -> %d%%", allUpdates[i-1].pct, allUpdates[i].pct)
+	}
+	for i := 1; i < len(allUpdates); i++ {
+		require.GreaterOrEqual(t, allUpdates[i].uploaded, allUpdates[i-1].uploaded, "uploadedBytes went backwards: %d -> %d", allUpdates[i-1].uploaded, allUpdates[i].uploaded)
+	}
+}
+
+func TestUploadFileMultipart_SmoothProgress(t *testing.T) {
+	mock := NewMockTursoServer()
+	mock.chunkSize = 100 * 1024
+	defer mock.Close()
+
+	client := createTestClient(t, mock.URL)
+	testFile := createTestFile(t, 1024*1024)
+	progress := NewProgressRecorder()
+
+	err := client.UploadFileMultipart(testFile, "", "", progress.Callback())
+	require.NoError(t, err)
+
+	calls := progress.GetCalls()
+
+	require.Greater(t, len(calls), 15, "Expected smooth progress with many updates, got only %d", len(calls))
+	progress.VerifyProgressIncreasing(t)
+	require.True(t, calls[len(calls)-1].Done, "Final callback should have Done=true")
 }
