@@ -21,6 +21,29 @@ func showSchemaDeprecationNotice() {
 
 const MaxDumpFileSizeBytes = 8 << 30
 
+// cipherReservedBytes maps cipher names to their required reserved bytes
+var cipherReservedBytes = map[string]int{
+	"aes256gcm":        28,
+	"aes128gcm":        28,
+	"chacha20poly1305": 28,
+	"aegis128l":        32,
+	"aegis128x2":       32,
+	"aegis128x4":       32,
+	"aegis256":         48,
+	"aegis256x2":       48,
+	"aegis256x4":       48,
+}
+
+func isValidCipher(cipher string) bool {
+	_, ok := cipherReservedBytes[cipher]
+	return ok
+}
+
+func getRequiredReservedBytes(cipher string) (int, bool) {
+	bytes, ok := cipherReservedBytes[cipher]
+	return bytes, ok
+}
+
 func init() {
 	dbCmd.AddCommand(createCmd)
 	addGroupFlag(createCmd)
@@ -86,7 +109,12 @@ func CreateDatabase(name string) error {
 	}
 
 	isAWS := strings.HasPrefix(group.Primary, "aws-")
-	seed, err := parseDBSeedFlags(client, isAWS)
+
+	if err = validateEncryptionFlags(); err != nil {
+		return err
+	}
+
+	seed, err := parseDBSeedFlags(client, isAWS, remoteEncryptionCipherFlag)
 	if err != nil {
 		return err
 	}
@@ -94,10 +122,6 @@ func CreateDatabase(name string) error {
 	version := "latest"
 	if canaryFlag {
 		version = "canary"
-	}
-
-	if err = validateEncryptionFlags(); err != nil {
-		return err
 	}
 
 	if err := ensureGroup(client, groupName, groups, location, version); err != nil {
@@ -233,13 +257,18 @@ func validateEncryptionFlags() error {
 		return fmt.Errorf("encryption key (%s) is not valid base64: %w", remoteEncryptionKey, err)
 	}
 
-	if remoteEncryptionCipherFlag != "" {
-		return nil
-	}
-
 	// if cipher is empty, then it is only valid in case of forks and for everything else we need to have it set
-	if fromDBFlag == "" {
+	if remoteEncryptionCipherFlag == "" && fromDBFlag == "" {
 		return fmt.Errorf("remote encryption cipher must be provided when remote encryption key is set")
 	}
+
+	if !isValidCipher(remoteEncryptionCipherFlag) {
+		validCiphers := make([]string, 0, len(cipherReservedBytes))
+		for cipher := range cipherReservedBytes {
+			validCiphers = append(validCiphers, cipher)
+		}
+		return fmt.Errorf("unknown encryption cipher: %s. Valid ciphers are: %s", remoteEncryptionCipherFlag, strings.Join(validCiphers, ", "))
+	}
+
 	return nil
 }

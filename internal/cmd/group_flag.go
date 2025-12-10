@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -64,7 +65,7 @@ func parseTimestampFlag() (*time.Time, error) {
 	return &timestamp, nil
 }
 
-func parseDBSeedFlags(client *turso.Client, isAWS bool) (*turso.DBSeed, error) {
+func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string) (*turso.DBSeed, error) {
 	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag, fromCSVFlag) > 1 {
 		return nil, errors.New("only one of --from prefixed flags can be used at a time")
 	}
@@ -85,7 +86,7 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool) (*turso.DBSeed, error) {
 	}
 
 	if fromFileFlag != "" {
-		return handleDBFile(client, fromFileFlag, isAWS)
+		return handleDBFile(client, fromFileFlag, isAWS, cipher)
 	}
 
 	if fromDumpFlag != "" {
@@ -97,7 +98,7 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool) (*turso.DBSeed, error) {
 		if err != nil {
 			return nil, err
 		}
-		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparator)
+		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparator, cipher)
 	}
 	if fromDumpURLFlag != "" {
 		return handleDumpURL(fromDumpURLFlag)
@@ -205,7 +206,50 @@ func checkIfDump(filename string) (bool, error) {
 	}
 }
 
-func sqliteFileIntegrityChecks(file string) error {
+// getReservedBytes retrieves the current reserved bytes setting from a SQLite database
+func getReservedBytes(dbPath string) (int, error) {
+	output, err := exec.Command("sqlite3", dbPath, ".filectrl reserve_bytes").CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get reserved bytes: %w", err)
+	}
+	outputStr := strings.TrimSpace(string(output))
+
+	if strings.Contains(outputStr, ":") {
+		parts := strings.Split(outputStr, ":")
+		if len(parts) >= 2 {
+			outputStr = strings.TrimSpace(parts[1])
+		}
+	}
+
+	reservedBytes, err := strconv.Atoi(outputStr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse reserved bytes from output '%s': %w", string(output), err)
+	}
+
+	return reservedBytes, nil
+}
+
+// validateReservedBytes checks if the database has the required reserved bytes for the given cipher
+func validateReservedBytes(dbPath string, cipher string) error {
+	requiredBytes, ok := getRequiredReservedBytes(cipher)
+	if !ok {
+		return nil
+	}
+
+	currentBytes, err := getReservedBytes(dbPath)
+	if err != nil {
+		return err
+	}
+
+	if currentBytes != requiredBytes {
+		return fmt.Errorf("database reserved bytes mismatch: found %d, but cipher '%s' requires %d reserved bytes.\nTo fix this, run:\n\n  $ sqlite3 %s\n  sqlite> .filectrl reserve_bytes %d\n  sqlite> VACUUM;",
+			currentBytes, cipher, requiredBytes, dbPath, requiredBytes)
+	}
+
+	return nil
+}
+
+func sqliteFileIntegrityChecks(file string, cipher string) error {
 	if flags.Debug() {
 		log.Printf("Running integrity checks on database file %s", file)
 	}
@@ -268,11 +312,19 @@ func sqliteFileIntegrityChecks(file string) error {
 		return fmt.Errorf("integrity check on database failed: %w", err)
 	}
 
+	// validate reserved bytes if encryption cipher is specified
+	if cipher != "" {
+		if flags.Debug() {
+			log.Printf("Checking reserved bytes for cipher %s...", cipher)
+		}
+		return validateReservedBytes(file, cipher)
+	}
+
 	return nil
 }
 
-func handleDBFileAWS(file string) (*turso.DBSeed, error) {
-	if err := sqliteFileIntegrityChecks(file); err != nil {
+func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
+	if err := sqliteFileIntegrityChecks(file, cipher); err != nil {
 		return nil, err
 	}
 
@@ -284,7 +336,7 @@ func handleDBFileAWS(file string) (*turso.DBSeed, error) {
 	return seed, nil
 }
 
-func handleDBFile(client *turso.Client, file string, isAWS bool) (*turso.DBSeed, error) {
+func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
@@ -293,7 +345,7 @@ func handleDBFile(client *turso.Client, file string, isAWS bool) (*turso.DBSeed,
 	}
 
 	if isAWS {
-		return handleDBFileAWS(file)
+		return handleDBFileAWS(file, cipher)
 	}
 
 	if err := checkSQLiteFile(file); err != nil {
@@ -363,7 +415,7 @@ func dumpSQLiteDatabase(database string, dump *os.File) error {
 	return nil
 }
 
-func handleCSVFile(client *turso.Client, file, csvTableName string, separator rune) (*turso.DBSeed, error) {
+func handleCSVFile(client *turso.Client, file, csvTableName string, separator rune, cipher string) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
@@ -393,7 +445,7 @@ func handleCSVFile(client *turso.Client, file, csvTableName string, separator ru
 		return nil, err
 	}
 
-	seed, err := handleDBFile(client, tempDB.Name(), false)
+	seed, err := handleDBFile(client, tempDB.Name(), false, cipher)
 	if err != nil {
 		return nil, err
 	}
