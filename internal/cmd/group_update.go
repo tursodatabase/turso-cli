@@ -13,7 +13,7 @@ import (
 func init() {
 	groupCmd.AddCommand(groupUpdateCmd)
 	flags.AddYes(groupUpdateCmd, "Confirms the update")
-	flags.AddVersion(groupUpdateCmd, "Version to update to. Valid values: 'latest', 'canary' or 'vector'")
+	flags.AddVersion(groupUpdateCmd, "Version to update to. Valid values: 'latest' or 'vector'")
 	flags.AddExtensions(groupUpdateCmd, "Extensions to enable. Valid values: 'all' or 'none'")
 }
 

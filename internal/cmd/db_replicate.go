@@ -18,7 +18,6 @@ import (
 
 func init() {
 	dbCmd.AddCommand(replicateCmd)
-	addCanaryFlag(replicateCmd)
 	addWaitFlag(replicateCmd, "Wait for the replica to be ready to receive requests.")
 }
 

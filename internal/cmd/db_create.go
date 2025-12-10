@@ -56,7 +56,6 @@ func init() {
 	flags.AddCSVSeparator(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
-	addCanaryFlag(createCmd)
 	addEnableExtensionsFlag(createCmd)
 	addSchemaFlag(createCmd)
 	addTypeFlag(createCmd)
@@ -119,12 +118,7 @@ func CreateDatabase(name string) error {
 		return err
 	}
 
-	version := "latest"
-	if canaryFlag {
-		version = "canary"
-	}
-
-	if err := ensureGroup(client, groupName, groups, location, version); err != nil {
+	if err := ensureGroup(client, groupName, groups, location, "latest"); err != nil {
 		return err
 	}
 
