@@ -242,7 +242,7 @@ func validateReservedBytes(dbPath string, cipher string) error {
 	}
 
 	if currentBytes != requiredBytes {
-		return fmt.Errorf("database reserved bytes mismatch: found %d, but cipher '%s' requires %d reserved bytes.\nTo fix this, run:\n\n  $ sqlite3 %s\n  sqlite> .filectrl reserve_bytes %d\n  sqlite> VACUUM;\n",
+		return fmt.Errorf("database reserved bytes mismatch: found %d, but cipher '%s' requires %d reserved bytes.\nTo fix this, run:\n\n  $ sqlite3 %s\n  sqlite> .filectrl reserve_bytes %d\n  sqlite> VACUUM;",
 			currentBytes, cipher, requiredBytes, dbPath, requiredBytes)
 	}
 
