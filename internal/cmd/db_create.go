@@ -258,8 +258,12 @@ func validateEncryptionFlags() error {
 	}
 
 	// if cipher is empty, then it is only valid in case of forks and for everything else we need to have it set
-	if remoteEncryptionCipherFlag == "" && fromDBFlag == "" {
-		return fmt.Errorf("remote encryption cipher must be provided when remote encryption key is set")
+	if remoteEncryptionCipherFlag == "" {
+		if fromDBFlag == "" {
+			return fmt.Errorf("remote encryption cipher must be provided when remote encryption key is set")
+		}
+		// for forks, cipher can be derived from source database
+		return nil
 	}
 
 	if !isValidCipher(remoteEncryptionCipherFlag) {
