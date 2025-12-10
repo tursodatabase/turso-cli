@@ -223,6 +223,7 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 		uploadedBytes += currentChunkSize
 		progressPct := int(float64(uploadedBytes) / float64(totalSize) * 100)
 		elapsedTime := time.Since(startTime)
+		//TODO update progress more smoothly than after every chunk
 		onUploadProgress(progressPct, uploadedBytes, totalSize, elapsedTime, false)
 
 		chunkID++
