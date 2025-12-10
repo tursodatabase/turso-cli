@@ -21,6 +21,7 @@ type progressReader struct {
 	reader     io.Reader
 	totalSize  int64
 	bytesRead  int64
+	baseBytes  int64 // Bytes already uploaded before progressReader started
 	startTime  time.Time
 	onProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)
 	lastUpdate int // Last reported progress percentage. Initially -1 to ensure first update is always sent.
@@ -30,13 +31,14 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 	n, err := pr.reader.Read(p)
 	if n > 0 {
 		pr.bytesRead += int64(n)
-		progressPct := int(float64(pr.bytesRead) / float64(pr.totalSize) * 100)
+		totalUploaded := pr.baseBytes + pr.bytesRead
+		progressPct := int(float64(totalUploaded) / float64(pr.totalSize) * 100)
 
 		// Only call progress if we've made at least 1% progress or if we're done
 		if progressPct > pr.lastUpdate || errors.Is(err, io.EOF) {
 			elapsedTime := time.Since(pr.startTime)
 			pr.lastUpdate = progressPct
-			pr.onProgress(progressPct, pr.bytesRead, pr.totalSize, elapsedTime, errors.Is(err, io.EOF))
+			pr.onProgress(progressPct, totalUploaded, pr.totalSize, elapsedTime, errors.Is(err, io.EOF))
 		}
 	}
 	return n, err
@@ -185,6 +187,7 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (int64, error) {
 func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
 	var uploadedBytes int64 = 0
 	chunkID := 0
+	lastProgressPct := -1
 
 	for uploadedBytes < totalSize {
 		remaining := totalSize - uploadedBytes
@@ -194,6 +197,16 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 		}
 
 		chunkReader := io.LimitReader(file, currentChunkSize)
+
+		progressTracker := &progressReader{
+			reader:     chunkReader,
+			totalSize:  totalSize,
+			baseBytes:  uploadedBytes,
+			startTime:  startTime,
+			onProgress: onUploadProgress,
+			lastUpdate: lastProgressPct,
+		}
+
 		chunkPath := fmt.Sprintf("/v2/upload/chunk/%d", chunkID)
 
 		var headers = map[string]string{}
@@ -203,7 +216,7 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 		}
 		headers["Content-Length"] = strconv.FormatInt(currentChunkSize, 10)
 
-		r, err := i.client.PutBinary(chunkPath, chunkReader, headers)
+		r, err := i.client.PutBinary(chunkPath, progressTracker, headers)
 		if err != nil {
 			return 0, fmt.Errorf("failed to upload chunk %d: %w", chunkID, err)
 		}
@@ -221,10 +234,7 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 		}
 
 		uploadedBytes += currentChunkSize
-		progressPct := int(float64(uploadedBytes) / float64(totalSize) * 100)
-		elapsedTime := time.Since(startTime)
-		//TODO update progress more smoothly than after every chunk
-		onUploadProgress(progressPct, uploadedBytes, totalSize, elapsedTime, false)
+		lastProgressPct = progressTracker.lastUpdate
 
 		chunkID++
 	}
