@@ -97,9 +97,36 @@ func CreateDatabase(name string) error {
 		return err
 	}
 
-	group, err := groupFromFlag(groups)
-	if err != nil {
-		return err
+	var seed *turso.DBSeed
+	var group turso.Group
+
+	if fromDBFlag != "" {
+		seed, err = parseDBSeedFlags(client, false, "")
+		if err != nil {
+			return err
+		}
+
+		db, err := getDatabase(client, seed.Name)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range groups {
+			if g.Name == db.Group {
+				group = g
+			}
+		}
+
+		if groupFlag != "" && groupFlag != group.Name {
+			return fmt.Errorf("group %s does not match group %s of the source database. Please fork within the same group", groupFlag, group.Name)
+		}
+	}
+
+	if fromDBFlag == "" {
+		group, err = groupFromFlag(groups)
+		if err != nil {
+			return err
+		}
 	}
 	groupName := group.Name
 
@@ -108,15 +135,17 @@ func CreateDatabase(name string) error {
 		return err
 	}
 
-	isAWS := strings.HasPrefix(group.Primary, "aws-")
+	if fromDBFlag == "" {
+		isAWS := strings.HasPrefix(group.Primary, "aws-")
 
-	if err = validateEncryptionFlags(); err != nil {
-		return err
-	}
+		if err = validateEncryptionFlags(); err != nil {
+			return err
+		}
 
-	seed, err := parseDBSeedFlags(client, isAWS, remoteEncryptionCipherFlag)
-	if err != nil {
-		return err
+		seed, err = parseDBSeedFlags(client, isAWS, remoteEncryptionCipherFlag)
+		if err != nil {
+			return err
+		}
 	}
 
 	version := "latest"
