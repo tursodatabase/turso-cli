@@ -193,7 +193,7 @@ func TestValidateEncryptionFlagsAllValidCiphers(t *testing.T) {
 func TestRemoteEncryptionKeyFlag(t *testing.T) {
 	t.Run("flag takes precedence over env var", func(t *testing.T) {
 		remoteEncryptionKeyArg = "flag-value"
-		os.Setenv("TURSO_DB_REMOTE_ENCRYPTION_KEY", "env-value")
+		t.Setenv("TURSO_DB_REMOTE_ENCRYPTION_KEY", "env-value")
 
 		got := remoteEncryptionKeyFlag()
 		if got != "flag-value" {
@@ -203,7 +203,7 @@ func TestRemoteEncryptionKeyFlag(t *testing.T) {
 
 	t.Run("env var used when flag is empty", func(t *testing.T) {
 		remoteEncryptionKeyArg = ""
-		os.Setenv("TURSO_DB_REMOTE_ENCRYPTION_KEY", "env-value")
+		t.Setenv("TURSO_DB_REMOTE_ENCRYPTION_KEY", "env-value")
 
 		got := remoteEncryptionKeyFlag()
 		if got != "env-value" {
