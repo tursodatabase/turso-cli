@@ -570,6 +570,10 @@ type DatabaseConfig struct {
 	DeleteProtection *bool `json:"delete_protection"`
 }
 
+type DatabaseResponse struct {
+	Database Database `json:"database"`
+}
+
 func (d *DatabaseConfig) IsDeleteProtected() bool {
 	if d.DeleteProtection == nil {
 		return false
@@ -603,6 +607,31 @@ func (d *DatabasesClient) GetConfig(database string) (DatabaseConfig, error) {
 	}
 
 	return unmarshal[DatabaseConfig](r)
+}
+
+func (d *DatabasesClient) Get(database string) (Database, error) {
+	url := d.URL(fmt.Sprintf("/%s", database))
+	r, err := d.client.Get(url, nil)
+	if err != nil {
+		return Database{}, fmt.Errorf("failed to get database: %w", err)
+	}
+	defer r.Body.Close()
+
+	org := d.client.Org
+	if isNotMemberErr(r.StatusCode, org) {
+		return Database{}, notMemberErr(org)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err = parseResponseError(r)
+		return Database{}, fmt.Errorf("failed to get database: %d %s", r.StatusCode, err)
+	}
+
+	response, err := unmarshal[DatabaseResponse](r)
+	if err != nil {
+		return Database{}, err
+	}
+	return response.Database, nil
 }
 
 func (d *DatabasesClient) UpdateConfig(database string, config DatabaseConfig) error {
