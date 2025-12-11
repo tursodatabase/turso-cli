@@ -56,7 +56,6 @@ func init() {
 	flags.AddCSVSeparator(createCmd)
 	addLocationFlag(createCmd, "Location ID. If no ID is specified, closest location to you is used by default.")
 	addWaitFlag(createCmd, "Wait for the database to be ready to receive requests.")
-	addCanaryFlag(createCmd)
 	addEnableExtensionsFlag(createCmd)
 	addSchemaFlag(createCmd)
 	addTypeFlag(createCmd)
@@ -142,18 +141,13 @@ func CreateDatabase(name string) error {
 			return err
 		}
 
-		seed, err = parseDBSeedFlags(client, isAWS, remoteEncryptionCipherFlag)
+		seed, err = parseDBSeedFlags(client, isAWS, remoteEncryptionCipherFlag, multipartFlag)
 		if err != nil {
 			return err
 		}
 	}
 
-	version := "latest"
-	if canaryFlag {
-		version = "canary"
-	}
-
-	if err := ensureGroup(client, groupName, groups, location, version); err != nil {
+	if err := ensureGroup(client, groupName, groups, location, "latest"); err != nil {
 		return err
 	}
 
@@ -287,8 +281,12 @@ func validateEncryptionFlags() error {
 	}
 
 	// if cipher is empty, then it is only valid in case of forks and for everything else we need to have it set
-	if remoteEncryptionCipherFlag == "" && fromDBFlag == "" {
-		return fmt.Errorf("remote encryption cipher must be provided when remote encryption key is set")
+	if remoteEncryptionCipherFlag == "" {
+		if fromDBFlag == "" {
+			return fmt.Errorf("remote encryption cipher must be provided when remote encryption key is set")
+		}
+		// for forks, cipher can be derived from source database
+		return nil
 	}
 
 	if !isValidCipher(remoteEncryptionCipherFlag) {

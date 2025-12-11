@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -24,8 +23,7 @@ func init() {
 	groupCmd.AddCommand(unarchiveGroupCmd)
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
 	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
-	addCanaryFlag(groupsCreateCmd)
-	flags.AddVersion(groupsCreateCmd, "Version of the group. Valid values: 'latest', 'canary' or 'vector'")
+	flags.AddVersion(groupsCreateCmd, "Version of the group. Valid values: 'latest' or 'vector'")
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
 	groupCmd.AddCommand(groupShowCmd)
@@ -102,16 +100,8 @@ var groupsCreateCmd = &cobra.Command{
 			location, _ = closestLocation(client)
 		}
 
-		version := flags.Version()
-		if canaryFlag {
-			if version != "" {
-				return errors.New("cannot specify both --canary and --version flags")
-			}
-			version = "canary"
-		}
-
 		name := args[0]
-		return createGroup(client, name, location, version)
+		return createGroup(client, name, location, flags.Version())
 	},
 }
 

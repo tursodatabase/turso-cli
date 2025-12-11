@@ -8,9 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var multipartFlag bool
+
 func init() {
 	dbCmd.AddCommand(importCmd)
 	addGroupFlag(importCmd)
+	importCmd.Flags().BoolVar(&multipartFlag, "multipart", false, "force multipart upload")
 }
 
 var importCmd = &cobra.Command{
