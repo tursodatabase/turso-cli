@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 
 	"github.com/tursodatabase/turso-cli/internal/flags"
 )
@@ -95,12 +96,20 @@ func (t *Client) newRequest(method, urlPath string, body io.Reader, extraHeaders
 
 func (t *Client) do(method, path string, body io.Reader, extraHeaders map[string]string) (*http.Response, error) {
 	req, err := t.newRequest(method, path, body, extraHeaders)
+	if err != nil {
+		return nil, err
+	}
+	if contentLength, ok := extraHeaders["Content-Length"]; ok {
+		length, err := strconv.Atoi(contentLength)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse content length: %w", err)
+		}
+		req.ContentLength = int64(length)
+		req.TransferEncoding = nil
+	}
 	var reqDump string
 	if flags.Debug() {
 		reqDump = dumpRequest(req)
-	}
-	if err != nil {
-		return nil, err
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -165,6 +174,14 @@ func (t *Client) PostBinary(path string, body io.Reader, headers map[string]stri
 	}
 	headers["Content-Type"] = "application/octet-stream"
 	return t.do("POST", path, body, headers)
+}
+
+func (t *Client) PutBinary(path string, body io.Reader, headers map[string]string) (*http.Response, error) {
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+	headers["Content-Type"] = "application/octet-stream"
+	return t.do("PUT", path, body, headers)
 }
 
 func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {
