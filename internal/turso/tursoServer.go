@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"syscall"
 	"time"
 )
 
@@ -117,9 +116,9 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptio
 	}
 	defer file.Close()
 
-	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX); err == nil {
-		// locking is on a best effort basis
-		defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+	// locking is on a best effort basis
+	if unlock, err := lockFileExclusive(file); err == nil {
+		defer unlock()
 	}
 
 	stat, err := file.Stat()
