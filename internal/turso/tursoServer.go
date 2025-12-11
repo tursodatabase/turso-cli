@@ -68,6 +68,11 @@ func (i *TursoServerClient) UploadFileSinglePart(filepath, remoteEncryptionCiphe
 	}
 	defer file.Close()
 
+	// locking is on a best effort basis
+	if unlock, err := lockFileExclusive(file); err == nil {
+		defer unlock()
+	}
+
 	stat, err := file.Stat()
 	if err != nil {
 		return fmt.Errorf("failed to get file stats for %s: %w", filepath, err)
