@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func lockFile(f *os.File) (unlock func(), err error) {
+func lockFileExclusive(f *os.File) (unlock func(), err error) {
 	handle := windows.Handle(f.Fd())
 	// Lock the entire file (use max values for length)
 	var overlapped windows.Overlapped
