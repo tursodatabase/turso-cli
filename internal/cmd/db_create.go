@@ -100,7 +100,7 @@ func CreateDatabase(name string) error {
 	var group turso.Group
 
 	if fromDBFlag != "" {
-		seed, err = parseDBSeedFlags(client, false, "")
+		seed, err = parseDBSeedFlags(client, false, "", false)
 		if err != nil {
 			return err
 		}
