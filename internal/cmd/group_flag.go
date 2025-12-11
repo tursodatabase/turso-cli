@@ -98,7 +98,7 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string, multipart
 		if err != nil {
 			return nil, err
 		}
-		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparator, cipher)
+		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparator, cipher, multipart)
 	}
 	if fromDumpURLFlag != "" {
 		return handleDumpURL(fromDumpURLFlag)
@@ -416,7 +416,7 @@ func dumpSQLiteDatabase(database string, dump *os.File) error {
 	return nil
 }
 
-func handleCSVFile(client *turso.Client, file, csvTableName string, separator rune, cipher string) (*turso.DBSeed, error) {
+func handleCSVFile(client *turso.Client, file, csvTableName string, separator rune, cipher string, multipart bool) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
