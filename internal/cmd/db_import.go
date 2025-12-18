@@ -13,6 +13,8 @@ var multipartFlag bool
 func init() {
 	dbCmd.AddCommand(importCmd)
 	addGroupFlag(importCmd)
+	addRemoteEncryptionKeyFlag(importCmd)
+	addRemoteEncryptionCipherFlag(importCmd)
 	importCmd.Flags().BoolVar(&multipartFlag, "multipart", false, "force multipart upload")
 }
 
