@@ -58,61 +58,6 @@ func NewTursoServerClient(baseURL *url.URL, token string, cliVersion string, org
 	}, nil
 }
 
-// UploadFileSinglePart uploads a database file to the Turso server using a single request.
-// it assumes a SQLite file exists at 'filepath'.
-// it streams the file to the server, and calls the onProgress callback with the progress of the upload.
-func (i *TursoServerClient) UploadFileSinglePart(filepath, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return fmt.Errorf("failed to open file %s: %w", filepath, err)
-	}
-	defer file.Close()
-
-	// locking is on a best effort basis
-	if unlock, err := lockFileExclusive(file); err == nil {
-		defer unlock()
-	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		return fmt.Errorf("failed to get file stats for %s: %w", filepath, err)
-	}
-
-	totalSize := stat.Size()
-
-	// Create progress tracking reader
-	progressTracker := &progressReader{
-		reader:     file,
-		totalSize:  totalSize,
-		onProgress: onUploadProgress,
-		startTime:  time.Now(),
-		lastUpdate: -1, // Ensure first update is always sent
-	}
-
-	headers := map[string]string{}
-	if remoteEncryptionCipher != "" && remoteEncryptionKey != "" {
-		headers[EncryptionCipherHeader] = remoteEncryptionCipher
-		headers[EncryptionKeyHeader] = remoteEncryptionKey
-	}
-
-	// Send POST request with streaming body
-	r, err := i.client.PostBinary("/v1/upload", progressTracker, headers)
-	if err != nil {
-		return fmt.Errorf("failed to upload file: %w", err)
-	}
-	defer r.Body.Close()
-
-	if r.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			return fmt.Errorf("upload failed with status code %d and error reading response: %v", r.StatusCode, err)
-		}
-		return fmt.Errorf("upload failed with status code %d: %s", r.StatusCode, string(body))
-	}
-
-	return nil
-}
-
 // UploadFileMultipart uploads a database file using the multipart upload flow.
 func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
 	file, err := os.Open(filepath)

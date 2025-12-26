@@ -24,13 +24,11 @@ type MockTursoServer struct {
 	*httptest.Server
 
 	mu              sync.Mutex
-	receivedData    []byte
 	receivedHeaders map[string][]string
 	requestCount    int
 	chunkData       map[int][]byte
 
 	// Configurable responses
-	singlePartStatus  int
 	startUploadStatus int
 	chunkUploadStatus int
 	finalizeStatus    int
@@ -45,7 +43,6 @@ func NewMockTursoServer() *MockTursoServer {
 	mock := &MockTursoServer{
 		chunkData:         make(map[int][]byte),
 		receivedHeaders:   make(map[string][]string),
-		singlePartStatus:  http.StatusOK,
 		startUploadStatus: http.StatusOK,
 		chunkUploadStatus: http.StatusOK,
 		finalizeStatus:    http.StatusOK,
@@ -64,8 +61,6 @@ func NewMockTursoServer() *MockTursoServer {
 		}
 
 		switch {
-		case r.Method == "POST" && r.URL.Path == "/v1/upload":
-			mock.handleSinglePartUpload(w, r)
 		case r.Method == "PUT" && r.URL.Path == "/v2/upload/start":
 			mock.handleMultipartStart(w, r)
 		case r.Method == "PUT" && strings.HasPrefix(r.URL.Path, "/v2/upload/chunk/"):
@@ -78,18 +73,6 @@ func NewMockTursoServer() *MockTursoServer {
 	}))
 
 	return mock
-}
-
-func (m *MockTursoServer) handleSinglePartUpload(w http.ResponseWriter, r *http.Request) {
-	if m.failAtEndpoint == "single_part" {
-		w.WriteHeader(m.singlePartStatus)
-		w.Write([]byte(`{"error": "simulated error"}`))
-		return
-	}
-
-	data, _ := io.ReadAll(r.Body)
-	m.receivedData = data
-	w.WriteHeader(m.singlePartStatus)
 }
 
 func (m *MockTursoServer) handleMultipartStart(w http.ResponseWriter, r *http.Request) {
@@ -284,160 +267,6 @@ func (pr *ProgressRecorder) VerifyFinalCall(t *testing.T, expectedTotal int64) {
 	require.True(t, lastCall.Done, "Last call did not have Done=true")
 	require.Equal(t, 100, lastCall.ProgressPct, "Last call progress was not 100%%")
 	require.Equal(t, expectedTotal, lastCall.TotalBytes, "Last call total bytes mismatch")
-}
-
-// --- Single-Part Upload Tests ---
-
-func TestUploadFileSinglePart_Success(t *testing.T) {
-	mock := NewMockTursoServer()
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	testFile := createTestFile(t, 1024)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart(testFile, "", "", progress.Callback())
-	require.NoError(t, err)
-
-	mock.mu.Lock()
-	receivedLen := len(mock.receivedData)
-	mock.mu.Unlock()
-
-	require.Equal(t, 1024, receivedLen)
-	require.Greater(t, progress.CallCount(), 0, "No progress callbacks were made")
-}
-
-func TestUploadFileSinglePart_WithEncryption(t *testing.T) {
-	mock := NewMockTursoServer()
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	testFile := createTestFile(t, 512)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart(testFile, "aes-256-cbc", "base64key==", progress.Callback())
-	require.NoError(t, err)
-
-	require.Equal(t, "aes-256-cbc", mock.GetHeader("X-Turso-Encryption-Cipher"))
-	require.Equal(t, "base64key==", mock.GetHeader("X-Turso-Encryption-Key"))
-}
-
-func TestUploadFileSinglePart_NoEncryptionHeaders_WhenEmpty(t *testing.T) {
-	mock := NewMockTursoServer()
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	testFile := createTestFile(t, 512)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart(testFile, "", "", progress.Callback())
-	require.NoError(t, err)
-
-	require.Empty(t, mock.GetHeader("X-Turso-Encryption-Cipher"), "Empty encryption params should not result in cipher header")
-	require.Empty(t, mock.GetHeader("X-Turso-Encryption-Key"), "Empty encryption params should not result in key header")
-}
-
-func TestUploadFileSinglePart_FileNotFound(t *testing.T) {
-	mock := NewMockTursoServer()
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart("/nonexistent/path/file.db", "", "", progress.Callback())
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to open file")
-}
-
-func TestUploadFileSinglePart_ServerError400(t *testing.T) {
-	mock := NewMockTursoServer()
-	mock.singlePartStatus = http.StatusBadRequest
-	mock.failAtEndpoint = "single_part"
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	testFile := createTestFile(t, 512)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart(testFile, "", "", progress.Callback())
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "400")
-}
-
-func TestUploadFileSinglePart_ServerError500(t *testing.T) {
-	mock := NewMockTursoServer()
-	mock.singlePartStatus = http.StatusInternalServerError
-	mock.failAtEndpoint = "single_part"
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	testFile := createTestFile(t, 512)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart(testFile, "", "", progress.Callback())
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "500")
-}
-
-func TestUploadFileSinglePart_ProgressCallbacks(t *testing.T) {
-	mock := NewMockTursoServer()
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	// Use larger file to ensure multiple progress updates
-	testFile := createTestFile(t, 100*1024) // 100KB
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart(testFile, "", "", progress.Callback())
-	require.NoError(t, err)
-
-	progress.VerifyProgressIncreasing(t)
-
-	require.GreaterOrEqual(t, progress.CallCount(), 2, "Expected multiple progress callbacks")
-
-	calls := progress.GetCalls()
-	require.NotEmpty(t, calls)
-	require.Equal(t, 100, calls[len(calls)-1].ProgressPct, "Expected final progress to be 100%%")
-}
-
-func TestUploadFileSinglePart_EmptyFile(t *testing.T) {
-	mock := NewMockTursoServer()
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-	testFile := createEmptyFile(t)
-	progress := NewProgressRecorder()
-
-	// Empty file behavior - should complete but with 0 bytes
-	err := client.UploadFileSinglePart(testFile, "", "", progress.Callback())
-	require.NoError(t, err)
-
-	mock.mu.Lock()
-	receivedLen := len(mock.receivedData)
-	mock.mu.Unlock()
-
-	require.Equal(t, 0, receivedLen, "Expected 0 bytes for empty file")
-}
-
-func TestUploadFileSinglePart_DataIntegrity(t *testing.T) {
-	mock := NewMockTursoServer()
-	defer mock.Close()
-
-	client := createTestClient(t, mock.URL)
-
-	// Create file with known content
-	knownData := []byte("This is known test data that will be verified after single-part upload to ensure integrity")
-	testFile := createTestFileWithContent(t, knownData)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileSinglePart(testFile, "", "", progress.Callback())
-	require.NoError(t, err)
-
-	mock.mu.Lock()
-	receivedData := mock.receivedData
-	mock.mu.Unlock()
-
-	require.Equal(t, knownData, receivedData, "Data integrity check failed")
 }
 
 // --- Multipart Upload Tests ---
