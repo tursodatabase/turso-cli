@@ -14,6 +14,7 @@ import (
 
 	"github.com/Clever/csvlint"
 	"github.com/spf13/cobra"
+	"github.com/tursodatabase/turso-cli/internal"
 	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
@@ -191,6 +192,21 @@ func countFlags(flags ...string) (count int) {
 }
 
 const MaxAWSDBSizeBytes = 1024 * 1024 * 1024 * 20 // 20 GB
+const OneGBBytes = 1024 * 1024 * 1024             // 1 GB
+
+func humanReadableSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
 func checkIfDump(filename string) (bool, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -276,6 +292,28 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 
 	if fileInfo.Size() > MaxAWSDBSizeBytes {
 		return errors.New("database file size exceeds maximum allowed size of 20 GB")
+	}
+
+	// Warn users about JWT expiration for large uploads
+	if fileInfo.Size() > OneGBBytes {
+		// Check if using JWT (not API token from env var)
+		if os.Getenv(ENV_ACCESS_TOKEN) == "" && !yesFlag {
+			fmt.Printf("\n%s\n\n", internal.Warn("Warning: Large database upload detected"))
+			fmt.Printf("You are uploading a %s database while authenticated with a JWT token.\n", humanReadableSize(fileInfo.Size()))
+			fmt.Printf("JWT tokens are short-lived and may expire during long transfers.\n\n")
+			fmt.Printf("For large uploads, it's recommended to use an API token instead:\n")
+			fmt.Printf("  1. Create an API token: %s\n", internal.Emph("turso auth api-tokens mint <token-name>"))
+			fmt.Printf("  2. Set it as an environment variable: %s\n\n", internal.Emph("export TURSO_API_TOKEN=<your-token>"))
+
+			ok, err := promptConfirmation("Do you want to continue with the JWT token?")
+			if err != nil {
+				return fmt.Errorf("could not get confirmation: %w", err)
+			}
+			if !ok {
+				return errors.New("upload cancelled by user")
+			}
+			fmt.Println()
+		}
 	}
 
 	if flags.Debug() {
