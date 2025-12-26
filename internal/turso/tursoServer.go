@@ -79,17 +79,17 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptio
 	totalSize := stat.Size()
 	startTime := time.Now()
 
-	chunkSize, err := i.startMultipartUpload(totalSize)
+	uploadStart, err := i.startMultipartUpload(totalSize)
 	if err != nil {
 		return err
 	}
 
-	uploadedBytes, err := i.uploadChunks(chunkSize, file, totalSize, startTime, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
+	uploadedBytes, err := i.uploadChunks(uploadStart.UploadID, uploadStart.ChunkSize, file, totalSize, startTime, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
 	if err != nil {
 		return err
 	}
 
-	if err = i.finalizeUpload(); err != nil {
+	if err = i.finalizeUpload(uploadStart.UploadID); err != nil {
 		return err
 	}
 
@@ -99,42 +99,51 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptio
 	return nil
 }
 
-func (i *TursoServerClient) startMultipartUpload(dbSize int64) (int64, error) {
+type multipartUploadStart struct {
+	ChunkSize int64
+	UploadID  string
+}
+
+func (i *TursoServerClient) startMultipartUpload(dbSize int64) (multipartUploadStart, error) {
 	requestBody := map[string]int64{
 		"db_size_bytes": dbSize,
 	}
 
 	body, err := marshal(requestBody)
 	if err != nil {
-		return 0, fmt.Errorf("failed to marshal multipart upload request: %w", err)
+		return multipartUploadStart{}, fmt.Errorf("failed to marshal multipart upload request: %w", err)
 	}
 
 	r, err := i.client.Put("/v2/upload/start", body)
 	if err != nil {
-		return 0, fmt.Errorf("failed to initiate multipart upload: %w", err)
+		return multipartUploadStart{}, fmt.Errorf("failed to initiate multipart upload: %w", err)
 	}
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			return 0, fmt.Errorf("initiate multipart upload failed with status code %d and error reading response: %v", r.StatusCode, err)
+			return multipartUploadStart{}, fmt.Errorf("initiate multipart upload failed with status code %d and error reading response: %v", r.StatusCode, err)
 		}
-		return 0, fmt.Errorf("initiate multipart upload failed with status code %d: %s", r.StatusCode, string(body))
+		return multipartUploadStart{}, fmt.Errorf("initiate multipart upload failed with status code %d: %s", r.StatusCode, string(body))
 	}
 
 	type multipartUploadResponse struct {
-		ChunkSize int64 `json:"chunk_size"`
+		ChunkSize int64  `json:"chunk_size"`
+		UploadID  string `json:"upload_id"`
 	}
 	var uploadResp multipartUploadResponse
 	if err := json.NewDecoder(r.Body).Decode(&uploadResp); err != nil {
-		return 0, fmt.Errorf("failed to decode multipart upload response: %w", err)
+		return multipartUploadStart{}, fmt.Errorf("failed to decode multipart upload response: %w", err)
 	}
 
-	return uploadResp.ChunkSize, nil
+	return multipartUploadStart{
+		ChunkSize: uploadResp.ChunkSize,
+		UploadID:  uploadResp.UploadID,
+	}, nil
 }
 
-func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
+func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file io.Reader, totalSize int64, startTime time.Time, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
 	var uploadedBytes int64 = 0
 	chunkID := 0
 	lastProgressPct := -1
@@ -157,7 +166,7 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 			lastUpdate: lastProgressPct,
 		}
 
-		chunkPath := fmt.Sprintf("/v2/upload/chunk/%d", chunkID)
+		chunkPath := fmt.Sprintf("/v2/upload/%s/chunk/%d", uploadID, chunkID)
 
 		var headers = map[string]string{}
 		if remoteEncryptionCipher != "" && remoteEncryptionKey != "" {
@@ -191,8 +200,8 @@ func (i *TursoServerClient) uploadChunks(chunkSize int64, file io.Reader, totalS
 	return uploadedBytes, nil
 }
 
-func (i *TursoServerClient) finalizeUpload() error {
-	r, err := i.client.Put("/v2/upload/finalize", nil)
+func (i *TursoServerClient) finalizeUpload(uploadID string) error {
+	r, err := i.client.Put(fmt.Sprintf("/v2/upload/%s/finalize", uploadID), nil)
 	if err != nil {
 		return fmt.Errorf("failed to finalize multipart upload: %w", err)
 	}

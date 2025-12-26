@@ -27,6 +27,7 @@ type MockTursoServer struct {
 	receivedHeaders map[string][]string
 	requestCount    int
 	chunkData       map[int][]byte
+	uploadID        string
 
 	// Configurable responses
 	startUploadStatus int
@@ -48,6 +49,7 @@ func NewMockTursoServer() *MockTursoServer {
 		finalizeStatus:    http.StatusOK,
 		chunkSize:         1024 * 1024, // 1MB default
 		failAtChunk:       -1,
+		uploadID:          "test-upload-id",
 	}
 
 	mock.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,9 +65,9 @@ func NewMockTursoServer() *MockTursoServer {
 		switch {
 		case r.Method == "PUT" && r.URL.Path == "/v2/upload/start":
 			mock.handleMultipartStart(w, r)
-		case r.Method == "PUT" && strings.HasPrefix(r.URL.Path, "/v2/upload/chunk/"):
+		case r.Method == "PUT" && strings.HasPrefix(r.URL.Path, "/v2/upload/"+mock.uploadID+"/chunk/"):
 			mock.handleChunkUpload(w, r)
-		case r.Method == "PUT" && r.URL.Path == "/v2/upload/finalize":
+		case r.Method == "PUT" && r.URL.Path == "/v2/upload/"+mock.uploadID+"/finalize":
 			mock.handleFinalize(w, r)
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -83,7 +85,10 @@ func (m *MockTursoServer) handleMultipartStart(w http.ResponseWriter, r *http.Re
 	}
 
 	w.WriteHeader(m.startUploadStatus)
-	json.NewEncoder(w).Encode(map[string]int64{"chunk_size": m.chunkSize})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"chunk_size": m.chunkSize,
+		"upload_id":  m.uploadID,
+	})
 }
 
 func (m *MockTursoServer) handleChunkUpload(w http.ResponseWriter, r *http.Request) {
@@ -517,10 +522,11 @@ func TestUploadFileMultipart_ProgressCallbackPerChunk(t *testing.T) {
 func TestUploadFileMultipart_ContentLengthHeader(t *testing.T) {
 	var receivedContentLengths []string
 	var mu sync.Mutex
+	uploadID := "test-upload-id"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
-		if strings.HasPrefix(r.URL.Path, "/v2/upload/chunk/") {
+		if strings.Contains(r.URL.Path, "/chunk/") {
 			receivedContentLengths = append(receivedContentLengths, r.Header.Get("Content-Length"))
 		}
 		mu.Unlock()
@@ -528,11 +534,11 @@ func TestUploadFileMultipart_ContentLengthHeader(t *testing.T) {
 		switch {
 		case r.URL.Path == "/v2/upload/start":
 			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]int64{"chunk_size": 1024})
-		case strings.HasPrefix(r.URL.Path, "/v2/upload/chunk/"):
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"chunk_size": int64(1024), "upload_id": uploadID})
+		case strings.HasPrefix(r.URL.Path, "/v2/upload/"+uploadID+"/chunk/"):
 			_, _ = io.ReadAll(r.Body)
 			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/v2/upload/finalize":
+		case r.URL.Path == "/v2/upload/"+uploadID+"/finalize":
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusNotFound)

@@ -192,7 +192,7 @@ func countFlags(flags ...string) (count int) {
 }
 
 const MaxAWSDBSizeBytes = 1024 * 1024 * 1024 * 20 // 20 GB
-const OneGBBytes = 1024 * 1024 * 1024             // 1 GB
+const LargeDBThreshold = 200 * 1024 * 1024        // 200 MB
 
 func humanReadableSize(bytes int64) string {
 	const unit = 1024
@@ -294,9 +294,7 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 		return errors.New("database file size exceeds maximum allowed size of 20 GB")
 	}
 
-	// Warn users about JWT expiration for large uploads
-	if fileInfo.Size() > OneGBBytes {
-		// Check if using JWT (not API token from env var)
+	if fileInfo.Size() > LargeDBThreshold {
 		if os.Getenv(ENV_ACCESS_TOKEN) == "" && !yesFlag {
 			fmt.Printf("\n%s\n\n", internal.Warn("Warning: Large database upload detected"))
 			fmt.Printf("You are uploading a %s database while authenticated with a JWT token.\n", humanReadableSize(fileInfo.Size()))
