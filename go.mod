@@ -1,8 +1,8 @@
 module github.com/tursodatabase/turso-cli
 
-go 1.22
+go 1.25
 
-toolchain go1.22.0
+toolchain go1.25.0
 
 require (
 	github.com/Clever/csvlint v0.3.0
