@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -658,16 +659,19 @@ func TestProgressReader_ProgressUpdates(t *testing.T) {
 	var progressCalls []int
 	var mu sync.Mutex
 
+	now := time.Now()
 	pr := &progressReader{
-		reader:     reader,
-		totalSize:  1000,
-		lastUpdate: -1,
+		reader:          reader,
+		totalSize:       1000,
+		lastUpdate:      -1,
+		lastUpdateTime:  now,
+		lastUpdateBytes: 0,
 		onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
 			mu.Lock()
 			progressCalls = append(progressCalls, pct)
 			mu.Unlock()
 		},
-		startTime: time.Now(),
+		startTime: now,
 	}
 
 	buf := make([]byte, 100) // Read in 100-byte chunks
@@ -704,15 +708,18 @@ func TestProgressReader_DoneOnEOF(t *testing.T) {
 
 	var lastDone bool
 	var lastPct int
+	now := time.Now()
 	pr := &progressReader{
-		reader:     reader,
-		totalSize:  int64(len(data)),
-		lastUpdate: -1,
+		reader:          reader,
+		totalSize:       int64(len(data)),
+		lastUpdate:      -1,
+		lastUpdateTime:  now,
+		lastUpdateBytes: 0,
 		onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
 			lastDone = done
 			lastPct = pct
 		},
-		startTime: time.Now(),
+		startTime: now,
 	}
 
 	// Read all at once
@@ -745,14 +752,17 @@ func TestProgressReader_BytesReadAccurate(t *testing.T) {
 	reader := bytes.NewReader(data)
 
 	var lastUploadedBytes int64
+	now := time.Now()
 	pr := &progressReader{
-		reader:     reader,
-		totalSize:  500,
-		lastUpdate: -1,
+		reader:          reader,
+		totalSize:       500,
+		lastUpdate:      -1,
+		lastUpdateTime:  now,
+		lastUpdateBytes: 0,
 		onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
 			lastUploadedBytes = uploaded
 		},
-		startTime: time.Now(),
+		startTime: now,
 	}
 
 	_, err := io.ReadAll(pr)
@@ -773,11 +783,14 @@ func TestProgressReader_WithBaseBytes(t *testing.T) {
 		total    int64
 	}
 
+	now := time.Now()
 	pr := &progressReader{
-		reader:    reader,
-		totalSize: 200,
-		baseBytes: 100,
-		startTime: time.Now(),
+		reader:          reader,
+		totalSize:       200,
+		baseBytes:       100,
+		startTime:       now,
+		lastUpdateTime:  now,
+		lastUpdateBytes: 100,
 		onProgress: func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
 			progressUpdates = append(progressUpdates, struct {
 				pct      int
@@ -826,16 +839,20 @@ func TestProgressReader_CumulativeAcrossChunks(t *testing.T) {
 	// Simulate reading 3 chunks
 	var baseBytes int64 = 0
 	lastPct := -1
+	lastUpdateTime := time.Now()
+	var lastUpdateBytes int64 = 0
 
 	for chunk := 0; chunk < 3; chunk++ {
 		data := bytes.Repeat([]byte("x"), int(chunkSize))
 		reader := bytes.NewReader(data)
 
 		pr := &progressReader{
-			reader:    reader,
-			totalSize: totalSize,
-			baseBytes: baseBytes,
-			startTime: time.Now(),
+			reader:          reader,
+			totalSize:       totalSize,
+			baseBytes:       baseBytes,
+			startTime:       time.Now(),
+			lastUpdateTime:  lastUpdateTime,
+			lastUpdateBytes: lastUpdateBytes,
 			onProgress: func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
 				allUpdates = append(allUpdates, struct {
 					pct      int
@@ -857,6 +874,8 @@ func TestProgressReader_CumulativeAcrossChunks(t *testing.T) {
 
 		baseBytes += chunkSize
 		lastPct = pr.lastUpdate
+		lastUpdateTime = pr.lastUpdateTime
+		lastUpdateBytes = pr.lastUpdateBytes
 	}
 
 	require.NotEmpty(t, allUpdates, "expected progress updates")
@@ -887,4 +906,260 @@ func TestUploadFileMultipart_SmoothProgress(t *testing.T) {
 	require.Greater(t, len(calls), 15, "Expected smooth progress with many updates, got only %d", len(calls))
 	progress.VerifyProgressIncreasing(t)
 	require.True(t, calls[len(calls)-1].Done, "Final callback should have Done=true")
+}
+
+// infiniteReader provides unlimited bytes for large file simulation (never returns EOF)
+type infiniteReader struct {
+	bytesRead int64
+}
+
+func (r *infiniteReader) Read(p []byte) (int, error) {
+	n := len(p)
+	r.bytesRead += int64(n)
+	return n, nil
+}
+
+func TestProgressReader_TimeBasedUpdate(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		totalSize := int64(100 * 1024 * 1024)
+
+		var calls []ProgressCall
+		now := time.Now()
+		pr := &progressReader{
+			reader:          &infiniteReader{},
+			totalSize:       totalSize,
+			lastUpdate:      0,
+			lastUpdateTime:  now,
+			lastUpdateBytes: 0,
+			startTime:       now,
+			onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
+				calls = append(calls, ProgressCall{pct, uploaded, total, elapsed, done})
+			},
+		}
+
+		// Read 0.5% of data (not enough for 1% threshold)
+		buf := make([]byte, 512*1024) // 0.5MB
+		pr.Read(buf)
+		initialCalls := len(calls)
+
+		// Advance fake time by 3 seconds
+		time.Sleep(3 * time.Second)
+		synctest.Wait()
+
+		// Read again - should trigger time-based update
+		pr.Read(buf)
+
+		require.Greater(t, len(calls), initialCalls, "Expected time-based callback after 2s")
+	})
+}
+
+func TestProgressReader_ByteBasedUpdate(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		totalSize := int64(10 * 1024 * 1024 * 1024) // 10GB
+
+		var calls []ProgressCall
+		now := time.Now()
+		pr := &progressReader{
+			reader:          &infiniteReader{},
+			totalSize:       totalSize,
+			lastUpdate:      0,
+			lastUpdateTime:  now,
+			lastUpdateBytes: 0,
+			startTime:       now,
+			onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
+				calls = append(calls, ProgressCall{pct, uploaded, total, elapsed, done})
+			},
+		}
+
+		// Read 60MB (more than 50MB threshold but less than 1% of 10GB)
+		buf := make([]byte, 60*1024*1024)
+		pr.Read(buf)
+
+		require.NotEmpty(t, calls, "Expected byte-based callback after 50MB")
+	})
+}
+
+func TestProgressReader_NoUnnecessaryUpdates(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		totalSize := int64(100 * 1024 * 1024) // 100MB
+
+		var callCount int
+		now := time.Now()
+		pr := &progressReader{
+			reader:          &infiniteReader{},
+			totalSize:       totalSize,
+			lastUpdate:      50, // Already at 50%
+			lastUpdateTime:  now,
+			lastUpdateBytes: 50 * 1024 * 1024, // 50MB already uploaded
+			startTime:       now,
+			onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
+				callCount++
+			},
+		}
+
+		// Small read that doesn't cross any threshold
+		// 0.5MB is 0.5% of 100MB - not enough for 1% progress
+		// Not enough time passed, not enough bytes (< 50MB since last update)
+		buf := make([]byte, 512*1024) // 0.5MB
+		pr.Read(buf)
+
+		require.Equal(t, 0, callCount, "Should not fire callback when no threshold crossed")
+	})
+}
+
+func TestProgressReader_PercentageThreshold(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		totalSize := int64(1000)
+		data := make([]byte, totalSize)
+		reader := bytes.NewReader(data)
+
+		var calls []ProgressCall
+		now := time.Now()
+		pr := &progressReader{
+			reader:          reader,
+			totalSize:       totalSize,
+			lastUpdate:      -1,
+			lastUpdateTime:  now,
+			lastUpdateBytes: 0,
+			startTime:       now,
+			onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
+				calls = append(calls, ProgressCall{pct, uploaded, total, elapsed, done})
+			},
+		}
+
+		// Read 2% - should trigger (crosses 1% threshold)
+		buf := make([]byte, 20) // 2%
+		pr.Read(buf)
+
+		require.Len(t, calls, 1)
+		require.Equal(t, 2, calls[0].ProgressPct)
+	})
+}
+
+func TestProgressReader_EOFAlwaysTriggers(t *testing.T) {
+	// EOF should always trigger update, regardless of other thresholds
+	synctest.Test(t, func(t *testing.T) {
+		data := []byte("small")
+		// Use testEOFReader which returns data AND EOF together in the same Read() call
+		reader := &testEOFReader{data: data}
+
+		var calls []ProgressCall
+		now := time.Now()
+		pr := &progressReader{
+			reader:          reader,
+			totalSize:       int64(len(data)),
+			lastUpdate:      100, // Set to 100 so percentage doesn't trigger (100 > 100 is false)
+			lastUpdateTime:  now,
+			lastUpdateBytes: int64(len(data)),
+			startTime:       now,
+			onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
+				calls = append(calls, ProgressCall{pct, uploaded, total, elapsed, done})
+			},
+		}
+
+		// Read to EOF - testEOFReader returns data and EOF together
+		buf := make([]byte, 100)
+		pr.Read(buf)
+
+		require.NotEmpty(t, calls, "EOF should trigger callback even when other thresholds not met")
+		require.True(t, calls[len(calls)-1].Done, "EOF should trigger done=true")
+	})
+}
+
+func TestProgressReader_MultipleThresholdsCombined(t *testing.T) {
+	// Test that any threshold being met triggers update
+	synctest.Test(t, func(t *testing.T) {
+		totalSize := int64(100 * 1024 * 1024 * 1024) // 100GB
+
+		var calls []ProgressCall
+		now := time.Now()
+		pr := &progressReader{
+			reader:          &infiniteReader{},
+			totalSize:       totalSize,
+			lastUpdate:      0,
+			lastUpdateTime:  now,
+			lastUpdateBytes: 0,
+			startTime:       now,
+			onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
+				calls = append(calls, ProgressCall{pct, uploaded, total, elapsed, done})
+			},
+		}
+
+		// Scenario 1: Read 10MB (no threshold met - less than 50MB, less than 1% of 100GB)
+		buf := make([]byte, 10*1024*1024)
+		pr.Read(buf)
+		require.Empty(t, calls, "Should not trigger with only 10MB read on 100GB file")
+
+		// Scenario 2: Another 50MB should trigger byte threshold (total 60MB > 50MB)
+		buf = make([]byte, 50*1024*1024)
+		pr.Read(buf)
+		require.Len(t, calls, 1, "Should trigger after 60MB total (>50MB byte threshold)")
+	})
+}
+
+func TestProgressReader_TimeThresholdWithSmallReads(t *testing.T) {
+	// Test time-based updates with small frequent reads (simulates slow network)
+	synctest.Test(t, func(t *testing.T) {
+		totalSize := int64(10 * 1024 * 1024 * 1024) // 10GB
+
+		var calls []ProgressCall
+		now := time.Now()
+		pr := &progressReader{
+			reader:          &infiniteReader{},
+			totalSize:       totalSize,
+			lastUpdate:      0,
+			lastUpdateTime:  now,
+			lastUpdateBytes: 0,
+			startTime:       now,
+			onProgress: func(pct int, uploaded, total int64, elapsed time.Duration, done bool) {
+				calls = append(calls, ProgressCall{pct, uploaded, total, elapsed, done})
+			},
+		}
+
+		// Small read - no trigger
+		buf := make([]byte, 1024) // 1KB
+		pr.Read(buf)
+		require.Empty(t, calls)
+
+		// Advance time by 2.5 seconds
+		time.Sleep(2500 * time.Millisecond)
+		synctest.Wait()
+
+		// Another small read - should trigger due to time
+		pr.Read(buf)
+		require.Len(t, calls, 1, "Should trigger after 2s time threshold")
+	})
+}
+
+func TestProgressReader_UpdatesTrackingFieldsCorrectly(t *testing.T) {
+	// Verify lastUpdateTime and lastUpdateBytes are updated correctly
+	synctest.Test(t, func(t *testing.T) {
+		totalSize := int64(1000)
+		data := make([]byte, totalSize)
+		reader := bytes.NewReader(data)
+
+		now := time.Now()
+		pr := &progressReader{
+			reader:          reader,
+			totalSize:       totalSize,
+			lastUpdate:      -1,
+			lastUpdateTime:  now,
+			lastUpdateBytes: 0,
+			startTime:       now,
+			onProgress:      func(int, int64, int64, time.Duration, bool) {},
+		}
+
+		// Advance fake time so time.Now() will return a different value when update happens
+		time.Sleep(1 * time.Millisecond)
+		synctest.Wait()
+
+		initialTime := pr.lastUpdateTime
+
+		// Trigger an update via percentage
+		buf := make([]byte, 50) // 5%
+		pr.Read(buf)
+
+		require.True(t, pr.lastUpdateTime.After(initialTime), "lastUpdateTime should be updated to a later time")
+		require.Equal(t, int64(50), pr.lastUpdateBytes, "lastUpdateBytes should track uploaded bytes")
+	})
 }

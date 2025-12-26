@@ -18,13 +18,15 @@ import (
 // progressReader is a custom io.Reader that tracks progress of the upload
 // and calls the onProgress callback with the progress of the upload.
 type progressReader struct {
-	reader     io.Reader
-	totalSize  int64
-	bytesRead  int64
-	baseBytes  int64 // Bytes already uploaded before progressReader started
-	startTime  time.Time
-	onProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)
-	lastUpdate int // Last reported progress percentage. Initially -1 to ensure first update is always sent.
+	reader          io.Reader
+	totalSize       int64
+	bytesRead       int64
+	baseBytes       int64 // Bytes already uploaded before progressReader started
+	startTime       time.Time
+	onProgress      func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)
+	lastUpdate      int       // Last reported progress percentage. Initially -1 to ensure first update is always sent.
+	lastUpdateTime  time.Time // Last time a progress update was sent
+	lastUpdateBytes int64     // Total bytes uploaded at last update
 }
 
 func (pr *progressReader) Read(p []byte) (int, error) {
@@ -34,10 +36,20 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 		totalUploaded := pr.baseBytes + pr.bytesRead
 		progressPct := int(float64(totalUploaded) / float64(pr.totalSize) * 100)
 
-		// Only call progress if we've made at least 1% progress or if we're done
-		if progressPct > pr.lastUpdate || errors.Is(err, io.EOF) {
+		timeSinceLastUpdate := time.Since(pr.lastUpdateTime)
+		bytesSinceLastUpdate := totalUploaded - pr.lastUpdateBytes
+
+		// Update if: percentage changed OR 2s elapsed OR 50MB uploaded OR done
+		shouldUpdate := progressPct > pr.lastUpdate ||
+			timeSinceLastUpdate >= 2*time.Second ||
+			bytesSinceLastUpdate >= 50*1024*1024 ||
+			errors.Is(err, io.EOF)
+
+		if shouldUpdate {
 			elapsedTime := time.Since(pr.startTime)
 			pr.lastUpdate = progressPct
+			pr.lastUpdateTime = time.Now()
+			pr.lastUpdateBytes = totalUploaded
 			pr.onProgress(progressPct, totalUploaded, pr.totalSize, elapsedTime, errors.Is(err, io.EOF))
 		}
 	}
@@ -147,6 +159,8 @@ func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file 
 	var uploadedBytes int64 = 0
 	chunkID := 0
 	lastProgressPct := -1
+	lastUpdateTime := time.Now()
+	var lastUpdateBytes int64 = 0
 
 	for uploadedBytes < totalSize {
 		remaining := totalSize - uploadedBytes
@@ -158,12 +172,14 @@ func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file 
 		chunkReader := io.LimitReader(file, currentChunkSize)
 
 		progressTracker := &progressReader{
-			reader:     chunkReader,
-			totalSize:  totalSize,
-			baseBytes:  uploadedBytes,
-			startTime:  startTime,
-			onProgress: onUploadProgress,
-			lastUpdate: lastProgressPct,
+			reader:          chunkReader,
+			totalSize:       totalSize,
+			baseBytes:       uploadedBytes,
+			startTime:       startTime,
+			onProgress:      onUploadProgress,
+			lastUpdate:      lastProgressPct,
+			lastUpdateTime:  lastUpdateTime,
+			lastUpdateBytes: lastUpdateBytes,
 		}
 
 		chunkPath := fmt.Sprintf("/v2/upload/%s/chunk/%d", uploadID, chunkID)
@@ -194,6 +210,8 @@ func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file 
 
 		uploadedBytes += currentChunkSize
 		lastProgressPct = progressTracker.lastUpdate
+		lastUpdateTime = progressTracker.lastUpdateTime
+		lastUpdateBytes = progressTracker.lastUpdateBytes
 
 		chunkID++
 	}
