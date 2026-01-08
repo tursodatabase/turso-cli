@@ -232,20 +232,8 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 //  2. This function creates a DB token for the newly-created DB, and then calls turso-server to upload the database file.
 //     turso-server will perform validations on the file and 'activate' the db if everything is ok.
 func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
-	// Get file size to calculate appropriate token expiration
-	fileInfo, err := os.Stat(uploadFilepath)
-	if err != nil {
-		return nil, fmt.Errorf("could not stat upload file: %w", err)
-	}
-
-	// Calculate expiration: assume 10 MB/s minimum upload speed
-	// Add 1 hour buffer for server-side validation
-	fileSizeBytes := fileInfo.Size()
-	estimatedSeconds := fileSizeBytes / (10 * 1024 * 1024) // 10 MB/s
-	expirationHours := max(1, (estimatedSeconds/3600)+1)   // min 1h, +1h buffer
-	expiration := fmt.Sprintf("%dh", expirationHours)
-
-	token, err := d.Token(resp.Database.Name, expiration, false, nil, nil)
+	// Create a short-lived DB token for the newly created database to facilitate the upload
+	token, err := d.Token(resp.Database.Name, "1h", false, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not create database token: %w", err)
 	}
