@@ -15,6 +15,9 @@ import (
 	"time"
 )
 
+// TokenProvider is a function that returns a fresh authentication token.
+type TokenProvider func() (string, error)
+
 // progressReader is a custom io.Reader that tracks progress of the upload
 // and calls the onProgress callback with the progress of the upload.
 type progressReader struct {
@@ -57,17 +60,44 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 }
 
 type TursoServerClient struct {
-	tenant string
-	client *Client
+	tenant           string
+	client           *Client
+	tokenProvider    TokenProvider
+	tokenTTL         time.Duration
+	lastTokenRefresh time.Time
 }
 
-func NewTursoServerClient(baseURL *url.URL, token string, cliVersion string, org string) (TursoServerClient, error) {
-	newClient := New(baseURL, token, cliVersion, org)
+func NewTursoServerClient(baseURL *url.URL, tokenProvider TokenProvider, tokenTTL time.Duration, cliVersion string, org string) (TursoServerClient, error) {
+	initialToken, err := tokenProvider()
+	if err != nil {
+		return TursoServerClient{}, fmt.Errorf("failed to get initial token: %w", err)
+	}
+
+	newClient := New(baseURL, initialToken, cliVersion, org)
 
 	return TursoServerClient{
-		tenant: org,
-		client: newClient,
+		tenant:           org,
+		client:           newClient,
+		tokenProvider:    tokenProvider,
+		tokenTTL:         tokenTTL,
+		lastTokenRefresh: time.Now(),
 	}, nil
+}
+
+func (i *TursoServerClient) refreshTokenIfNeeded() error {
+	if i.tokenProvider == nil {
+		return nil
+	}
+	if time.Since(i.lastTokenRefresh) < i.tokenTTL/3 {
+		return nil
+	}
+	token, err := i.tokenProvider()
+	if err != nil {
+		return fmt.Errorf("failed to refresh token: %w", err)
+	}
+	i.client.SetToken(token)
+	i.lastTokenRefresh = time.Now()
+	return nil
 }
 
 // UploadFileMultipart uploads a database file using the multipart upload flow.
@@ -98,6 +128,10 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptio
 
 	uploadedBytes, err := i.uploadChunks(uploadStart.UploadID, uploadStart.ChunkSize, file, totalSize, startTime, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
 	if err != nil {
+		return err
+	}
+
+	if err := i.refreshTokenIfNeeded(); err != nil {
 		return err
 	}
 
@@ -163,6 +197,12 @@ func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file 
 	var lastUpdateBytes int64 = 0
 
 	for uploadedBytes < totalSize {
+		if chunkID > 0 {
+			if err := i.refreshTokenIfNeeded(); err != nil {
+				return 0, err
+			}
+		}
+
 		remaining := totalSize - uploadedBytes
 		currentChunkSize := chunkSize
 		if remaining < chunkSize {

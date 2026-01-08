@@ -232,17 +232,17 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 //  2. This function creates a DB token for the newly-created DB, and then calls turso-server to upload the database file.
 //     turso-server will perform validations on the file and 'activate' the db if everything is ok.
 func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
-	// Create a short-lived DB token for the newly created database to facilitate the upload
-	token, err := d.Token(resp.Database.Name, "1h", false, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not create database token: %w", err)
+	dbName := resp.Database.Name
+	tokenTTL := 5 * time.Minute
+	tokenProvider := func() (string, error) {
+		return d.Token(dbName, "5m", false, nil, nil)
 	}
 
 	baseURL, err := url.Parse(fmt.Sprintf("https://%s", resp.Database.Hostname))
 	if err != nil {
 		return nil, fmt.Errorf("unable to create TursoServerClient: %v", err)
 	}
-	tursoServerClient, err := NewTursoServerClient(baseURL, token, d.client.cliVersion, d.client.Org)
+	tursoServerClient, err := NewTursoServerClient(baseURL, tokenProvider, tokenTTL, d.client.cliVersion, d.client.Org)
 	if err != nil {
 		return nil, fmt.Errorf("could not create Turso server client: %w", err)
 	}
@@ -288,15 +288,14 @@ func (d *DatabasesClient) Export(dbName, dbUrl, outputFile string, withMetadata 
 			return fmt.Errorf("file %s already exists, use `--overwrite` flag to overwrite it", outputFile)
 		}
 	}
-	token, err := d.Token(dbName, "1h", false, nil, nil)
-	if err != nil {
-		return fmt.Errorf("could not create database token: %w", err)
+	tokenProvider := func() (string, error) {
+		return d.Token(dbName, "1h", false, nil, nil)
 	}
 	baseURL, err := url.Parse(dbUrl)
 	if err != nil {
 		return fmt.Errorf("could not parse database URL: %w", err)
 	}
-	tursoServerClient, err := NewTursoServerClient(baseURL, token, d.client.cliVersion, d.client.Org)
+	tursoServerClient, err := NewTursoServerClient(baseURL, tokenProvider, time.Hour, d.client.cliVersion, d.client.Org)
 	if err != nil {
 		return fmt.Errorf("could not create Turso server client: %w", err)
 	}
