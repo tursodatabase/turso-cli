@@ -317,12 +317,12 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 		return fmt.Errorf("database must use UTF-8 encoding. you can set it with 'sqlite3 %s 'PRAGMA encoding = 'UTF-8'	", file)
 	}
 
-	// run quick_check with progress
+	// run quick_check
 	if flags.Debug() {
 		log.Printf("Running integrity check...")
 	}
 	spinner := prompt.Spinner(fmt.Sprintf("Validating database file (%s)...", humanReadableSize(fileInfo.Size())))
-	err = runQuickCheckWithProgress(file, fileInfo.Size(), spinner)
+	err = runQuickCheck(file)
 	spinner.Stop()
 	if err != nil {
 		return err
@@ -339,51 +339,9 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 	return nil
 }
 
-// SpinnerInterface allows for mocking the spinner in tests
-type SpinnerInterface interface {
-	Text(t string)
-	Stop()
-}
-
-func runQuickCheckWithProgress(file string, fileSize int64, spinner SpinnerInterface) error {
-	// Estimate total opcodes (~4 bytes per opcode based on testing)
-	bytesPerOpcode := int64(4)
-	estimatedTotalOps := fileSize / bytesPerOpcode
-
-	// Dynamic interval: aim for ~100 progress callbacks, but at least 1000 ops between updates
-	targetCallbacks := int64(100)
-	progressInterval := max(1000, estimatedTotalOps/targetCallbacks)
-	estimatedCallbacks := estimatedTotalOps / progressInterval
-
-	// Build command with .progress
-	cmd := exec.Command("sqlite3", file,
-		fmt.Sprintf(".progress %d", progressInterval),
-		"pragma quick_check;")
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	// Stream output and count progress callbacks
-	scanner := bufio.NewScanner(stdout)
-	callbackCount := int64(0)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "Progress ") {
-			callbackCount++
-			if estimatedCallbacks > 0 && spinner != nil {
-				pct := min(99, (callbackCount*100)/estimatedCallbacks)
-				spinner.Text(fmt.Sprintf("Validating database integrity... %d%%", pct))
-			}
-		}
-	}
-
-	if err := cmd.Wait(); err != nil {
+func runQuickCheck(file string) error {
+	cmd := exec.Command("sqlite3", file, "pragma quick_check;")
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("integrity check failed: %w", err)
 	}
 	return nil
