@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	defaultMaxRetries    = 3
-	baseRetryDelay       = 1 * time.Second
-	maxRetryDelay        = 30 * time.Second
-	retryJitterMaxMillis = 500
+	defaultMaxRetries    = 15
+	baseRetryDelay       = 2 * time.Second
+	maxRetryDelay        = 60 * time.Second
+	retryJitterMaxMillis = 1000
 )
 
 // debugUpload returns true if TURSO_DEBUG_UPLOAD=1 is set.
