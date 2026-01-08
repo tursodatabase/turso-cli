@@ -38,7 +38,7 @@ func createTestDatabase(t *testing.T, sizeBytes int) string {
 		for i := 0; i < numRows; i++ {
 			cmd = exec.Command("sqlite3", dbPath,
 				fmt.Sprintf("INSERT INTO data (blob) VALUES (randomblob(%d));", rowSize))
-			cmd.Run() // Ignore errors for individual inserts
+			require.NoError(t, cmd.Run())
 		}
 	}
 
