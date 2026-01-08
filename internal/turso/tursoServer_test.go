@@ -186,7 +186,6 @@ func createTestClient(t *testing.T, serverURL string) *TursoServerClient {
 	baseURL, err := url.Parse(serverURL)
 	require.NoError(t, err)
 
-	
 	tokenProvider := func() (string, error) {
 		return "test-token", nil
 	}
