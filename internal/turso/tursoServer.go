@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"log"
 	mathrand "math/rand/v2"
 	"net"
 	"net/http"
@@ -23,6 +24,12 @@ const (
 	maxRetryDelay        = 30 * time.Second
 	retryJitterMaxMillis = 500
 )
+
+// debugUpload returns true if TURSO_DEBUG_UPLOAD=1 is set.
+// This provides upload-specific debug logging without the full HTTP dumps from --debug.
+func debugUpload() bool {
+	return os.Getenv("TURSO_DEBUG_UPLOAD") == "1"
+}
 
 // TokenProvider is a function that returns a fresh authentication token.
 type TokenProvider func() (string, error)
@@ -150,18 +157,18 @@ func calculateBackoff(attempt int) time.Duration {
 
 // chunkUploadContext holds the context needed for uploading a chunk with retry support.
 type chunkUploadContext struct {
-	chunkID              int
-	chunkPath            string
-	chunkSize            int64
-	chunkStartOffset     int64 // File offset where this chunk starts
-	file                 *os.File
-	headers              map[string]string
-	totalSize            int64
-	startTime            time.Time
-	onProgress           func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)
-	lastProgressPct      int
-	lastUpdateTime       time.Time
-	lastUpdateBytes      int64
+	chunkID          int
+	chunkPath        string
+	chunkSize        int64
+	chunkStartOffset int64 // File offset where this chunk starts
+	file             *os.File
+	headers          map[string]string
+	totalSize        int64
+	startTime        time.Time
+	onProgress       func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)
+	lastProgressPct  int
+	lastUpdateTime   time.Time
+	lastUpdateBytes  int64
 }
 
 // chunkUploadResult holds the progress state after a successful chunk upload.
@@ -177,8 +184,15 @@ func (i *TursoServerClient) uploadChunkWithRetry(ctx *chunkUploadContext, maxRet
 	var lastErr error
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if debugUpload() && attempt > 0 {
+			log.Printf("[upload] Chunk %d: retry attempt %d/%d after error: %v", ctx.chunkID, attempt, maxRetries, lastErr)
+		}
+
 		// Refresh token on retries (ensures token doesn't expire during retry sequence)
 		if attempt > 0 {
+			if debugUpload() {
+				log.Printf("[upload] Chunk %d: refreshing token before retry attempt %d", ctx.chunkID, attempt)
+			}
 			if err := i.refreshTokenIfNeeded(); err != nil {
 				return chunkUploadResult{}, err
 			}
@@ -215,6 +229,9 @@ func (i *TursoServerClient) uploadChunkWithRetry(ctx *chunkUploadContext, maxRet
 		// Success case
 		if err == nil && (statusCode == http.StatusOK || statusCode == http.StatusCreated) {
 			_ = r.Body.Close()
+			if debugUpload() && attempt > 0 {
+				log.Printf("[upload] Chunk %d: succeeded on attempt %d", ctx.chunkID, attempt+1)
+			}
 			return chunkUploadResult{
 				lastProgressPct: progressTracker.lastUpdate,
 				lastUpdateTime:  progressTracker.lastUpdateTime,
@@ -233,16 +250,25 @@ func (i *TursoServerClient) uploadChunkWithRetry(ctx *chunkUploadContext, maxRet
 
 		// Check if error is retriable
 		if !isRetriableError(err, statusCode) {
+			if debugUpload() {
+				log.Printf("[upload] Chunk %d: non-retriable error (status=%d): %v", ctx.chunkID, statusCode, lastErr)
+			}
 			return chunkUploadResult{}, lastErr
 		}
 
 		// Don't sleep after the last attempt
 		if attempt < maxRetries {
 			backoff := calculateBackoff(attempt)
+			if debugUpload() {
+				log.Printf("[upload] Chunk %d: retriable error (status=%d), waiting %v before retry", ctx.chunkID, statusCode, backoff)
+			}
 			time.Sleep(backoff)
 		}
 	}
 
+	if debugUpload() {
+		log.Printf("[upload] Chunk %d: exhausted all %d retries, giving up", ctx.chunkID, maxRetries+1)
+	}
 	return chunkUploadResult{}, fmt.Errorf("failed after %d retries: %w", maxRetries+1, lastErr)
 }
 
@@ -342,6 +368,11 @@ func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file 
 	lastUpdateTime := time.Now()
 	var lastUpdateBytes int64 = 0
 
+	totalChunks := (totalSize + chunkSize - 1) / chunkSize
+	if debugUpload() {
+		log.Printf("[upload] Starting chunked upload: uploadID=%s, totalSize=%d bytes, chunkSize=%d bytes, totalChunks=%d", uploadID, totalSize, chunkSize, totalChunks)
+	}
+
 	for uploadedBytes < totalSize {
 		// Refresh token between chunks (not before first chunk)
 		if chunkID > 0 {
@@ -357,6 +388,10 @@ func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file 
 		}
 
 		chunkPath := fmt.Sprintf("/v2/upload/%s/chunk/%d", uploadID, chunkID)
+
+		if debugUpload() {
+			log.Printf("[upload] Uploading chunk %d/%d: size=%d bytes, offset=%d", chunkID+1, totalChunks, currentChunkSize, uploadedBytes)
+		}
 
 		headers := map[string]string{}
 		if remoteEncryptionCipher != "" && remoteEncryptionKey != "" {
