@@ -13,7 +13,6 @@ func init() {
 	addGroupFlag(importCmd)
 	addRemoteEncryptionKeyFlag(importCmd)
 	addRemoteEncryptionCipherFlag(importCmd)
-	addYesFlag(importCmd, "Skip confirmation prompts")
 }
 
 var importCmd = &cobra.Command{
