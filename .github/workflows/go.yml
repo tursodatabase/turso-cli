@@ -50,7 +50,7 @@ jobs:
 
       - name: Install sqlclosecheck
         # TODO revert to github.com/ryanrolds/sqlclosecheck when https://github.com/ryanrolds/sqlclosecheck/pull/47 is merged
-        run: go install github.com/LeMikaelF/sqlclosecheck@1da86b1d3e6944a00c18d525f2dfba006f4cbd6c
+        run: go install github.com/LeMikaelF/sqlclosecheck@b53ecaccb94623dfa6050e4ada4eeecd3a130829
 
       - name: sqlclosecheck
         run: go vet -vettool=${HOME}/go/bin/sqlclosecheck ./...
