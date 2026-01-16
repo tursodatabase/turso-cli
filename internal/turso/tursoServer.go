@@ -104,9 +104,6 @@ func (i *TursoServerClient) refreshTokenIfNeeded() error {
 	if i.tokenProvider == nil {
 		return nil
 	}
-	if time.Since(i.lastTokenRefresh) < i.tokenTTL/3 {
-		return nil
-	}
 	token, err := i.tokenProvider()
 	if err != nil {
 		return fmt.Errorf("failed to refresh token: %w", err)
