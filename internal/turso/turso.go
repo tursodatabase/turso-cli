@@ -63,6 +63,10 @@ func New(base *url.URL, token string, cliVersion string, org string) *Client {
 	return c
 }
 
+func (t *Client) SetToken(token string) {
+	t.token = token
+}
+
 func (t *Client) newRequest(method, urlPath string, body io.Reader, extraHeaders map[string]string) (*http.Request, error) {
 	if _, exists := extraHeaders["Content-Type"]; !exists {
 		return nil, errors.New("content type is required")
