@@ -65,7 +65,7 @@ func parseTimestampFlag() (*time.Time, error) {
 	return &timestamp, nil
 }
 
-func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string, multipart bool) (*turso.DBSeed, error) {
+func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string) (*turso.DBSeed, error) {
 	if countFlags(fromDBFlag, fromDumpFlag, fromFileFlag, fromDumpURLFlag, fromCSVFlag) > 1 {
 		return nil, errors.New("only one of --from prefixed flags can be used at a time")
 	}
@@ -86,7 +86,7 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string, multipart
 	}
 
 	if fromFileFlag != "" {
-		return handleDBFile(client, fromFileFlag, isAWS, cipher, multipart)
+		return handleDBFile(client, fromFileFlag, isAWS, cipher)
 	}
 
 	if fromDumpFlag != "" {
@@ -98,7 +98,7 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string, multipart
 		if err != nil {
 			return nil, err
 		}
-		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparator, cipher, multipart)
+		return handleCSVFile(client, fromCSVFlag, csvTableNameFlag, csvSeparator, cipher)
 	}
 	if fromDumpURLFlag != "" {
 		return handleDumpURL(fromDumpURLFlag)
@@ -191,6 +191,20 @@ func countFlags(flags ...string) (count int) {
 }
 
 const MaxAWSDBSizeBytes = 1024 * 1024 * 1024 * 20 // 20 GB
+
+func humanReadableSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
 func checkIfDump(filename string) (bool, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -307,9 +321,11 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 	if flags.Debug() {
 		log.Printf("Running integrity check...")
 	}
-	_, err = exec.Command("sqlite3", file, "pragma quick_check;").CombinedOutput()
+	spinner := prompt.Spinner(fmt.Sprintf("Validating database file (%s)...", humanReadableSize(fileInfo.Size())))
+	err = runQuickCheck(file)
+	spinner.Stop()
 	if err != nil {
-		return fmt.Errorf("integrity check on database failed: %w", err)
+		return err
 	}
 
 	// validate reserved bytes if encryption cipher is specified
@@ -323,21 +339,28 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 	return nil
 }
 
-func handleDBFileAWS(file string, cipher string, multipart bool) (*turso.DBSeed, error) {
+func runQuickCheck(file string) error {
+	cmd := exec.Command("sqlite3", file, "pragma quick_check;")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("integrity check failed: %w", err)
+	}
+	return nil
+}
+
+func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 	if err := sqliteFileIntegrityChecks(file, cipher); err != nil {
 		return nil, err
 	}
 
 	seed := &turso.DBSeed{
-		Type:      "database_upload",
-		Filepath:  file,
-		Multipart: multipart,
+		Type:     "database_upload",
+		Filepath: file,
 	}
 
 	return seed, nil
 }
 
-func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string, multipart bool) (*turso.DBSeed, error) {
+func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
@@ -346,7 +369,7 @@ func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string, 
 	}
 
 	if isAWS {
-		return handleDBFileAWS(file, cipher, multipart)
+		return handleDBFileAWS(file, cipher)
 	}
 
 	if err := checkSQLiteFile(file); err != nil {
@@ -416,7 +439,7 @@ func dumpSQLiteDatabase(database string, dump *os.File) error {
 	return nil
 }
 
-func handleCSVFile(client *turso.Client, file, csvTableName string, separator rune, cipher string, multipart bool) (*turso.DBSeed, error) {
+func handleCSVFile(client *turso.Client, file, csvTableName string, separator rune, cipher string) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
 		return nil, err
 	}
@@ -446,7 +469,7 @@ func handleCSVFile(client *turso.Client, file, csvTableName string, separator ru
 		return nil, err
 	}
 
-	seed, err := handleDBFile(client, tempDB.Name(), false, cipher, multipart)
+	seed, err := handleDBFile(client, tempDB.Name(), false, cipher)
 	if err != nil {
 		return nil, err
 	}
