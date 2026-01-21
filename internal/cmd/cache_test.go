@@ -33,6 +33,65 @@ func Test_setDatabasesCache(t *testing.T) {
 	}
 }
 
+func Test_updateDatabasesCache(t *testing.T) {
+	dbNames := []turso.Database{
+		{
+			Name:          "name",
+			ID:            "id",
+			Regions:       []string{"waw"},
+			PrimaryRegion: "waw",
+			Hostname:      "hostname",
+		},
+		{
+			Name:          "name2",
+			ID:            "id2",
+			Regions:       []string{"waw", "ams"},
+			PrimaryRegion: "ams",
+			Hostname:      "hostname2",
+		},
+	}
+	setDatabasesCache(dbNames)
+	updateDatabaseCache(map[string]turso.Database{"name2": {
+		Name:          "name2-upd",
+		ID:            "id2-upd",
+		Regions:       []string{"lhr"},
+		PrimaryRegion: "ams",
+		Hostname:      "hostname2-upd",
+	}, "name3": {
+		Name:          "name3",
+		ID:            "id3",
+		Regions:       []string{"aws"},
+		PrimaryRegion: "waw",
+		Hostname:      "hostname3",
+	}})
+	dbNamesUpdated := []turso.Database{
+		{
+			Name:          "name",
+			ID:            "id",
+			Regions:       []string{"waw"},
+			PrimaryRegion: "waw",
+			Hostname:      "hostname",
+		},
+		{
+			Name:          "name2-upd",
+			ID:            "id2-upd",
+			Regions:       []string{"lhr"},
+			PrimaryRegion: "ams",
+			Hostname:      "hostname2-upd",
+		},
+		{
+			Name:          "name3",
+			ID:            "id3",
+			Regions:       []string{"aws"},
+			PrimaryRegion: "waw",
+			Hostname:      "hostname3",
+		},
+	}
+	if !reflect.DeepEqual(getDatabasesCache(), dbNamesUpdated) {
+		t.Errorf("setDatabasesCache() = %v, want %v", getDatabasesCache(), dbNamesUpdated)
+	}
+}
+
 func Test_closestLocationCache(t *testing.T) {
 	loc := "waw"
 	setClosestLocationCache(loc)

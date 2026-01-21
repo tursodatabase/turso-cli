@@ -39,6 +39,15 @@ func extractDatabaseNames(databases []turso.Database) []string {
 }
 
 func getDatabase(client *turso.Client, name string, fresh ...bool) (turso.Database, error) {
+	if len(fresh) > 0 && fresh[0] {
+		database, err := client.Databases.Get(name)
+		if err != nil {
+			return turso.Database{}, err
+		}
+		updateDatabaseCache(map[string]turso.Database{database.Name: database})
+		return database, nil
+	}
+
 	databases, err := getDatabases(client, fresh...)
 	if err != nil {
 		return turso.Database{}, err

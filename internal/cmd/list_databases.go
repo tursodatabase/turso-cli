@@ -188,6 +188,8 @@ func printDatabaseList(fetcher PageFetcher) error {
 			databases: allDatabases,
 		}
 
+		setDatabasesCache(allDatabases)
+
 		fmt.Print(model.View())
 		return nil
 	}

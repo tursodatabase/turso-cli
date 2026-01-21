@@ -277,7 +277,7 @@ func signupHint(config *settings.Settings) {
 		return
 	}
 
-	r, err := client.Databases.List(turso.DatabaseListOptions{})
+	r, err := client.Databases.List(turso.DatabaseListOptions{Limit: 1})
 	if err != nil || len(r.Databases) != 0 {
 		return
 	}
