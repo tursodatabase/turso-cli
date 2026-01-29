@@ -31,9 +31,13 @@ var listApiTokensCmd = &cobra.Command{
 
 		data := [][]string{}
 		for _, apiToken := range apiTokens {
-			data = append(data, []string{apiToken.Name})
+			org := apiToken.Organization
+			if org == "" {
+				org = "all"
+			}
+			data = append(data, []string{apiToken.Name, org, apiToken.CreatedAt})
 		}
-		printTable([]string{"Name"}, data)
+		printTable([]string{"Name", "Organization", "Created At"}, data)
 
 		return nil
 	},

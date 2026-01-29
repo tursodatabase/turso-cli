@@ -6,11 +6,13 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
-	"github.com/tursodatabase/turso-cli/internal/prompt"
 )
+
+var mintOrgFlag string
 
 func init() {
 	apiTokensCmd.AddCommand(createApiTokensCmd)
+	createApiTokensCmd.Flags().StringVar(&mintOrgFlag, "org", "", "Organization to restrict the token to")
 }
 
 var createApiTokensCmd = &cobra.Command{
@@ -29,16 +31,32 @@ var createApiTokensCmd = &cobra.Command{
 		}
 
 		name := strings.TrimSpace(args[0])
-		description := fmt.Sprintf("Creating api token %s", internal.Emph(name))
-		bar := prompt.Spinner(description)
-		defer bar.Stop()
 
-		data, err := client.ApiTokens.Create(name)
+		// Validate organization if provided
+		if mintOrgFlag != "" {
+			orgs, err := client.Organizations.List()
+			if err != nil {
+				return fmt.Errorf("failed to list organizations: %w", err)
+			}
+
+			found := false
+			for _, org := range orgs {
+				if org.Slug == mintOrgFlag {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				return fmt.Errorf("organization %s not found", internal.Emph(mintOrgFlag))
+			}
+		}
+
+		data, err := client.ApiTokens.CreateWithOrg(name, mintOrgFlag)
 		if err != nil {
 			return err
 		}
 
-		bar.Stop()
 		fmt.Println(data.Value)
 		return nil
 	},
