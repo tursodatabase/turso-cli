@@ -96,7 +96,7 @@ func (mino *Mino) MoveUp() {
 // ValidLocation check if the mino is in a valid location
 func (mino *Mino) ValidLocation(mustBeOnBoard bool) bool {
 	minoBlocks := mino.minoRotation[mino.rotation]
-	for i := 0; i < mino.length; i++ {
+	for i := range mino.length {
 		for j := 0; j < mino.length; j++ {
 			if minoBlocks[i][j] == colorBlank {
 				continue
@@ -112,7 +112,7 @@ func (mino *Mino) ValidLocation(mustBeOnBoard bool) bool {
 // SetOnBoard attaches mino to the board
 func (mino *Mino) SetOnBoard() {
 	minoBlocks := mino.minoRotation[mino.rotation]
-	for i := 0; i < mino.length; i++ {
+	for i := range mino.length {
 		for j := 0; j < mino.length; j++ {
 			if minoBlocks[i][j] != colorBlank {
 				board.SetColor(mino.x+i, mino.y+j, minoBlocks[i][j], mino.rotation)
@@ -124,7 +124,7 @@ func (mino *Mino) SetOnBoard() {
 // DrawMino draws the mino on the board
 func (mino *Mino) DrawMino(minoType MinoType) {
 	minoBlocks := mino.minoRotation[mino.rotation]
-	for i := 0; i < mino.length; i++ {
+	for i := range mino.length {
 		for j := 0; j < mino.length; j++ {
 			if minoBlocks[i][j] != colorBlank {
 				switch minoType {
