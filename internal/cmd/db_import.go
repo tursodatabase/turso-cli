@@ -15,19 +15,20 @@ import (
 func isFileLocked(filename string) (bool, error) {
 	f, err := os.Open(filename)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer f.Close()
-
-	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	fd := int(f.Fd())
+	err = syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB)
 	if err != nil {
 		if errors.Is(err, syscall.EWOULDBLOCK) {
-			return true, nil // File is locked
+			return true, nil
 		}
-		return false, fmt.Errorf("failed to check lock: %w", err)
+		return false, fmt.Errorf("failed to acquire lock: %w", err)
 	}
-
-	syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	if err := syscall.Flock(fd, syscall.LOCK_UN); err != nil {
+		return false, fmt.Errorf("failed to release lock: %w", err)
+	}
 	return false, nil
 }
 
