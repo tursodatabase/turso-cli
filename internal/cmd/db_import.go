@@ -2,35 +2,12 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
-	"fmt"
-	"os"
-	"syscall"
-
 	"github.com/spf13/cobra"
 )
-
-func isFileLocked(filename string) (bool, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return false, fmt.Errorf("failed to open file: %w", err)
-	}
-	defer f.Close()
-	fd := int(f.Fd())
-	err = syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB)
-	if err != nil {
-		if errors.Is(err, syscall.EWOULDBLOCK) {
-			return true, nil
-		}
-		return false, fmt.Errorf("failed to acquire lock: %w", err)
-	}
-	if err := syscall.Flock(fd, syscall.LOCK_UN); err != nil {
-		return false, fmt.Errorf("failed to release lock: %w", err)
-	}
-	return false, nil
-}
 
 func init() {
 	dbCmd.AddCommand(importCmd)
@@ -54,6 +31,9 @@ var importCmd = &cobra.Command{
 		}
 		filename := args[0]
 
+		if err := checkFileExists(filename); err != nil {
+			return err
+		}
 		locked, err := isFileLocked(filename)
 		if err != nil {
 			return fmt.Errorf("could not check file lock: %w", err)
