@@ -85,6 +85,12 @@ Or you can specify the name of the database with:
 turso db create <database name>
 ```
 
+To create a branch from an existing database, run:
+
+```bash
+turso db branch <source-database> <target-database>
+```
+
 ### Start SQL shell
 
 You can start an interactive SQL shell similar to `sqlite3` with:
