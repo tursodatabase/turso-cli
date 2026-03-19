@@ -5,8 +5,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"math"
-	"os"
 
 	"golang.org/x/sys/windows"
 )
