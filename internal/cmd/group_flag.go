@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,15 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
+
+var validTableName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+func validateCSVTableName(name string) error {
+	if !validTableName.MatchString(name) {
+		return fmt.Errorf("invalid --csv-table-name %q: must start with a letter or underscore and contain only letters, digits, and underscores", name)
+	}
+	return nil
+}
 
 var groupBoolFlag bool
 
@@ -79,6 +89,11 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string) (*turso.D
 	}
 	if csvTableNameFlag != "" && fromCSVFlag == "" {
 		return nil, errors.New("--from-csv must be used with --csv-table-name")
+	}
+	if csvTableNameFlag != "" {
+		if err := validateCSVTableName(csvTableNameFlag); err != nil {
+			return nil, err
+		}
 	}
 
 	if fromDBFlag != "" {
@@ -482,7 +497,7 @@ func importCSVIntoSQLite(tempDB *os.File, csvFile, csvTableName string, separato
 	cmd.Stderr = stdErr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("could not load csv into new database file: %w: %x", err, stdErr.Bytes())
+		return fmt.Errorf("could not load csv into new database file: %w: %s", err, stdErr.String())
 	}
 	return nil
 }
