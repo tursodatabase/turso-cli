@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -29,6 +30,18 @@ var importCmd = &cobra.Command{
 			return errors.New("filename is required: 'turso db import <filename>'")
 		}
 		filename := args[0]
+
+		if err := checkFileExists(filename); err != nil {
+			return err
+		}
+		locked, err := isFileLocked(filename)
+		if err != nil {
+			return fmt.Errorf("could not check file lock: %w", err)
+		}
+		if locked {
+			return errors.New("database file is locked by another process (close any open connections and try again)")
+		}
+
 		fromFileFlag = filename
 		name := sanitizeDatabaseName(filename)
 		return CreateDatabase(name)
