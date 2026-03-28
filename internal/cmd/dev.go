@@ -25,8 +25,8 @@ func init() {
 
 var devCmd = &cobra.Command{
 	Use:               "dev",
-	Short:             "starts a local development server for Turso",
-	Long:              fmt.Sprintf("starts a local development server for Turso.\n\nIf you're using a libSQL client SDK that supports SQLite database files on the local filesystem, then you might not need this server at all.\nInstead, you can use a %s URL with the path to the file you want the SDK to read and write.", internal.Emph("file:")),
+	Short:             "Starts a local development server for Turso",
+	Long:              fmt.Sprintf("Starts a local development server for Turso.\n\nIf you're using a libSQL client SDK that supports SQLite database files on the local filesystem, then you might not need this server at all.\nInstead, you can use a %s URL with the path to the file you want the SDK to read and write.", internal.Emph("file:")),
 	Args:              cobra.NoArgs,
 	ValidArgsFunction: noFilesArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
