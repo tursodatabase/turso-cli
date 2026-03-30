@@ -150,9 +150,10 @@ type CreateDatabaseBody struct {
 	IsSchema         bool              `json:"is_schema,omitempty"`
 	SizeLimit        string            `json:"size_limit,omitempty"`
 	RemoteEncryption *RemoteEncryption `json:"remote_encryption,omitempty"`
+	UseTursoDB       bool              `json:"use_tursodb,omitempty"`
 }
 
-func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed, sizeLimit, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
+func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed, sizeLimit, remoteEncryptionCipher, remoteEncryptionKey string, useTursoDB bool, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
 	isTursoServerUpload := seed != nil && seed.Type == "database_upload" && seed.Filepath != ""
 	var uploadFilepath string
 	var params CreateDatabaseBody
@@ -164,13 +165,14 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 		seed.URL = ""
 		seed.Timestamp = nil
 		params = CreateDatabaseBody{
-			Name:     name,
-			Location: location,
-			Group:    group,
-			Seed:     seed,
+			Name:       name,
+			Location:   location,
+			Group:      group,
+			Seed:       seed,
+			UseTursoDB: useTursoDB,
 		}
 	} else {
-		params = CreateDatabaseBody{name, location, image, extensions, group, seed, schema, isSchema, sizeLimit, nil}
+		params = CreateDatabaseBody{name, location, image, extensions, group, seed, schema, isSchema, sizeLimit, nil, useTursoDB}
 	}
 
 	if remoteEncryptionKey != "" {
