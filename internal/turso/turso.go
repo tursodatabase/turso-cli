@@ -192,8 +192,15 @@ func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {
 	return t.do("PATCH", path, body, Header("Content-Type", "application/json"))
 }
 
-func (t *Client) Put(path string, body io.Reader) (*http.Response, error) {
-	return t.do("PUT", path, body, Header("Content-Type", "application/json"))
+func (t *Client) Put(path string, body io.Reader, headersOpt ...map[string]string) (*http.Response, error) {
+	var headers map[string]string
+	if len(headersOpt) > 0 && len(headersOpt[0]) > 0 {
+		headers = headersOpt[0]
+	} else {
+		headers = make(map[string]string, 1)
+	}
+	headers["Content-Type"] = "application/json"
+	return t.do("PUT", path, body, headers)
 }
 
 func (t *Client) Upload(path string, fileData *os.File) (*http.Response, error) {

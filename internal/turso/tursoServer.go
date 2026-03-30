@@ -270,7 +270,11 @@ func (i *TursoServerClient) uploadChunkWithRetry(ctx *chunkUploadContext, maxRet
 }
 
 // UploadFileMultipart uploads a database file using the multipart upload flow.
-func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
+func (i *TursoServerClient) UploadFileMultipart(
+	filepath string,
+	remoteEncryptionCipher, remoteEncryptionKey string,
+	onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool),
+) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filepath, err)
@@ -290,12 +294,25 @@ func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptio
 	totalSize := stat.Size()
 	startTime := time.Now()
 
-	uploadStart, err := i.startMultipartUpload(totalSize)
+	uploadStart, err := i.startMultipartUpload(
+		totalSize,
+		remoteEncryptionCipher,
+		remoteEncryptionKey,
+	)
 	if err != nil {
 		return err
 	}
 
-	uploadedBytes, err := i.uploadChunks(uploadStart.UploadID, uploadStart.ChunkSize, file, totalSize, startTime, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
+	uploadedBytes, err := i.uploadChunks(
+		uploadStart.UploadID,
+		uploadStart.ChunkSize,
+		file,
+		totalSize,
+		startTime,
+		remoteEncryptionCipher,
+		remoteEncryptionKey,
+		onUploadProgress,
+	)
 	if err != nil {
 		return err
 	}
@@ -319,7 +336,11 @@ type multipartUploadStart struct {
 	UploadID  string
 }
 
-func (i *TursoServerClient) startMultipartUpload(dbSize int64) (multipartUploadStart, error) {
+func (i *TursoServerClient) startMultipartUpload(
+	dbSize int64,
+	remoteEncryptionCipher string,
+	remoteEncryptionKey string,
+) (multipartUploadStart, error) {
 	requestBody := map[string]int64{
 		"db_size_bytes": dbSize,
 	}
@@ -329,7 +350,13 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (multipartUploadS
 		return multipartUploadStart{}, fmt.Errorf("failed to marshal multipart upload request: %w", err)
 	}
 
-	r, err := i.client.Put("/v2/upload/start", body)
+	headers := map[string]string{}
+	if remoteEncryptionCipher != "" && remoteEncryptionKey != "" {
+		headers[EncryptionCipherHeader] = remoteEncryptionCipher
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
+
+	r, err := i.client.Put("/v2/upload/start", body, headers)
 	if err != nil {
 		return multipartUploadStart{}, fmt.Errorf("failed to initiate multipart upload: %w", err)
 	}
@@ -355,7 +382,15 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (multipartUploadS
 	return multipartUploadStart(uploadResp), nil
 }
 
-func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file *os.File, totalSize int64, startTime time.Time, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
+func (i *TursoServerClient) uploadChunks(
+	uploadID string,
+	chunkSize int64,
+	file *os.File,
+	totalSize int64,
+	startTime time.Time,
+	remoteEncryptionCipher, remoteEncryptionKey string,
+	onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool),
+) (int64, error) {
 	var uploadedBytes int64 = 0
 	chunkID := 0
 	lastProgressPct := -1

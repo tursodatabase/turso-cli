@@ -126,7 +126,20 @@ func CreateDatabase(name string) error {
 	spinner := prompt.Spinner(fmt.Sprintf("Creating database %s in group %s...", internal.Emph(name), internal.Emph(groupName)))
 	defer spinner.Stop()
 
-	if _, err = client.Databases.Create(name, location, "", "", groupName, schemaFlag, typeFlag == "schema", seed, sizeLimitFlag, remoteEncryptionCipherFlag, remoteEncryptionKeyFlag(), spinner); err != nil {
+	if _, err = client.Databases.Create(
+		name,
+		location,
+		"",
+		"",
+		groupName,
+		schemaFlag,
+		typeFlag == "schema",
+		seed,
+		sizeLimitFlag,
+		remoteEncryptionCipherFlag,
+		remoteEncryptionKeyFlag(),
+		spinner,
+	); err != nil {
 		return fmt.Errorf("could not create database %s: %w", name, err)
 	}
 

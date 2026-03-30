@@ -152,7 +152,14 @@ type CreateDatabaseBody struct {
 	RemoteEncryption *RemoteEncryption `json:"remote_encryption,omitempty"`
 }
 
-func (d *DatabasesClient) Create(name, location, image, extensions, group string, schema string, isSchema bool, seed *DBSeed, sizeLimit, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
+func (d *DatabasesClient) Create(
+	name, location, image, extensions, group string,
+	schema string,
+	isSchema bool,
+	seed *DBSeed,
+	sizeLimit, remoteEncryptionCipher, remoteEncryptionKey string,
+	spinner *prompt.SpinnerT,
+) (*CreateDatabaseResponse, error) {
 	isTursoServerUpload := seed != nil && seed.Type == "database_upload" && seed.Filepath != ""
 	var uploadFilepath string
 	var params CreateDatabaseBody
@@ -210,7 +217,14 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 	}
 
 	if isTursoServerUpload {
-		if _, err = d.UploadDatabaseAWS(data, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, spinner); err != nil {
+		if _, err = d.UploadDatabaseAWS(
+			data,
+			group,
+			uploadFilepath,
+			remoteEncryptionCipher,
+			remoteEncryptionKey,
+			spinner,
+		); err != nil {
 			// Clean up the database if the upload fails
 			if deleteErr := d.Delete(data.Database.Name); deleteErr != nil {
 				fmt.Printf("%v", deleteErr)
@@ -231,7 +245,11 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 //     This call happens in DatabasesClient.Create() above, after which it calls this function.
 //  2. This function creates a DB token for the newly-created DB, and then calls turso-server to upload the database file.
 //     turso-server will perform validations on the file and 'activate' the db if everything is ok.
-func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
+func (d *DatabasesClient) UploadDatabaseAWS(
+	resp *CreateDatabaseResponse,
+	group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey string,
+	spinner *prompt.SpinnerT,
+) (*CreateDatabaseResponse, error) {
 	dbName := resp.Database.Name
 	tokenTTL := 5 * time.Minute
 	tokenProvider := func() (string, error) {
@@ -250,30 +268,35 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group,
 	// Upload the database file
 	spinner.Text(fmt.Sprintf("Uploading database %s in group %s, this may take a while...", internal.Emph(resp.Database.Name), internal.Emph(group)))
 
-	err = tursoServerClient.UploadFileMultipart(uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
-		totalSeconds := int(elapsedTime.Seconds())
-		minutes := totalSeconds / 60
-		seconds := totalSeconds % 60
-		secondsStr := "seconds"
-		if seconds == 1 {
-			secondsStr = "second"
-		}
-		minutesStr := "minutes"
-		if minutes == 1 {
-			minutesStr = "minute"
-		}
-		var elapsedTimeStr string
-		if minutes > 0 {
-			elapsedTimeStr = fmt.Sprintf("%d %s %d %s", minutes, minutesStr, seconds, secondsStr)
-		} else {
-			elapsedTimeStr = fmt.Sprintf("%d %s", seconds, secondsStr)
-		}
-		if done {
-			spinner.Text(fmt.Sprintf("Uploaded database %s in group %s (%d bytes) - we are now verifying your database on the server... (took %s)", internal.Emph(resp.Database.Name), internal.Emph(group), totalBytes, elapsedTimeStr))
-		} else {
-			spinner.Text(fmt.Sprintf("Uploading database %s in group %s, %d%% complete (%d/%d bytes uploaded) (elapsed %s)", internal.Emph(resp.Database.Name), internal.Emph(group), progressPct, uploadedBytes, totalBytes, elapsedTimeStr))
-		}
-	})
+	err = tursoServerClient.UploadFileMultipart(
+		uploadFilepath,
+		remoteEncryptionCipher,
+		remoteEncryptionKey,
+		func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
+			totalSeconds := int(elapsedTime.Seconds())
+			minutes := totalSeconds / 60
+			seconds := totalSeconds % 60
+			secondsStr := "seconds"
+			if seconds == 1 {
+				secondsStr = "second"
+			}
+			minutesStr := "minutes"
+			if minutes == 1 {
+				minutesStr = "minute"
+			}
+			var elapsedTimeStr string
+			if minutes > 0 {
+				elapsedTimeStr = fmt.Sprintf("%d %s %d %s", minutes, minutesStr, seconds, secondsStr)
+			} else {
+				elapsedTimeStr = fmt.Sprintf("%d %s", seconds, secondsStr)
+			}
+			if done {
+				spinner.Text(fmt.Sprintf("Uploaded database %s in group %s (%d bytes) - we are now verifying your database on the server... (took %s)", internal.Emph(resp.Database.Name), internal.Emph(group), totalBytes, elapsedTimeStr))
+			} else {
+				spinner.Text(fmt.Sprintf("Uploading database %s in group %s, %d%% complete (%d/%d bytes uploaded) (elapsed %s)", internal.Emph(resp.Database.Name), internal.Emph(group), progressPct, uploadedBytes, totalBytes, elapsedTimeStr))
+			}
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("could not upload database file: %w", err)
 	}
