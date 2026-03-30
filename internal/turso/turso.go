@@ -194,7 +194,7 @@ func (t *Client) Patch(path string, body io.Reader) (*http.Response, error) {
 
 func (t *Client) Put(path string, body io.Reader, headersOpt ...map[string]string) (*http.Response, error) {
 	var headers map[string]string
-	if len(headersOpt) > 0 {
+	if len(headersOpt) > 0 && len(headersOpt[0]) > 0 {
 		headers = headersOpt[0]
 	} else {
 		headers = make(map[string]string, 1)
