@@ -45,6 +45,37 @@ func createTestDatabase(t *testing.T, sizeBytes int) string {
 	return dbPath
 }
 
+func TestValidateCSVTableName(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		wantErr     bool
+		errContains string
+	}{
+		{name: "simple name", input: "users", wantErr: false},
+		{name: "underscore prefix", input: "_table", wantErr: false},
+		{name: "with numbers", input: "table123", wantErr: false},
+		{name: "mixed valid", input: "my_table_2", wantErr: false},
+		{name: "hyphen rejected", input: "some-table", wantErr: true, errContains: "invalid --csv-table-name"},
+		{name: "starts with digit", input: "1table", wantErr: true, errContains: "invalid --csv-table-name"},
+		{name: "empty string", input: "", wantErr: true, errContains: "invalid --csv-table-name"},
+		{name: "space in name", input: "my table", wantErr: true, errContains: "invalid --csv-table-name"},
+		{name: "dot in name", input: "my.table", wantErr: true, errContains: "invalid --csv-table-name"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateCSVTableName(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.errContains)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestRunQuickCheck(t *testing.T) {
 	if _, err := exec.LookPath("sqlite3"); err != nil {
 		t.Skip("sqlite3 not available, skipping test")
