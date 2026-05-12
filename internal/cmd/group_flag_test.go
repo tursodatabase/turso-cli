@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -43,6 +44,83 @@ func createTestDatabase(t *testing.T, sizeBytes int) string {
 	}
 
 	return dbPath
+}
+
+func TestReadPragma(t *testing.T) {
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		t.Skip("sqlite3 not available, skipping test")
+	}
+
+	dbPath := createTestDatabase(t, 4096)
+
+	t.Run("journal_mode returns wal", func(t *testing.T) {
+		v, err := readPragma(dbPath, "journal_mode")
+		require.NoError(t, err)
+		require.True(t, strings.EqualFold(v, "wal"), "got %q", v)
+	})
+
+	t.Run("page_size returns 4096", func(t *testing.T) {
+		v, err := readPragma(dbPath, "page_size")
+		require.NoError(t, err)
+		require.Equal(t, "4096", v)
+	})
+
+	t.Run("auto_vacuum returns 0", func(t *testing.T) {
+		v, err := readPragma(dbPath, "auto_vacuum")
+		require.NoError(t, err)
+		require.Equal(t, "0", v)
+	})
+
+	t.Run("encoding returns UTF-8", func(t *testing.T) {
+		v, err := readPragma(dbPath, "encoding")
+		require.NoError(t, err)
+		require.Equal(t, "UTF-8", v)
+	})
+
+	t.Run("nonexistent file errors", func(t *testing.T) {
+		_, err := readPragma("/nonexistent/path/db.sqlite", "journal_mode")
+		require.Error(t, err)
+	})
+}
+
+func TestSqliteFileIntegrityChecks(t *testing.T) {
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		t.Skip("sqlite3 not available, skipping test")
+	}
+
+	t.Run("valid WAL database passes all settings checks", func(t *testing.T) {
+		dbPath := createTestDatabase(t, 4096)
+		err := sqliteFileIntegrityChecks(dbPath, "")
+		require.NoError(t, err)
+	})
+
+	t.Run("non-WAL database returns WAL error", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		dbPath := filepath.Join(tmpDir, "delete.db")
+		cmd := exec.Command("sqlite3", "-list", dbPath,
+			"PRAGMA page_size=4096;",
+			"PRAGMA journal_mode=DELETE;",
+			"CREATE TABLE t (id INTEGER PRIMARY KEY);")
+		require.NoError(t, cmd.Run())
+
+		err := sqliteFileIntegrityChecks(dbPath, "")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "not in WAL mode")
+	})
+
+	t.Run("wrong page size returns page-size error", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		dbPath := filepath.Join(tmpDir, "8k.db")
+		cmd := exec.Command("sqlite3", "-list", dbPath,
+			"PRAGMA page_size=8192;",
+			"PRAGMA journal_mode=WAL;",
+			"CREATE TABLE t (id INTEGER PRIMARY KEY);")
+		require.NoError(t, cmd.Run())
+
+		err := sqliteFileIntegrityChecks(dbPath, "")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "4KB page size")
+	})
 }
 
 func TestRunQuickCheck(t *testing.T) {
