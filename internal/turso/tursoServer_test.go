@@ -907,6 +907,22 @@ func TestUploadFileMultipart_SmoothProgress(t *testing.T) {
 	require.True(t, calls[len(calls)-1].Done, "Final callback should have Done=true")
 }
 
+func TestExportReportsUnsupportedDatabaseForNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/info", r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := createTestClient(t, server.URL)
+	err := client.Export("unused.db", false, "")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "database export is not available")
+	require.Contains(t, err.Error(), "Fly-hosted database")
+	require.NotContains(t, err.Error(), "response failed with status 404 Not Found")
+}
+
 // infiniteReader provides unlimited bytes for large file simulation (never returns EOF)
 type infiniteReader struct {
 	bytesRead int64
