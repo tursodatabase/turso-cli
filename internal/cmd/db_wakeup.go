@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -38,6 +39,16 @@ func wakeupDatabase(client *turso.Client, name string) error {
 	defer s.Stop()
 
 	if err := client.Databases.Wakeup(name); err != nil {
+		// If the database is part of a group the server tells us so
+		// but doesn't tell the user what to run instead. Look up the
+		// database to grab its group and suggest the right command.
+		// See #918.
+		if strings.Contains(err.Error(), "part of a group") {
+			if db, lookupErr := client.Databases.Get(name); lookupErr == nil && db.Group != "" {
+				cmd := internal.Emph(fmt.Sprintf("turso group unarchive %s", db.Group))
+				return fmt.Errorf("%w. Run %s instead", err, cmd)
+			}
+		}
 		return err
 	}
 	s.Stop()
