@@ -475,7 +475,11 @@ func importCSVIntoSQLite(tempDB *os.File, csvFile, csvTableName string, separato
 	cmd.Stderr = stdErr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("could not load csv into new database file: %w: %x", err, stdErr.Bytes())
+		// %x stringified sqlite3's stderr as hex bytes, so error
+		// messages came out as e.g. "4572726f723a206e6561...". Use
+		// %s and trim trailing whitespace so the actual sqlite
+		// message is visible. See #810.
+		return fmt.Errorf("could not load csv into new database file: %w: %s", err, strings.TrimSpace(stdErr.String()))
 	}
 	return nil
 }
