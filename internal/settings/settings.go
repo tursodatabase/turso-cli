@@ -13,6 +13,11 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/flags"
 )
 
+const (
+	settingsFileMode = 0o600
+	settingsDirMode  = 0o700
+)
+
 type Settings struct {
 	changed bool
 }
@@ -44,10 +49,12 @@ func ReadSettings() (*Settings, error) {
 	if err != nil {
 		return nil, err
 	}
+	_ = os.Chmod(configPath, settingsDirMode)
 
 	viper.SetConfigName("settings")
 	viper.SetConfigType("json")
 	viper.AddConfigPath(configPath)
+	viper.SetConfigPermissions(settingsFileMode)
 	configFile := path.Join(configPath, "settings.json")
 	if abs, err := filepath.Abs(configFile); err == nil {
 		configFile = abs
@@ -96,6 +103,9 @@ func PersistChanges() {
 func TryToPersistChanges() error {
 	if err := viper.WriteConfig(); err != nil {
 		return fmt.Errorf("failed to persist turso settings file: %w", err)
+	}
+	if configFile := viper.ConfigFileUsed(); configFile != "" {
+		_ = os.Chmod(configFile, settingsFileMode)
 	}
 	return nil
 }
