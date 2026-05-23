@@ -8,12 +8,14 @@ import (
 )
 
 type ApiToken struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Organization string `json:"organization,omitempty"`
-	CreatedAt    string `json:"created_at"`
-	Owner        uint   `json:"-"`
-	PubKey       []byte `json:"-"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	Organization string   `json:"organization,omitempty"`
+	Group        string   `json:"group,omitempty"`
+	Scopes       []string `json:"scopes,omitempty"`
+	CreatedAt    string   `json:"created_at"`
+	Owner        uint     `json:"-"`
+	PubKey       []byte   `json:"-"`
 }
 
 type ApiTokensClient client
@@ -47,16 +49,33 @@ func (a *ApiTokensClient) Create(name string) (CreateApiToken, error) {
 }
 
 func (a *ApiTokensClient) CreateWithOrg(name string, organization string) (CreateApiToken, error) {
+	return a.CreateScoped(name, organization, "", nil)
+}
+
+// CreateScoped mints an API token with optional restrictions. Empty
+// organization minted an unrestricted token. organization + empty group
+// produces an organization-scoped token. organization + group + non-empty
+// scopes produces a group-scoped token; the platform requires the scopes
+// list to be non-empty in that case.
+//
+// scopes may contain individual scope labels (see AllScopes) or the
+// preset names "read-only" / "full-access" — the platform expands the
+// presets server-side.
+func (a *ApiTokensClient) CreateScoped(name, organization, group string, scopes []string) (CreateApiToken, error) {
 	url := fmt.Sprintf("/v2/auth/api-tokens/%s", name)
 
 	var res *http.Response
 	var err error
 
-	if organization != "" {
+	if organization != "" || group != "" || len(scopes) > 0 {
 		reqBody := struct {
-			Organization string `json:"organization"`
+			Organization string   `json:"organization,omitempty"`
+			Group        string   `json:"group,omitempty"`
+			Scopes       []string `json:"scopes,omitempty"`
 		}{
 			Organization: organization,
+			Group:        group,
+			Scopes:       scopes,
 		}
 		jsonData, marshalErr := json.Marshal(reqBody)
 		if marshalErr != nil {
