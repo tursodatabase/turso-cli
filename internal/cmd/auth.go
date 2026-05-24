@@ -123,7 +123,7 @@ func isJwtTokenValid(token string) bool {
 	if err != nil {
 		return false
 	}
-	exp, err := client.Tokens.Validate(token)
+	exp, err := client.Tokens.Validate()
 	if err != nil {
 		return false
 	}
