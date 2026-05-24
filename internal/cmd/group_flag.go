@@ -74,6 +74,9 @@ func parseDBSeedFlags(client *turso.Client, isAWS bool, cipher string) (*turso.D
 	if csvTableNameFlag != "" && fromCSVFlag == "" {
 		return nil, errors.New("--from-csv must be used with --csv-table-name")
 	}
+	if csvTableNameFlag != "" && !isValidCSVTableName(csvTableNameFlag) {
+		return nil, fmt.Errorf("invalid --csv-table-name %q: must start with a letter or underscore and contain only letters, digits, and underscores", csvTableNameFlag)
+	}
 
 	if fromDBFlag != "" {
 		return &turso.DBSeed{Type: "database", Name: fromDBFlag, Timestamp: timestamp}, nil
@@ -478,4 +481,29 @@ func importCSVIntoSQLite(tempDB *os.File, csvFile, csvTableName string, separato
 		return fmt.Errorf("could not load csv into new database file: %w: %x", err, stdErr.Bytes())
 	}
 	return nil
+}
+
+// isValidCSVTableName accepts the conventional SQLite unquoted
+// identifier shape: a letter or underscore followed by letters,
+// digits, or underscores. The .import command interpolates the name
+// directly into a SQL CREATE TABLE statement, so anything weirder
+// would either produce a confusing sqlite syntax error or accept a
+// name the user can't easily query afterwards. See #810.
+func isValidCSVTableName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for i, r := range name {
+		switch {
+		case r == '_':
+			continue
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z':
+			continue
+		case i > 0 && r >= '0' && r <= '9':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }
