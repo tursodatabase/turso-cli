@@ -99,7 +99,24 @@ func CreateDatabase(name string) error {
 
 	group, err := groupFromFlag(groups)
 	if err != nil {
-		return err
+		// Forking (--from-db) only works inside a single group, so
+		// if the user has multiple groups but didn't pick one we can
+		// derive the group from the source database. See #1004.
+		if fromDBFlag != "" && groupFlag == "" && len(groups) > 1 {
+			srcDB, getErr := client.Databases.Get(fromDBFlag)
+			if getErr == nil && srcDB.Group != "" {
+				for _, g := range groups {
+					if g.Name == srcDB.Group {
+						group = g
+						err = nil
+						break
+					}
+				}
+			}
+		}
+		if err != nil {
+			return err
+		}
 	}
 	groupName := group.Name
 
