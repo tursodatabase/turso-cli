@@ -116,6 +116,12 @@ var showCmd = &cobra.Command{
 		fmt.Println("Is Schema:         ", formatBool(db.IsSchema))
 		fmt.Println("Type:              ", databaseType(dbUsage.UUID))
 		fmt.Println("Delete Protection: ", formatBool(config.IsDeleteProtected()))
+		if ips := config.AllowedIPList(); len(ips) > 0 {
+			fmt.Println("Allowed IPs:       ", strings.Join(ips, ", "))
+		}
+		if vpcs := config.AllowedVpcIDList(); len(vpcs) > 0 {
+			fmt.Println("Allowed VPC IDs:   ", strings.Join(vpcs, ", "))
+		}
 		if db.Schema != "" {
 			fmt.Println("Schema:            ", db.Schema)
 		}
