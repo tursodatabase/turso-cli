@@ -10,32 +10,34 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/turso"
 )
 
-var allowListIPsFlag []string
-var allowListVpcsFlag []string
-var clearAllowListIPsFlag bool
-var clearAllowListVpcsFlag bool
+var allowRulesIPsFlag []string
+var allowRulesVpcsFlag []string
+var clearAllowRulesIPsFlag bool
+var clearAllowRulesVpcsFlag bool
 
 func init() {
-	dbConfigCmd.AddCommand(dbAllowListCmd)
-	dbAllowListCmd.AddCommand(dbShowAllowListCmd)
-	dbAllowListCmd.AddCommand(dbSetAllowListCmd)
-	dbAllowListCmd.AddCommand(dbClearAllowListCmd)
-	dbSetAllowListCmd.Flags().StringSliceVar(&allowListIPsFlag, "ip", nil, "IP address or CIDR block to allow. Can be repeated. Replaces the current list of allowed IPs.")
-	dbSetAllowListCmd.Flags().StringSliceVar(&allowListVpcsFlag, "vpc", nil, "AWS VPC endpoint ID (vpce-...) to allow. Can be repeated. Replaces the current list of allowed VPC endpoints.")
-	dbClearAllowListCmd.Flags().BoolVar(&clearAllowListIPsFlag, "ips", false, "Clear only the list of allowed IPs")
-	dbClearAllowListCmd.Flags().BoolVar(&clearAllowListVpcsFlag, "vpcs", false, "Clear only the list of allowed AWS VPC endpoint IDs")
+	dbConfigCmd.AddCommand(dbAllowRulesCmd)
+	dbAllowRulesCmd.AddCommand(dbShowAllowRulesCmd)
+	dbAllowRulesCmd.AddCommand(dbSetAllowRulesCmd)
+	dbAllowRulesCmd.AddCommand(dbClearAllowRulesCmd)
+	dbSetAllowRulesCmd.Flags().StringSliceVar(&allowRulesIPsFlag, "ip", nil, "IP address or CIDR block to allow. Can be repeated. Replaces the current list of allowed IPs.")
+	dbSetAllowRulesCmd.Flags().StringSliceVar(&allowRulesVpcsFlag, "aws-vpc", nil, "AWS VPC endpoint ID (vpce-...) to allow. Can be repeated. Replaces the current list of allowed VPC endpoints.")
+	dbClearAllowRulesCmd.Flags().BoolVar(&clearAllowRulesIPsFlag, "ips", false, "Clear only the list of allowed IPs")
+	dbClearAllowRulesCmd.Flags().BoolVar(&clearAllowRulesVpcsFlag, "aws-vpcs", false, "Clear only the list of allowed AWS VPC endpoint IDs")
 }
 
-var dbAllowListCmd = &cobra.Command{
-	Use:               "allow-list",
-	Short:             "Manage the access allow list of a database",
-	Long:              "Manage the access allow list of a database. When an allow list is configured, only connections from the listed IPs/CIDRs or AWS VPC endpoints are accepted.",
+var dbAllowRulesCmd = &cobra.Command{
+	Use:   "allow-rules",
+	Short: "Manage the access allow rules of a database",
+	Long: "Manage the access allow rules of a database. A connection must satisfy every configured rule list: " +
+		"if allowed IPs are set, the client IP must be on the list; if allowed AWS VPC endpoints are set, " +
+		"the connection must arrive through one of them.",
 	ValidArgsFunction: noSpaceArg,
 }
 
-var dbShowAllowListCmd = &cobra.Command{
+var dbShowAllowRulesCmd = &cobra.Command{
 	Use:               "show <database-name>",
-	Short:             "Shows the access allow list of a database",
+	Short:             "Shows the access allow rules of a database",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,38 +54,39 @@ var dbShowAllowListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Print(allowListMessage(&config))
+		fmt.Print(allowRulesMessage(&config))
 		return nil
 	},
 }
 
-var dbSetAllowListCmd = &cobra.Command{
-	Use:   "set <database-name> [--ip <address-or-cidr>]... [--vpc <vpce-id>]...",
-	Short: "Sets the access allow list of a database",
-	Long: "Sets the access allow list of a database. Each provided flag replaces the corresponding list; " +
-		"a list whose flag is not provided is left unchanged.",
-	Example: "  turso db config allow-list set my-db --ip 203.0.113.7 --ip 10.0.0.0/8\n" +
-		"  turso db config allow-list set my-db --vpc vpce-0fe6c8807461bba49",
+var dbSetAllowRulesCmd = &cobra.Command{
+	Use:   "set <database-name> [--ip <address-or-cidr>]... [--aws-vpc <vpce-id>]...",
+	Short: "Sets the access allow rules of a database",
+	Long: "Sets the access allow rules of a database. Each provided flag replaces the corresponding list; " +
+		"a list whose flag is not provided is left unchanged. When both lists are set, connections must " +
+		"satisfy both: an allowed IP arriving through an allowed AWS VPC endpoint.",
+	Example: "  turso db config allow-rules set my-db --ip 203.0.113.7 --ip 10.0.0.0/8\n" +
+		"  turso db config allow-rules set my-db --aws-vpc vpce-0fe6c8807461bba49",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		setIPs := cmd.Flags().Changed("ip")
-		setVpcs := cmd.Flags().Changed("vpc")
+		setVpcs := cmd.Flags().Changed("aws-vpc")
 		if !setIPs && !setVpcs {
-			return fmt.Errorf("specify at least one of --ip or --vpc. To remove restrictions, use %s", internal.Emph("turso db config allow-list clear"))
+			return fmt.Errorf("specify at least one of --ip or --aws-vpc. To remove restrictions, use %s", internal.Emph("turso db config allow-rules clear"))
 		}
 
 		config := turso.DatabaseConfig{}
 		if setIPs {
-			ips := normalizeAllowListEntries(allowListIPsFlag)
+			ips := normalizeAllowRuleEntries(allowRulesIPsFlag)
 			if err := validateAllowedIPs(ips); err != nil {
 				return err
 			}
 			config.AllowedIPs = &ips
 		}
 		if setVpcs {
-			vpcs := normalizeAllowListEntries(allowListVpcsFlag)
+			vpcs := normalizeAllowRuleEntries(allowRulesVpcsFlag)
 			if err := validateAllowedVpcIDs(vpcs); err != nil {
 				return err
 			}
@@ -101,20 +104,20 @@ var dbSetAllowListCmd = &cobra.Command{
 		if err := client.Databases.UpdateConfig(database.Name, config); err != nil {
 			return err
 		}
-		fmt.Printf("Updated access allow list for database %s\n", internal.Emph(database.Name))
-		fmt.Print(allowListMessage(&config))
+		fmt.Printf("Updated access allow rules for database %s\n", internal.Emph(database.Name))
+		fmt.Print(allowRulesMessage(&config))
 		return nil
 	},
 }
 
-var dbClearAllowListCmd = &cobra.Command{
+var dbClearAllowRulesCmd = &cobra.Command{
 	Use:               "clear <database-name>",
-	Short:             "Clears the access allow list of a database, allowing connections from any source",
+	Short:             "Clears the access allow rules of a database, allowing connections from any source",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: dbNameArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		clearIPs, clearVpcs := clearAllowListIPsFlag, clearAllowListVpcsFlag
+		clearIPs, clearVpcs := clearAllowRulesIPsFlag, clearAllowRulesVpcsFlag
 		if !clearIPs && !clearVpcs {
 			clearIPs, clearVpcs = true, true
 		}
@@ -152,9 +155,9 @@ var dbClearAllowListCmd = &cobra.Command{
 	},
 }
 
-// normalizeAllowListEntries trims whitespace, drops empty entries, and
+// normalizeAllowRuleEntries trims whitespace, drops empty entries, and
 // removes duplicates while preserving order.
-func normalizeAllowListEntries(entries []string) []string {
+func normalizeAllowRuleEntries(entries []string) []string {
 	seen := make(map[string]bool, len(entries))
 	result := []string{}
 	for _, entry := range entries {
@@ -192,11 +195,11 @@ func validateAllowedVpcIDs(entries []string) error {
 	return nil
 }
 
-func allowListMessage(config *turso.DatabaseConfig) string {
+func allowRulesMessage(config *turso.DatabaseConfig) string {
 	ips := config.AllowedIPList()
 	vpcs := config.AllowedVpcIDList()
 	if len(ips) == 0 && len(vpcs) == 0 {
-		return fmt.Sprintf("Access allow list is %s: connections from any source are accepted\n", internal.Emph("empty"))
+		return fmt.Sprintf("Access allow rules are %s: connections from any source are accepted\n", internal.Emph("empty"))
 	}
 	var b strings.Builder
 	if len(ips) > 0 {

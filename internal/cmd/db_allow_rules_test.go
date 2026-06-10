@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-func TestNormalizeAllowListEntries(t *testing.T) {
-	got := normalizeAllowListEntries([]string{" 10.0.0.1 ", "", "10.0.0.1", "vpce-123", "  "})
+func TestNormalizeAllowRuleEntries(t *testing.T) {
+	got := normalizeAllowRuleEntries([]string{" 10.0.0.1 ", "", "10.0.0.1", "vpce-123", "  "})
 	want := []string{"10.0.0.1", "vpce-123"}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("normalizeAllowListEntries() = %v, want %v", got, want)
+		t.Errorf("normalizeAllowRuleEntries() = %v, want %v", got, want)
 	}
 }
 
