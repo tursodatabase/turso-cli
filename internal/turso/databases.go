@@ -577,6 +577,11 @@ type Pagination struct {
 type DatabaseConfig struct {
 	AllowAttach      *bool `json:"allow_attach"`
 	DeleteProtection *bool `json:"delete_protection"`
+	// AllowedIPs and AllowedAwsVpcIDs must keep omitempty: the server treats
+	// an explicit null as "clear the list", so they may only be sent when
+	// deliberately set.
+	AllowedIPs       *[]string `json:"allowed_ips,omitempty"`
+	AllowedAwsVpcIDs *[]string `json:"allowed_aws_vpc_ids,omitempty"`
 }
 
 func (d *DatabaseConfig) IsDeleteProtected() bool {
@@ -584,6 +589,20 @@ func (d *DatabaseConfig) IsDeleteProtected() bool {
 		return false
 	}
 	return *d.DeleteProtection
+}
+
+func (d *DatabaseConfig) AllowedIPList() []string {
+	if d.AllowedIPs == nil {
+		return nil
+	}
+	return *d.AllowedIPs
+}
+
+func (d *DatabaseConfig) AllowedVpcIDList() []string {
+	if d.AllowedAwsVpcIDs == nil {
+		return nil
+	}
+	return *d.AllowedAwsVpcIDs
 }
 
 func (d *DatabaseConfig) AttachAllowed() bool {
