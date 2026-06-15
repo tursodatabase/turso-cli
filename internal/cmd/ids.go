@@ -5,8 +5,6 @@ import (
 )
 
 func tryResolveOrgID(client *turso.Client) (string, error) {
-	groups := getGroupsCache(client.Org)
-
 	slug := client.Org
 	if orgs := getOrgsCache(); orgs != nil {
 		if id := findOrgID(orgs, slug); id != "" {
@@ -18,7 +16,6 @@ func tryResolveOrgID(client *turso.Client) (string, error) {
 		return "", err
 	}
 	setOrgsCache(orgs)
-	setGroupsCache(client.Org, groups)
 	return findOrgID(orgs, slug), nil
 }
 

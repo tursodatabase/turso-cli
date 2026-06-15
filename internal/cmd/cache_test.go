@@ -59,6 +59,36 @@ func Test_setDbTokenCache_expired(t *testing.T) {
 	}
 }
 
+// Regression test: the orgs-list cache and the per-org groups cache must not
+// share a viper namespace, otherwise writing one clobbers the other (viper
+// stores dotted keys as nested maps). See ORGS_CACHE_KEY.
+func Test_orgsAndGroupsCacheCoexist(t *testing.T) {
+	orgs := []turso.Organization{{ID: "org-id-123", Slug: "org-a", Type: "team"}}
+	groups := []turso.Group{{UUID: "group-uuid-abc", Name: "group-a"}}
+
+	assertCoexist := func(t *testing.T) {
+		t.Helper()
+		if got := getOrgsCache(); len(got) != 1 || got[0].ID != "org-id-123" {
+			t.Errorf("orgs cache clobbered: getOrgsCache() = %#v", got)
+		}
+		if got := getGroupsCache("org-a"); len(got) != 1 || got[0].UUID != "group-uuid-abc" {
+			t.Errorf("groups cache clobbered: getGroupsCache() = %#v", got)
+		}
+	}
+
+	t.Run("orgs then groups", func(t *testing.T) {
+		setOrgsCache(orgs)
+		setGroupsCache("org-a", groups)
+		assertCoexist(t)
+	})
+
+	t.Run("groups then orgs", func(t *testing.T) {
+		setGroupsCache("org-a", groups)
+		setOrgsCache(orgs)
+		assertCoexist(t)
+	})
+}
+
 func Test_setLocationsCache(t *testing.T) {
 	locs := map[string]string{
 		"ams": "Amsterdam, Netherlands",
