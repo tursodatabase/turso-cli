@@ -127,7 +127,7 @@ var groupCreateTokenCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		token, err := client.Groups.Token(group.Name, expiration, flags.ReadOnly(), claim, permission)
+		token, err := getGroupToken(client, group, expiration, flags.ReadOnly(), claim, permission)
 		if err != nil {
 			return fmt.Errorf("error creating token: %w", err)
 		}
@@ -135,6 +135,37 @@ var groupCreateTokenCmd = &cobra.Command{
 		fmt.Println(token)
 		return nil
 	},
+}
+
+// getGroupToken creates a group token, using the V3 API when enabled and the
+// org/group IDs can be resolved. The V3 endpoint does not support attach
+// claims, so requests with a claim fall back to the V2 API.
+func getGroupToken(
+	client *turso.Client,
+	group turso.Group,
+	expiration string,
+	readOnly bool,
+	claim *turso.PermissionsClaim,
+	fineGrainedPermissions []flags.FineGrainedPermissions,
+) (string, error) {
+	if !flags.V3Api() || claim != nil {
+		return client.Groups.Token(group.Name, expiration, readOnly, claim, fineGrainedPermissions)
+	}
+	orgID, err := tryResolveOrgID(client)
+	if err != nil {
+		return "", err
+	}
+	groupID := group.UUID
+	if groupID == "" {
+		groupID, err = tryResolveGroupID(client, group.Name)
+		if err != nil {
+			return "", err
+		}
+	}
+	if orgID == "" || groupID == "" {
+		return client.Groups.Token(group.Name, expiration, readOnly, claim, fineGrainedPermissions)
+	}
+	return client.GroupsV3.Token(orgID, groupID, expiration, readOnly, fineGrainedPermissions)
 }
 
 func validateDBNames(client *turso.Client, dbNames []string) error {
