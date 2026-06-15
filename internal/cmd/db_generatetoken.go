@@ -81,7 +81,7 @@ func getToken(
 		if database.Group == "" {
 			return "", errors.New("--group flag can only be set with group databases")
 		}
-		return client.Groups.Token(database.Group, expiration, readOnly, claim, fineGrainedPermissions)
+		return getGroupToken(client, turso.Group{Name: database.Group}, expiration, readOnly, claim, fineGrainedPermissions)
 	}
 	if !flags.V3Api() {
 		return getTokenV2(client, database, expiration, readOnly, claim, fineGrainedPermissions)

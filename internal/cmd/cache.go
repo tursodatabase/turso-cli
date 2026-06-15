@@ -123,7 +123,11 @@ func invalidateGroupsCache(org string) {
 }
 
 const (
-	ORGS_CACHE_KEY         = "organizations"
+	// ORGS_CACHE_KEY must not share a viper namespace with the per-org group
+	// cache (orgKey builds "organizations.<org>.groups"). Viper treats dots as
+	// nested maps, so a plain "organizations" key for the orgs list would
+	// collide with that nested key and the two caches would clobber each other.
+	ORGS_CACHE_KEY         = "organizations_list"
 	ORGS_CACHE_TTL_SECONDS = 30 * 60
 )
 
