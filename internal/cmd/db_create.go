@@ -190,23 +190,9 @@ func createDatabaseV2(client *turso.Client, name, location, groupName string, se
 
 func CreateDatabaseV3BodyFromFlags(name string, seed *turso.DBSeed) turso.CreateDatabaseV3Body {
 	body := turso.CreateDatabaseV3Body{
-		Name:         name,
-		CreationMode: "empty",
-	}
-	if tursoDBFlag {
-		body.DatabaseType = "tursodb"
-	} else {
-		body.DatabaseType = "libsql"
-	}
-	if seed != nil && seed.Type == "database" {
-		body.CreationMode = "fork"
-		body.ParentDBName = seed.Name
-		if seed.Timestamp != nil {
-			body.Timestamp = seed.Timestamp
-		}
-	}
-	if seed != nil && seed.Type == "upload" {
-		body.CreationMode = "upload"
+		Name:       name,
+		Seed:       seed,
+		UseTursoDB: tursoDBFlag,
 	}
 	if remoteEncryptionKeyFlag() != "" {
 		body.RemoteEncryption = &turso.RemoteEncryption{
