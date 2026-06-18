@@ -5,21 +5,21 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/tursodatabase/turso-cli/internal/flags"
 )
 
 type DatabasesV3Client client
 
+// CreateDatabaseV3Body mirrors the legacy create request (turso.CreateDBParams):
+// forks are expressed through Seed just like v1/v2. The single v3-specific
+// addition is GroupID, which carries the group UUID instead of the group name.
 type CreateDatabaseV3Body struct {
 	Name             string            `json:"name"`
 	GroupID          string            `json:"group_id,omitempty"`
-	DatabaseType     string            `json:"database_type,omitempty"`
-	CreationMode     string            `json:"creation_mode,omitempty"`
-	ParentDBName     string            `json:"parent_db_name,omitempty"`
-	Timestamp        *time.Time        `json:"parent_db_timestamp,omitempty"`
+	Seed             *DBSeed           `json:"seed,omitempty"`
 	RemoteEncryption *RemoteEncryption `json:"remote_encryption,omitempty"`
+	UseTursoDB       bool              `json:"use_tursodb,omitempty"`
 }
 
 func (d *DatabasesV3Client) url(orgID, suffix string) string {
@@ -63,14 +63,18 @@ func (d *DatabasesV3Client) List(orgID string, options DatabaseV3ListOptions) ([
 	}
 
 	type response struct {
-		Databases  []Database `json:"databases"`
-		NextCursor string     `json:"next_cursor"`
+		Databases  []Database  `json:"databases"`
+		Pagination *Pagination `json:"pagination,omitempty"`
 	}
 	resp, err := unmarshal[response](r)
 	if err != nil {
 		return nil, "", err
 	}
-	return resp.Databases, resp.NextCursor, nil
+	next := ""
+	if resp.Pagination != nil && resp.Pagination.Next != nil {
+		next = *resp.Pagination.Next
+	}
+	return resp.Databases, next, nil
 }
 
 func (d *DatabasesV3Client) Get(orgID, dbID string) (Database, error) {
@@ -105,14 +109,31 @@ func (d *DatabasesV3Client) GetConfig(orgID, dbID string) (DatabaseConfig, error
 		return DatabaseConfig{}, fmt.Errorf("failed to get database: %w", parseResponseError(r))
 	}
 
+	// v3 has no dedicated /configuration endpoint: the database response
+	// carries delete protection directly and the allow rules nested under
+	// allow_rules_config, so we project them onto DatabaseConfig here.
 	type response struct {
-		Database DatabaseConfig `json:"database"`
+		Database struct {
+			DeleteProtection bool `json:"delete_protection"`
+			AllowRulesConfig struct {
+				AllowedIPs       []string `json:"allowed_ips"`
+				AllowedAwsVpcIDs []string `json:"allowed_aws_vpc_ids"`
+			} `json:"allow_rules_config"`
+		} `json:"database"`
 	}
 	resp, err := unmarshal[response](r)
 	if err != nil {
 		return DatabaseConfig{}, err
 	}
-	return resp.Database, nil
+	deleteProtection := resp.Database.DeleteProtection
+	config := DatabaseConfig{DeleteProtection: &deleteProtection}
+	if ips := resp.Database.AllowRulesConfig.AllowedIPs; ips != nil {
+		config.AllowedIPs = &ips
+	}
+	if vpcs := resp.Database.AllowRulesConfig.AllowedAwsVpcIDs; vpcs != nil {
+		config.AllowedAwsVpcIDs = &vpcs
+	}
+	return config, nil
 }
 
 func (d *DatabasesV3Client) Delete(orgID, dbID string) error {
