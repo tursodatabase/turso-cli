@@ -459,7 +459,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool, remoteE
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return parseResponseError(res)
+		return parseExportResponseError(res)
 	}
 	var info ExportInfo
 	if err := json.NewDecoder(res.Body).Decode(&info); err != nil {
@@ -472,7 +472,7 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool, remoteE
 	}
 	defer exportRes.Body.Close()
 	if exportRes.StatusCode != http.StatusOK {
-		return parseResponseError(exportRes)
+		return parseExportResponseError(exportRes)
 	}
 
 	out, err := os.Create(outputFile)
@@ -495,6 +495,13 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool, remoteE
 	}
 
 	return nil
+}
+
+func parseExportResponseError(res *http.Response) error {
+	if res.StatusCode == http.StatusNotFound {
+		return errors.New("database export is not available for this database. If this is a Fly-hosted database, use `turso db shell <database> .dump` to create a SQL dump instead")
+	}
+	return parseResponseError(res)
 }
 
 func (i *TursoServerClient) ExportWAL(outputFile string, info *ExportInfo, remoteEncryptionKey string) (int, error) {
