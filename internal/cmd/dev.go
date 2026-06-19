@@ -104,7 +104,7 @@ var devCmd = &cobra.Command{
 
 		// Check if the server is actually running.
 		maxAttempts := 3
-		for i := 0; i < maxAttempts; i++ {
+		for i := range maxAttempts {
 			_, err := http.Get(conn)
 			if err == nil {
 				break

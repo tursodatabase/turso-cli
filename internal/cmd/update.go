@@ -50,7 +50,7 @@ func semverCompare(a, b string) int {
 	}
 
 	// compare each part, and again fall back to lexicographic comparison if any part is not an integer
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		numA, err := strconv.Atoi(partsA[i])
 		if err != nil {
 			return strings.Compare(a, b)

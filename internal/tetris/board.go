@@ -20,7 +20,7 @@ func ChangeBoardSize(width int, height int) {
 
 	newBoard := &Board{width: width, height: height, boardsIndex: board.boardsIndex}
 	newBoard.colors = make([][]tcell.Color, width)
-	for i := 0; i < width; i++ {
+	for i := range width {
 		newBoard.colors[i] = make([]tcell.Color, height)
 		for j := 0; j < height; j++ {
 			if i < board.width && j < board.height {
@@ -31,7 +31,7 @@ func ChangeBoardSize(width int, height int) {
 		}
 	}
 	newBoard.rotation = make([][]int, width)
-	for i := 0; i < width; i++ {
+	for i := range width {
 		newBoard.rotation[i] = make([]int, height)
 		for j := 0; j < height; j++ {
 			if i < board.width && j < board.height {
@@ -53,12 +53,12 @@ func (board *Board) Clear() {
 	board.width = len(boards[board.boardsIndex].colors)
 	board.height = len(boards[board.boardsIndex].colors[0])
 	board.colors = make([][]tcell.Color, board.width)
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		board.colors[i] = make([]tcell.Color, board.height)
 		copy(board.colors[i], boards[board.boardsIndex].colors[i])
 	}
 	board.rotation = make([][]int, board.width)
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		board.rotation[i] = make([]int, board.height)
 		copy(board.rotation[i], boards[board.boardsIndex].rotation[i])
 	}
@@ -69,12 +69,12 @@ func (board *Board) Clear() {
 
 // EmptyBoard removes all blocks/colors from the board
 func (board *Board) EmptyBoard() {
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		for j := 0; j < board.height; j++ {
 			board.colors[i][j] = colorBlank
 		}
 	}
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		for j := 0; j < board.height; j++ {
 			board.rotation[i][j] = 0
 		}
@@ -195,7 +195,7 @@ func (board *Board) MinoDrop() {
 		board.dropDistance++
 		mino.MoveDown()
 	}
-	for i := 0; i < board.dropDistance; i++ {
+	for range board.dropDistance {
 		board.currentMino.MoveDown()
 	}
 	if !board.currentMino.ValidLocation(true) {
@@ -269,7 +269,7 @@ func (board *Board) fullLines() []int {
 
 // isFullLine checks if line is full
 func (board *Board) isFullLine(j int) bool {
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		if board.colors[i][j] == colorBlank {
 			return false
 		}
@@ -279,16 +279,16 @@ func (board *Board) isFullLine(j int) bool {
 
 // deleteLine deletes the line
 func (board *Board) deleteLine(line int) {
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		board.colors[i][line] = colorBlank
 	}
 	for j := line; j > 0; j-- {
-		for i := 0; i < board.width; i++ {
+		for i := range board.width {
 			board.colors[i][j] = board.colors[i][j-1]
 			board.rotation[i][j] = board.rotation[i][j-1]
 		}
 	}
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		board.colors[i][0] = colorBlank
 	}
 }
@@ -349,7 +349,7 @@ func ValidDisplayLocation(x int, y int) bool {
 
 // DrawBoard draws the board with help from view
 func (board *Board) DrawBoard() {
-	for i := 0; i < board.width; i++ {
+	for i := range board.width {
 		for j := 0; j < board.height; j++ {
 			if board.colors[i][j] != colorBlank {
 				view.DrawBlock(i, j, board.colors[i][j], board.rotation[i][j])
