@@ -289,24 +289,36 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 	if flags.Debug() {
 		log.Printf("Checking database settings...")
 	}
-	output, err := exec.Command("sqlite3", "-list", file, ".mode line",
-		"select journal_mode as j, page_size as p, auto_vacuum as a, encoding as e from pragma_journal_mode, pragma_page_size, pragma_auto_vacuum, pragma_encoding;").CombinedOutput()
-	if err != nil {
 
+	journalMode, err := readPragma(file, "journal_mode")
+	if err != nil {
 		return fmt.Errorf("failed to check database settings: %w", err)
 	}
-
-	settings := string(output)
-	if !strings.Contains(settings, "j: wal") && !strings.Contains(settings, "j = wal") {
+	if !strings.EqualFold(journalMode, "wal") {
 		return fmt.Errorf("database is not in WAL mode. Set it with 'sqlite3 %s 'PRAGMA journal_mode = WAL'", file)
 	}
-	if !strings.Contains(settings, "p: 4096") && !strings.Contains(settings, "p = 4096") {
+
+	pageSize, err := readPragma(file, "page_size")
+	if err != nil {
+		return fmt.Errorf("failed to check database settings: %w", err)
+	}
+	if pageSize != "4096" {
 		return fmt.Errorf("database must use 4KB page size. you can set it with 'sqlite3 %s 'PRAGMA page_size = 4096; VACUUM;' Note that this is not possible to do if your database is already in WAL mode", file)
 	}
-	if !strings.Contains(settings, "a: 0") && !strings.Contains(settings, "a = 0") {
+
+	autoVacuum, err := readPragma(file, "auto_vacuum")
+	if err != nil {
+		return fmt.Errorf("failed to check database settings: %w", err)
+	}
+	if autoVacuum != "0" {
 		return fmt.Errorf("database must have autovacuum disabled. you can set it with 'sqlite3 %s 'PRAGMA auto_vacuum = 0;'", file)
 	}
-	if !strings.Contains(settings, "e: UTF-8") && !strings.Contains(settings, "e = UTF-8") {
+
+	encoding, err := readPragma(file, "encoding")
+	if err != nil {
+		return fmt.Errorf("failed to check database settings: %w", err)
+	}
+	if encoding != "UTF-8" {
 		return fmt.Errorf("database must use UTF-8 encoding. you can set it with 'sqlite3 %s 'PRAGMA encoding = 'UTF-8'	", file)
 	}
 
@@ -338,6 +350,19 @@ func runQuickCheck(file string) error {
 		return fmt.Errorf("integrity check failed: %w", err)
 	}
 	return nil
+}
+
+// readPragma runs a single PRAGMA query against the SQLite file via the system
+// sqlite3 binary and returns the trimmed value. One query per pragma keeps the
+// result independent of sqlite3's output-mode formatting, which changed between
+// 3.49 and 3.50 (".mode line" went from "key = value" to "key: value"). See #1030.
+func readPragma(file, pragma string) (string, error) {
+	out, err := exec.Command("sqlite3", "-batch", "-noheader", "-list", file,
+		fmt.Sprintf("select * from pragma_%s;", pragma)).CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to read pragma_%s: %w", pragma, err)
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
