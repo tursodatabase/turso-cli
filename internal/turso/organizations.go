@@ -201,7 +201,7 @@ func (c *OrganizationsClient) JwksTemplate(org string, param OrgJwksTemplatePara
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal jwks template request body: %s", err)
 	}
-	r, err := c.client.Get(fmt.Sprintf("/v2/organizations/%v/jwks-template", org), request)
+	r, err := c.client.Post(fmt.Sprintf("/v2/organizations/%v/jwks-template", org), request)
 	if err != nil {
 		return "", fmt.Errorf("failed to get org jwks template: %w", err)
 	}
