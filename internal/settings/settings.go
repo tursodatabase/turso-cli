@@ -3,7 +3,6 @@ package settings
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"sync"
 
@@ -55,7 +54,7 @@ func ReadSettings() (*Settings, error) {
 	viper.SetConfigType("json")
 	viper.AddConfigPath(configPath)
 	viper.SetConfigPermissions(settingsFileMode)
-	configFile := path.Join(configPath, "settings.json")
+	configFile := filepath.Join(configPath, "settings.json")
 	if abs, err := filepath.Abs(configFile); err == nil {
 		configFile = abs
 	}

@@ -9,11 +9,24 @@ before:
     - go generate --tags=prod ./...
     - ./script/completions.sh
 builds:
-  - env:
+  - id: unix
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - darwin
+    binary: turso
+    main: ./cmd/turso
+    flags:
+      - -tags=prod
+  - id: windows
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
     binary: turso
     main: ./cmd/turso
     flags:
