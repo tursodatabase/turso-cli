@@ -92,6 +92,24 @@ You are taken to a web page in your default browser to authenticate via GitHub.
 After successfully authenticated, `turso auth login` receives an access token
 that is stored on your settings file.
 
+On native Windows the same browser callback flow works after installing
+`turso.exe`. If the CLI cannot open or receive a browser callback (SSH, some
+WSL setups), use headless login and paste the token from the page:
+
+```bash
+turso auth login --headless
+```
+
+After login, mint a non-expiring API token for automation (including
+`api-tokens` workflows on CI/headless hosts):
+
+```bash
+turso auth api-tokens mint <token-name>
+```
+
+Set `TURSO_API_TOKEN` to that value for non-interactive use. Unset it before
+running `turso auth login` again (login refuses to run while the env var is set).
+
 ### Create database
 
 To create a database with a generated name, run:
