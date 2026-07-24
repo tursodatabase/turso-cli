@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
+PackageIdentifier: Turso.CLI
+PackageVersion: 0.0.0-template
+PackageLocale: en-US
+Publisher: Turso
+PublisherUrl: https://turso.tech
+PublisherSupportUrl: https://github.com/tursodatabase/turso-cli/issues
+Author: Turso
+PackageName: Turso CLI
+PackageUrl: https://docs.turso.tech/cli
+License: MIT
+LicenseUrl: https://github.com/tursodatabase/turso-cli/blob/main/LICENSE
+Copyright: Copyright (c) Turso / ChiselStrike, Inc.
+ShortDescription: Command line interface for Turso Cloud
+Description: The Turso CLI manages Turso Cloud databases, authentication, groups, and local development workflows from Windows, macOS, and Linux.
+Moniker: turso
+Tags:
+  - cli
+  - cloud
+  - database
+  - libsql
+  - sqlite
+  - turso
+ReleaseNotesUrl: https://github.com/tursodatabase/turso-cli/releases
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0

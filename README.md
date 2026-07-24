@@ -33,6 +33,16 @@ To upgrade an existing installation of the CLI, run:
 brew upgrade turso
 ```
 
+#### [WinGet](https://learn.microsoft.com/windows/package-manager/winget/) (Windows)
+
+```powershell
+winget install Turso.CLI
+```
+
+Requires the package to be published in the
+[WinGet community repository](https://github.com/microsoft/winget-pkgs).
+Maintainer setup and CD: [docs/winget.md](docs/winget.md).
+
 ### Install script
 
 #### macOS / Linux

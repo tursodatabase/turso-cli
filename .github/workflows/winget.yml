@@ -1,0 +1,110 @@
+name: Publish to WinGet
+
+# Continuous delivery into microsoft/winget-pkgs via WingetCreate.
+# Docs for maintainers: docs/winget.md
+# Official CD overview: https://github.com/microsoft/winget-create#using-windows-package-manager-manifest-creator-in-a-cicd-pipeline
+# Token setup: https://aka.ms/winget-create-token
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v1.0.31). Leave empty to use the latest non-prerelease release.
+        required: false
+        type: string
+      submit:
+        description: Submit a PR to microsoft/winget-pkgs (requires WINGET_TOKEN secret)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  winget:
+    name: Submit Turso.CLI to WinGet
+    runs-on: windows-latest
+    # Skip prereleases on the automatic release trigger
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    # Prefer the env var over --token so the PAT is not logged on the CLI.
+    # https://aka.ms/winget-create-token
+    env:
+      WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
+      PACKAGE_ID: Turso.CLI
+    steps:
+      - name: Resolve release assets
+        id: release
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "release") {
+            $tag = "${{ github.event.release.tag_name }}"
+            $assetsJson = '${{ toJSON(github.event.release.assets) }}'
+            $assets = $assetsJson | ConvertFrom-Json
+          } else {
+            $env:GH_TOKEN = $env:GITHUB_TOKEN
+            $tag = "${{ inputs.tag }}".Trim()
+            if ([string]::IsNullOrWhiteSpace($tag)) {
+              $release = gh release view --json tagName,assets | ConvertFrom-Json
+            } else {
+              $release = gh release view $tag --json tagName,assets | ConvertFrom-Json
+            }
+            $tag = $release.tagName
+            $assets = $release.assets
+          }
+
+          $version = $tag.TrimStart('v')
+          $x64 = $assets | Where-Object { $_.name -eq "turso-cli_Windows_x86_64.zip" } | Select-Object -First 1
+          $arm64 = $assets | Where-Object { $_.name -eq "turso-cli_Windows_arm64.zip" } | Select-Object -First 1
+
+          if (-not $x64 -or -not $arm64) {
+            $names = ($assets | ForEach-Object { $_.name }) -join ", "
+            throw "Missing Windows zip assets on $tag. Expected turso-cli_Windows_x86_64.zip and turso-cli_Windows_arm64.zip. Found: $names"
+          }
+
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "x64_url=$($x64.browser_download_url)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "arm64_url=$($arm64.browser_download_url)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Publishing $env:PACKAGE_ID $version"
+          Write-Host "x64:   $($x64.browser_download_url)"
+          Write-Host "arm64: $($arm64.browser_download_url)"
+
+      - name: Download WingetCreate
+        shell: pwsh
+        run: |
+          curl.exe -fsSL -JLO https://aka.ms/wingetcreate/latest
+          Get-Item .\wingetcreate.exe | Format-List Name, Length
+
+      - name: Update WinGet manifest
+        shell: pwsh
+        run: |
+          $submit = $false
+          if ("${{ github.event_name }}" -eq "release") {
+            $submit = $true
+          } elseif ("${{ inputs.submit }}" -eq "true") {
+            $submit = $true
+          }
+
+          if ($submit -and [string]::IsNullOrWhiteSpace($env:WINGET_CREATE_GITHUB_TOKEN)) {
+            throw "WINGET_TOKEN repository secret is required to submit. See docs/winget.md"
+          }
+
+          $args = @(
+            "update", $env:PACKAGE_ID,
+            "--version", "${{ steps.release.outputs.version }}",
+            "--urls",
+            "${{ steps.release.outputs.x64_url }}",
+            "${{ steps.release.outputs.arm64_url }}"
+          )
+          if ($submit) {
+            $args += "--submit"
+          }
+
+          Write-Host "Running: .\wingetcreate.exe $($args -join ' ')"
+          & .\wingetcreate.exe @args
+          if ($LASTEXITCODE -ne 0) {
+            throw "wingetcreate exited with code $LASTEXITCODE"
+          }
