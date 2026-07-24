@@ -17,7 +17,7 @@ For a guided walkthrough, follow the
 
 ### Package manager
 
-#### [Homebrew](https://brew.sh) (macOS, Linux, WSL)
+#### [Homebrew](https://brew.sh) (macOS, Linux)
 
 ```bash
 brew install tursodatabase/tap/turso
@@ -35,9 +35,20 @@ brew upgrade turso
 
 ### Install script
 
+#### macOS / Linux
+
 ```bash
 curl -sSfL https://get.tur.so/install.sh | bash
 ```
+
+#### Windows (PowerShell)
+
+```powershell
+irm https://get.tur.so/install.ps1 | iex
+```
+
+This installs a native `turso.exe` into `%USERPROFILE%\.turso` and adds that
+directory to your user `PATH`. WSL is not required.
 
 ### Go
 

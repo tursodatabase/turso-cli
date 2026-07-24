@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -94,18 +95,21 @@ var updateCmd = &cobra.Command{
 }
 
 func Update() error {
-	var updateCmd string
+	var command *exec.Cmd
 
-	if IsUnderHomebrew() {
-		updateCmd = "brew update && brew upgrade turso"
-	} else {
-		updateCmd = "curl -sSfL \"https://get.tur.so/install.sh\" | sh"
+	switch {
+	case runtime.GOOS == "windows":
+		ps := `irm https://get.tur.so/install.ps1 | iex`
+		command = exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps)
+	case IsUnderHomebrew():
+		command = exec.Command("sh", "-c", "brew update && brew upgrade turso")
+	default:
+		command = exec.Command("sh", "-c", `curl -sSfL "https://get.tur.so/install.sh" | sh`)
 	}
-	command := exec.Command("sh", "-c", updateCmd)
+
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
-	err := command.Run()
-	if err != nil {
+	if err := command.Run(); err != nil {
 		return fmt.Errorf("failed to execute update command: %w", err)
 	}
 	return nil

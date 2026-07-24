@@ -6,3 +6,6 @@ internal/cmd/version.txt
 .vscode/
 .idea/
 cmd/turso/turso
+
+turso.exe
+turso-prod.exe

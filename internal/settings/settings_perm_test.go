@@ -3,10 +3,17 @@ package settings
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestPersistTightensFilePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// Windows does not honor Unix permission bits the same way; chmod
+		// values from os.Stat are not meaningful for this check.
+		t.Skip("Unix file mode bits are not enforced on Windows")
+	}
+
 	dir := t.TempDir()
 	t.Setenv("TURSO_CONFIG_FOLDER", dir)
 

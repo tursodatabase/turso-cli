@@ -14,10 +14,15 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     binary: turso
     main: ./cmd/turso
     flags:
       - -tags=prod
+    ignore:
+      # Windows 32-bit is not a supported Turso CLI target.
+      - goos: windows
+        goarch: "386"
 
 release:
   github:
