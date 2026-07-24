@@ -442,7 +442,8 @@ func (i *TursoServerClient) finalizeUpload(uploadID string) error {
 }
 
 type ExportInfo struct {
-	CurrentGeneration int `json:"current_generation"`
+	CurrentGeneration int    `json:"current_generation"`
+	DbType            string `json:"db_type"`
 }
 
 const EncryptionKeyHeader = "x-turso-encryption-key"
@@ -484,16 +485,61 @@ func (i *TursoServerClient) Export(outputFile string, withMetadata bool, remoteE
 		return fmt.Errorf("failed to write export to file: %w", err)
 	}
 
-	lastFrameNo, err := i.ExportWAL(outputFile, &info, remoteEncryptionKey)
-	if err != nil {
-		return fmt.Errorf("failed to export WAL: %w", err)
+	lastFrameNo := 0
+	if info.DbType == "tursodb" {
+		// tursodb databases persist writes in a logical log rather than a
+		// SQLite WAL: fetch the canonical log the server assembles from its
+		// durable log fragments.
+		if err := i.ExportLog(outputFile, &info, remoteEncryptionKey); err != nil {
+			return fmt.Errorf("failed to export logical log: %w", err)
+		}
+	} else {
+		lastFrameNo, err = i.ExportWAL(outputFile, &info, remoteEncryptionKey)
+		if err != nil {
+			return fmt.Errorf("failed to export WAL: %w", err)
+		}
 	}
-	if withMetadata {
+	if withMetadata && info.DbType == "tursodb" {
+		fmt.Fprintln(os.Stderr, "Warning: --with-metadata is not supported for tursodb databases and will be ignored.")
+	} else if withMetadata {
 		if err := i.ExportMetadata(outputFile, &info, lastFrameNo); err != nil {
 			return fmt.Errorf("failed to export metadata: %w", err)
 		}
 	}
 
+	return nil
+}
+
+// ExportLog downloads the canonical tursodb logical log for the generation
+// into <outputFile>-log. The server assembles it from its durable log
+// fragments with the same last-attempt-wins chain walk its own recovery
+// uses, so the file matches the .db-log a server would rebuild for this
+// generation.
+func (i *TursoServerClient) ExportLog(outputFile string, info *ExportInfo, remoteEncryptionKey string) error {
+	headers := map[string]string{}
+	if remoteEncryptionKey != "" {
+		headers[EncryptionKeyHeader] = remoteEncryptionKey
+	}
+	logRes, err := i.client.GetWithHeaders(fmt.Sprintf("/export/%d/log", info.CurrentGeneration), nil, headers)
+	if err != nil {
+		return fmt.Errorf("failed to fetch logical log: %w", err)
+	}
+	defer logRes.Body.Close()
+	if logRes.StatusCode != http.StatusOK {
+		return parseResponseError(logRes)
+	}
+
+	out, err := os.Create(outputFile + "-log")
+	if err != nil {
+		return fmt.Errorf("failed to create log file: %w", err)
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, logRes.Body); err != nil {
+		return fmt.Errorf("failed to write logical log to file: %w", err)
+	}
+	if err := out.Sync(); err != nil {
+		return fmt.Errorf("failed to sync log file: %w", err)
+	}
 	return nil
 }
 

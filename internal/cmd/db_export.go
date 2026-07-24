@@ -13,12 +13,14 @@ var outputFile string
 
 var exportCmd = &cobra.Command{
 	Use:   "export <database>",
-	Short: "Export a database snapshot and WAL from Turso to SQLite files.",
-	Long: `Export a database snapshot and WAL from Turso to SQLite files.
+	Short: "Export a database snapshot and its log from Turso to local files.",
+	Long: `Export a database snapshot and its log from Turso to local files.
 
 This command exports a snapshot of the current generation of a Turso database
-to a local SQLite file, along with any WAL (Write-Ahead Log) frames. The WAL
-file will be saved as <database>.db-wal alongside the main database file.`,
+to a local database file. For SQLite-backed
+databases the WAL (Write-Ahead Log) frames are saved as <database>.db-wal;
+for tursodb databases the logical log is saved as <database>.db-log alongside
+the main database file.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
