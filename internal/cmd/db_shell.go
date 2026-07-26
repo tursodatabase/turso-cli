@@ -166,6 +166,10 @@ var shellCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+			// the shell library only understands libsql/ws/http schemes
+			if u.Scheme == "turso" {
+				u.Scheme = "libsql"
+			}
 			query := u.Query()
 			authTokenSnake := query.Get("auth_token")
 			authTokenCamel := query.Get("authToken")
