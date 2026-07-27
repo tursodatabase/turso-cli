@@ -271,19 +271,6 @@ func (i *TursoServerClient) uploadChunkWithRetry(ctx *chunkUploadContext, maxRet
 
 // UploadFileMultipart uploads a database file using the multipart upload flow.
 func (i *TursoServerClient) UploadFileMultipart(filepath string, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
-	return i.uploadFileMultipart(filepath, false, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
-}
-
-// UploadFileMultipartMVCC uploads a database file like UploadFileMultipart,
-// but rewrites the SQLite read/write format version bytes (header offsets
-// 18/19) to 255 (MVCC) in the upload stream. TursoDB databases only accept
-// MVCC-format uploads, and a checkpointed WAL file differs from tursodb
-// format in exactly those two bytes; the file on disk is left untouched.
-func (i *TursoServerClient) UploadFileMultipartMVCC(filepath string, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
-	return i.uploadFileMultipart(filepath, true, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
-}
-
-func (i *TursoServerClient) uploadFileMultipart(filepath string, convertToMVCC bool, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filepath, err)
@@ -308,12 +295,7 @@ func (i *TursoServerClient) uploadFileMultipart(filepath string, convertToMVCC b
 		return err
 	}
 
-	var reader io.ReadSeeker = file
-	if convertToMVCC {
-		reader = &mvccFormatReader{file: file}
-	}
-
-	uploadedBytes, err := i.uploadChunks(uploadStart.UploadID, uploadStart.ChunkSize, reader, totalSize, startTime, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
+	uploadedBytes, err := i.uploadChunks(uploadStart.UploadID, uploadStart.ChunkSize, file, totalSize, startTime, remoteEncryptionCipher, remoteEncryptionKey, onUploadProgress)
 	if err != nil {
 		return err
 	}
@@ -371,31 +353,6 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (multipartUploadS
 	}
 
 	return multipartUploadStart(uploadResp), nil
-}
-
-// mvccFormatReader wraps a database file and rewrites the SQLite read/write
-// format version bytes (offsets 18/19) to 255 (MVCC) as the data streams
-// through. Seeks pass through, so chunk retries re-read patched data.
-type mvccFormatReader struct {
-	file *os.File
-	pos  int64
-}
-
-func (r *mvccFormatReader) Seek(offset int64, whence int) (int64, error) {
-	pos, err := r.file.Seek(offset, whence)
-	r.pos = pos
-	return pos, err
-}
-
-func (r *mvccFormatReader) Read(p []byte) (int, error) {
-	n, err := r.file.Read(p)
-	for _, formatByteOffset := range []int64{18, 19} {
-		if formatByteOffset >= r.pos && formatByteOffset < r.pos+int64(n) {
-			p[formatByteOffset-r.pos] = 255
-		}
-	}
-	r.pos += int64(n)
-	return n, err
 }
 
 func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file io.ReadSeeker, totalSize int64, startTime time.Time, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {

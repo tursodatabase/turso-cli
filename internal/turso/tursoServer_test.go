@@ -1163,38 +1163,6 @@ func TestProgressReader_UpdatesTrackingFieldsCorrectly(t *testing.T) {
 	})
 }
 
-func TestUploadFileMultipartMVCC_RewritesFormatBytes(t *testing.T) {
-	mock := NewMockTursoServer()
-	mock.chunkSize = 16 // tiny chunks so bytes 18/19 land mid-stream
-	defer mock.Close()
-
-	content := make([]byte, 100)
-	for i := range content {
-		content[i] = byte(i)
-	}
-	content[18], content[19] = 2, 2 // WAL format version bytes
-
-	client := createTestClient(t, mock.URL)
-	testFile := createTestFileWithContent(t, content)
-	progress := NewProgressRecorder()
-
-	err := client.UploadFileMultipartMVCC(testFile, "", "", progress.Callback())
-	require.NoError(t, err)
-
-	uploaded := mock.GetAllChunkData()
-	require.Len(t, uploaded, len(content))
-	require.Equal(t, byte(255), uploaded[18])
-	require.Equal(t, byte(255), uploaded[19])
-	// everything else must be untouched
-	require.Equal(t, content[:18], uploaded[:18])
-	require.Equal(t, content[20:], uploaded[20:])
-
-	// the file on disk keeps its original bytes
-	onDisk, err := os.ReadFile(testFile)
-	require.NoError(t, err)
-	require.Equal(t, content, onDisk)
-}
-
 func TestUploadFileMultipart_DoesNotRewriteFormatBytes(t *testing.T) {
 	mock := NewMockTursoServer()
 	mock.chunkSize = 16

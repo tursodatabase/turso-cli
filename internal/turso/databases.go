@@ -242,7 +242,7 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 	}
 
 	if isTursoServerUpload {
-		if _, err = d.UploadDatabaseAWS(data, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, useTursoDB, spinner); err != nil {
+		if _, err = d.UploadDatabaseAWS(data, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, spinner); err != nil {
 			// Clean up the database if the upload fails
 			if deleteErr := d.Delete(data.Database.Name); deleteErr != nil {
 				fmt.Printf("%v", deleteErr)
@@ -263,7 +263,7 @@ func (d *DatabasesClient) Create(name, location, image, extensions, group string
 //     This call happens in DatabasesClient.Create() above, after which it calls this function.
 //  2. This function creates a DB token for the newly-created DB, and then calls turso-server to upload the database file.
 //     turso-server will perform validations on the file and 'activate' the db if everything is ok.
-func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey string, useTursoDB bool, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
+func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group, uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey string, spinner *prompt.SpinnerT) (*CreateDatabaseResponse, error) {
 	dbName := resp.Database.Name
 	tokenTTL := 5 * time.Minute
 	tokenProvider := func() (string, error) {
@@ -282,13 +282,7 @@ func (d *DatabasesClient) UploadDatabaseAWS(resp *CreateDatabaseResponse, group,
 	// Upload the database file
 	spinner.Text(fmt.Sprintf("Uploading database %s in group %s, this may take a while...", internal.Emph(resp.Database.Name), internal.Emph(group)))
 
-	// TursoDB databases only accept MVCC-format uploads: the WAL file's
-	// format version bytes are rewritten to MVCC in the upload stream.
-	upload := tursoServerClient.UploadFileMultipart
-	if useTursoDB {
-		upload = tursoServerClient.UploadFileMultipartMVCC
-	}
-	err = upload(uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
+	err = tursoServerClient.UploadFileMultipart(uploadFilepath, remoteEncryptionCipher, remoteEncryptionKey, func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool) {
 		totalSeconds := int(elapsedTime.Seconds())
 		minutes := totalSeconds / 60
 		seconds := totalSeconds % 60

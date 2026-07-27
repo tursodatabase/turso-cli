@@ -120,3 +120,22 @@ func TestCheckpointWALBeforeUpload(t *testing.T) {
 		}
 	}
 }
+
+func TestPrepareTursoDBFile(t *testing.T) {
+	if _, err := exec.LookPath("tursodb"); err != nil {
+		t.Skip("tursodb not available, skipping test")
+	}
+
+	dbPath := createTestDatabase(t, 10*1024)
+	require.NoError(t, checkpointWALBeforeUpload(dbPath))
+	require.NoError(t, prepareTursoDBFile(dbPath))
+
+	format, err := sniffSQLiteFileFormat(dbPath)
+	require.NoError(t, err)
+	require.Equal(t, fileFormatMVCC, format)
+	for _, sidecar := range []string{dbPath + "-wal", dbPath + "-journal", tursodbLogPath(dbPath)} {
+		if info, err := os.Stat(sidecar); err == nil {
+			require.Zero(t, info.Size(), "%s must be empty after checkpoint", sidecar)
+		}
+	}
+}

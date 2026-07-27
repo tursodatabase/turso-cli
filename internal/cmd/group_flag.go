@@ -361,6 +361,42 @@ func checkpointWALBeforeUpload(file string) error {
 	return nil
 }
 
+// prepareTursoDBFile asks the TursoDB engine to convert the database to MVCC,
+// checkpoint any logical-log entries into the main file, and validate the
+// resulting database. Uploading only the main file is safe once all data-bearing
+// sidecars are empty.
+func prepareTursoDBFile(file string) error {
+	output, err := exec.Command("tursodb", "-q", "-m", "list", file,
+		"PRAGMA journal_mode = mvcc; PRAGMA wal_checkpoint(TRUNCATE); PRAGMA quick_check;").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("could not prepare %s for TursoDB import: %w: %s", file, err, strings.TrimSpace(string(output)))
+	}
+
+	lines := strings.Fields(string(output))
+	if len(lines) == 0 || lines[len(lines)-1] != "ok" {
+		return fmt.Errorf("TursoDB integrity check failed for %s: %s", file, strings.TrimSpace(string(output)))
+	}
+
+	format, err := sniffSQLiteFileFormat(file)
+	if err != nil {
+		return err
+	}
+	if format != fileFormatMVCC {
+		return fmt.Errorf("TursoDB did not convert %s to MVCC format", file)
+	}
+
+	for _, sidecar := range []struct{ path, hint string }{
+		{file + "-wal", "close all connections to the database and retry the import"},
+		{file + "-journal", "the database has a leftover rollback journal; close it cleanly and retry the import"},
+		{tursodbLogPath(file), "close all TursoDB connections and retry the import"},
+	} {
+		if err := checkSidecarEmpty(sidecar.path, sidecar.hint); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func checkSidecarEmpty(sidecarPath, hint string) error {
 	info, err := os.Stat(sidecarPath)
 	if errors.Is(err, os.ErrNotExist) {
@@ -389,6 +425,9 @@ func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 	}
 
 	if format == fileFormatRollback {
+		if err := checkSQLiteAvailable(); err != nil {
+			return nil, err
+		}
 		// The server only accepts WAL or MVCC format files. Converting to WAL
 		// is exactly the remediation the error message used to instruct users
 		// to run themselves, and sqlite3 is already a hard requirement here.
@@ -403,6 +442,9 @@ func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 
 	switch format {
 	case fileFormatWAL:
+		if err := checkSQLiteAvailable(); err != nil {
+			return nil, err
+		}
 		if err := checkpointWALBeforeUpload(file); err != nil {
 			return nil, err
 		}
@@ -411,26 +453,12 @@ func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 		}
 	case fileFormatMVCC:
 		// sqlite3-based checks can't run on MVCC (tursodb format) files: the
-		// sqlite3 binary reports them as not-a-database. The server verifies
-		// the file with the tursodb engine after upload.
+		// sqlite3 binary reports them as not-a-database.
 		if !tursoDBFlag {
 			return nil, fmt.Errorf("%s is in tursodb (MVCC) format and can only be imported into a tursodb database", file)
 		}
 		if cipher != "" {
 			return nil, errors.New("remote encryption is not supported when importing tursodb (MVCC) format files")
-		}
-		// The upload ships only the main database file: a non-empty tursodb
-		// logical log next to it means the file is not a fully checkpointed
-		// snapshot and importing it would lose the log's data.
-		if err := checkSidecarEmpty(tursodbLogPath(file), "checkpoint the database with tursodb before importing"); err != nil {
-			return nil, err
-		}
-		fileInfo, err := os.Stat(file)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get file info: %w", err)
-		}
-		if fileInfo.Size() > MaxAWSDBSizeBytes {
-			return nil, errors.New("database file size exceeds maximum allowed size of 20 GB")
 		}
 	case fileFormatNotSQLite:
 		isDump, err := checkIfDump(file)
@@ -445,6 +473,26 @@ func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 		return nil, fmt.Errorf("file %s has an unsupported SQLite file format", file)
 	}
 
+	if tursoDBFlag {
+		if err := checkTursoDBAvailable(); err != nil {
+			return nil, err
+		}
+		if format != fileFormatMVCC {
+			fmt.Printf("Converting %s to TursoDB (MVCC) format for import.\n", file)
+		}
+		if err := prepareTursoDBFile(file); err != nil {
+			return nil, err
+		}
+	}
+
+	fileInfo, err := os.Stat(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file info: %w", err)
+	}
+	if fileInfo.Size() > MaxAWSDBSizeBytes {
+		return nil, errors.New("database file size exceeds maximum allowed size of 20 GB")
+	}
+
 	seed := &turso.DBSeed{
 		Type:     "database_upload",
 		Filepath: file,
@@ -455,9 +503,6 @@ func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 
 func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
-		return nil, err
-	}
-	if err := checkSQLiteAvailable(); err != nil {
 		return nil, err
 	}
 
@@ -473,6 +518,9 @@ func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) 
 		// non-AWS groups are seeded by replaying a .dump, which sqlite3 cannot
 		// produce from an MVCC (tursodb format) file
 		return nil, fmt.Errorf("%s is in tursodb (MVCC) format and can only be imported into AWS groups", file)
+	}
+	if err := checkSQLiteAvailable(); err != nil {
+		return nil, err
 	}
 
 	if err := checkSQLiteFile(file); err != nil {
@@ -503,6 +551,14 @@ func checkSQLiteAvailable() error {
 	_, err := exec.LookPath("sqlite3")
 	if errors.Is(err, exec.ErrNotFound) {
 		return errors.New("could not find sqlite3 on your system. Please install it to use the --from-file flag or use --from-dump instead")
+	}
+	return err
+}
+
+func checkTursoDBAvailable() error {
+	_, err := exec.LookPath("tursodb")
+	if errors.Is(err, exec.ErrNotFound) {
+		return errors.New("could not find tursodb on your system. Please install it to import into a TursoDB database")
 	}
 	return err
 }
