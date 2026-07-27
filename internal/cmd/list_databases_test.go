@@ -29,7 +29,7 @@ func TestDbListModelViewIncludesTypeColumn(t *testing.T) {
 	expected := [][]string{
 		{"NAME", "TYPE", "GROUP", "URL"},
 		{"sqlite-db", "SQLite", "-", "libsql://sqlite-db.example.com"},
-		{"turso-db", "Turso", "default", "libsql://turso-db.example.com"},
+		{"turso-db", "Turso", "default", "turso://turso-db.example.com"},
 	}
 
 	if len(lines) != len(expected) {

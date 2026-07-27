@@ -81,6 +81,9 @@ func extractPrimary(instances []turso.Instance) (primary *turso.Instance, others
 }
 
 func getDatabaseUrl(db *turso.Database) string {
+	if isTursoDB(db.ID) {
+		return getUrl(db, nil, "turso")
+	}
 	return getUrl(db, nil, "libsql")
 }
 
