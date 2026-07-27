@@ -155,7 +155,12 @@ func createDatabase(client *turso.Client, name, location, groupName string, seed
 	if sizeLimitFlag != "" {
 		return createDatabaseV2(client, name, location, groupName, seed, spinner)
 	}
-	if seed != nil && seed.Type != "database" && seed.Type != "upload" {
+	// Only fork seeds ("database") can go through the v3 API. File seeds
+	// ("database_upload") must use the v2 flow: the v3 branch never uploads
+	// the file after creating the database. (This used to compare against
+	// "upload", a seed type that doesn't exist, which routed uploads to v2
+	// by accident.)
+	if seed != nil && seed.Type != "database" {
 		return createDatabaseV2(client, name, location, groupName, seed, spinner)
 	}
 	orgID, err := tryResolveOrgID(client)

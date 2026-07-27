@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -340,9 +341,108 @@ func runQuickCheck(file string) error {
 	return nil
 }
 
+// checkpointWALBeforeUpload folds any pending WAL frames into the main
+// database file and verifies no data is left behind in sidecar files. The
+// upload ships only the main database file, so frames still sitting in
+// <file>-wal (or a hot rollback journal) would silently be missing from the
+// imported database.
+func checkpointWALBeforeUpload(file string) error {
+	if out, err := exec.Command("sqlite3", "-list", file, "PRAGMA wal_checkpoint(TRUNCATE);").CombinedOutput(); err != nil {
+		return fmt.Errorf("could not checkpoint database %s: %w: %s", file, err, out)
+	}
+	for _, sidecar := range []struct{ suffix, hint string }{
+		{"-wal", "close all connections to the database and retry the import"},
+		{"-journal", "the database has a leftover rollback journal; open and cleanly close it with sqlite3 first"},
+	} {
+		if err := checkSidecarEmpty(file+sidecar.suffix, sidecar.hint); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkSidecarEmpty(sidecarPath, hint string) error {
+	info, err := os.Stat(sidecarPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("could not check %s: %w", sidecarPath, err)
+	}
+	if info.Size() > 0 {
+		return fmt.Errorf("%s is not empty, importing would lose the data it holds: %s", sidecarPath, hint)
+	}
+	return nil
+}
+
+// tursodbLogPath returns the logical-log sidecar path tursodb uses for a
+// database file, mirroring turso_core's `with_extension("db-log")`: the
+// file's extension (if any) is replaced with "db-log".
+func tursodbLogPath(file string) string {
+	return strings.TrimSuffix(file, filepath.Ext(file)) + ".db-log"
+}
+
 func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
-	if err := sqliteFileIntegrityChecks(file, cipher); err != nil {
+	format, err := sniffSQLiteFileFormat(file)
+	if err != nil {
 		return nil, err
+	}
+
+	if format == fileFormatRollback {
+		// The server only accepts WAL or MVCC format files. Converting to WAL
+		// is exactly the remediation the error message used to instruct users
+		// to run themselves, and sqlite3 is already a hard requirement here.
+		fmt.Printf("File %s uses a rollback journal; converting it to WAL mode for import.\n", file)
+		if out, err := exec.Command("sqlite3", file, "PRAGMA journal_mode=WAL;").CombinedOutput(); err != nil {
+			return nil, fmt.Errorf("could not convert %s to WAL mode: %w: %s", file, err, out)
+		}
+		if format, err = sniffSQLiteFileFormat(file); err != nil {
+			return nil, err
+		}
+	}
+
+	switch format {
+	case fileFormatWAL:
+		if err := checkpointWALBeforeUpload(file); err != nil {
+			return nil, err
+		}
+		if err := sqliteFileIntegrityChecks(file, cipher); err != nil {
+			return nil, err
+		}
+	case fileFormatMVCC:
+		// sqlite3-based checks can't run on MVCC (tursodb format) files: the
+		// sqlite3 binary reports them as not-a-database. The server verifies
+		// the file with the tursodb engine after upload.
+		if !tursoDBFlag {
+			return nil, fmt.Errorf("%s is in tursodb (MVCC) format and can only be imported into a tursodb database", file)
+		}
+		if cipher != "" {
+			return nil, errors.New("remote encryption is not supported when importing tursodb (MVCC) format files")
+		}
+		// The upload ships only the main database file: a non-empty tursodb
+		// logical log next to it means the file is not a fully checkpointed
+		// snapshot and importing it would lose the log's data.
+		if err := checkSidecarEmpty(tursodbLogPath(file), "checkpoint the database with tursodb before importing"); err != nil {
+			return nil, err
+		}
+		fileInfo, err := os.Stat(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file info: %w", err)
+		}
+		if fileInfo.Size() > MaxAWSDBSizeBytes {
+			return nil, errors.New("database file size exceeds maximum allowed size of 20 GB")
+		}
+	case fileFormatNotSQLite:
+		isDump, err := checkIfDump(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file header: %w", err)
+		}
+		if isDump {
+			return nil, fmt.Errorf("%s is a sqlite3 dump, not a sqlite3 database. Please import a sqlite database", file)
+		}
+		return nil, fmt.Errorf("file %s is not a valid SQLite database file", file)
+	default:
+		return nil, fmt.Errorf("file %s has an unsupported SQLite file format", file)
 	}
 
 	seed := &turso.DBSeed{
@@ -363,6 +463,16 @@ func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) 
 
 	if isAWS {
 		return handleDBFileAWS(file, cipher)
+	}
+
+	format, err := sniffSQLiteFileFormat(file)
+	if err != nil {
+		return nil, err
+	}
+	if format == fileFormatMVCC {
+		// non-AWS groups are seeded by replaying a .dump, which sqlite3 cannot
+		// produce from an MVCC (tursodb format) file
+		return nil, fmt.Errorf("%s is in tursodb (MVCC) format and can only be imported into AWS groups", file)
 	}
 
 	if err := checkSQLiteFile(file); err != nil {

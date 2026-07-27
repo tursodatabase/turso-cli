@@ -74,3 +74,49 @@ func TestRunQuickCheck(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestTursodbLogPath(t *testing.T) {
+	require.Equal(t, "data.db-log", tursodbLogPath("data.db"))
+	require.Equal(t, "data.db-log", tursodbLogPath("data.sqlite"))
+	require.Equal(t, "/some/dir/mydb.db-log", tursodbLogPath("/some/dir/mydb.db"))
+	require.Equal(t, "noext.db-log", tursodbLogPath("noext"))
+}
+
+func TestCheckSidecarEmpty(t *testing.T) {
+	dir := t.TempDir()
+
+	t.Run("missing sidecar is fine", func(t *testing.T) {
+		require.NoError(t, checkSidecarEmpty(filepath.Join(dir, "missing-wal"), "hint"))
+	})
+
+	t.Run("empty sidecar is fine", func(t *testing.T) {
+		path := filepath.Join(dir, "empty-wal")
+		require.NoError(t, os.WriteFile(path, nil, 0644))
+		require.NoError(t, checkSidecarEmpty(path, "hint"))
+	})
+
+	t.Run("non-empty sidecar errors with hint", func(t *testing.T) {
+		path := filepath.Join(dir, "full-wal")
+		require.NoError(t, os.WriteFile(path, []byte("frames"), 0644))
+		err := checkSidecarEmpty(path, "close all connections")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "importing would lose the data it holds")
+		require.Contains(t, err.Error(), "close all connections")
+	})
+}
+
+func TestCheckpointWALBeforeUpload(t *testing.T) {
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		t.Skip("sqlite3 not available, skipping test")
+	}
+
+	dbPath := createTestDatabase(t, 10*1024)
+	require.NoError(t, checkpointWALBeforeUpload(dbPath))
+
+	// after the checkpoint no data-bearing sidecars may remain
+	for _, suffix := range []string{"-wal", "-journal"} {
+		if info, err := os.Stat(dbPath + suffix); err == nil {
+			require.Zero(t, info.Size(), "%s must be empty after checkpoint", dbPath+suffix)
+		}
+	}
+}
