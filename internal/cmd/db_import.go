@@ -9,11 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Import defaults to TursoDB (MVCC) databases — the only mode the cloud
-// supports for new databases. The flag is separate from createCmd's
-// --tursodb (which shares the tursoDBFlag global with a false default) so
-// the two commands can have different defaults; RunE copies it over before
-// delegating to CreateDatabase.
+// Import keeps its own flag value because it delegates database creation to
+// CreateDatabase; RunE copies the selected value to the shared create flag.
 var importTursoDBFlag bool
 
 func init() {
@@ -21,7 +18,7 @@ func init() {
 	addGroupFlag(importCmd)
 	addRemoteEncryptionKeyFlag(importCmd)
 	addRemoteEncryptionCipherFlag(importCmd)
-	importCmd.Flags().BoolVar(&importTursoDBFlag, "tursodb", true, "Import into a TursoDB (MVCC) database.")
+	importCmd.Flags().BoolVar(&importTursoDBFlag, "tursodb", false, "Import into a TursoDB (MVCC) database.")
 }
 
 var importCmd = &cobra.Command{
