@@ -8,6 +8,6 @@ import (
 	_ "embed"
 )
 
-//go:generate sh -c "printf %s $(../../script/version.sh) > version.txt"
+//go:generate go run ../../script/write_version.go
 //go:embed version.txt
 var version string

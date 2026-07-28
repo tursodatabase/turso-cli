@@ -17,7 +17,7 @@ For a guided walkthrough, follow the
 
 ### Package manager
 
-#### [Homebrew](https://brew.sh) (macOS, Linux, WSL)
+#### [Homebrew](https://brew.sh) (macOS, Linux)
 
 ```bash
 brew install tursodatabase/tap/turso
@@ -33,11 +33,32 @@ To upgrade an existing installation of the CLI, run:
 brew upgrade turso
 ```
 
+#### [WinGet](https://learn.microsoft.com/windows/package-manager/winget/) (Windows)
+
+```powershell
+winget install Turso.CLI
+```
+
+Requires the package to be published in the
+[WinGet community repository](https://github.com/microsoft/winget-pkgs).
+Maintainer setup and CD: [docs/winget.md](docs/winget.md).
+
 ### Install script
+
+#### macOS / Linux
 
 ```bash
 curl -sSfL https://get.tur.so/install.sh | bash
 ```
+
+#### Windows (PowerShell)
+
+```powershell
+irm https://get.tur.so/install.ps1 | iex
+```
+
+This installs a native `turso.exe` into `%USERPROFILE%\.turso` and adds that
+directory to your user `PATH`. WSL is not required.
 
 ### Go
 
@@ -70,6 +91,24 @@ turso auth login
 You are taken to a web page in your default browser to authenticate via GitHub.
 After successfully authenticated, `turso auth login` receives an access token
 that is stored on your settings file.
+
+On native Windows the same browser callback flow works after installing
+`turso.exe`. If the CLI cannot open or receive a browser callback (SSH, some
+WSL setups), use headless login and paste the token from the page:
+
+```bash
+turso auth login --headless
+```
+
+After login, mint a non-expiring API token for automation (including
+`api-tokens` workflows on CI/headless hosts):
+
+```bash
+turso auth api-tokens mint <token-name>
+```
+
+Set `TURSO_API_TOKEN` to that value for non-interactive use. Unset it before
+running `turso auth login` again (login refuses to run while the env var is set).
 
 ### Create database
 

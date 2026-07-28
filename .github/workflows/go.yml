@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
@@ -32,12 +32,6 @@ jobs:
       - name: Format
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
-      - name: Build
-        run: go build -v ./...
-
-      - name: Vet
-        run: go vet -v ./...
-
       - name: Install sqlclosecheck
         # TODO revert to github.com/ryanrolds/sqlclosecheck when https://github.com/ryanrolds/sqlclosecheck/pull/47 is merged
         run: go install github.com/LeMikaelF/sqlclosecheck@b53ecaccb94623dfa6050e4ada4eeecd3a130829
@@ -52,8 +46,83 @@ jobs:
           build-tags: "preview"
           install-go: false
 
+  release-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          fetch-depth: 0
+
+      - name: Setup Golang
+        uses: actions/setup-go@v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          install-only: true
+
+      - name: Snapshot release (includes Windows)
+        run: goreleaser release --snapshot --clean --skip=publish --config .goreleaser-self.yaml
+
+      - name: Assert Windows archives exist
+        run: |
+          ls -la dist/
+          test -f dist/turso-cli_Windows_x86_64.zip
+          test -f dist/turso-cli_Windows_arm64.zip
+          unzip -l dist/turso-cli_Windows_x86_64.zip | grep -E 'turso\.exe$'
+
+  build:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          fetch-depth: 0
+
+      - name: Setup Golang with cache
+        uses: actions/setup-go@v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Vet
+        run: go vet -v ./...
+
       - name: Test
         run: go test -v ./...
 
-      - name: Build Turso binary
-        run: go build -o turso cmd/turso/main.go
+      - name: Build Turso binary (dev)
+        shell: bash
+        run: |
+          EXT=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            EXT=".exe"
+          fi
+          go build -o "turso${EXT}" ./cmd/turso
+          "./turso${EXT}" --help >/dev/null
+          "./turso${EXT}" auth --help >/dev/null
+
+      - name: Prod generate and build
+        shell: bash
+        run: |
+          go generate --tags=prod ./...
+          EXT=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            EXT=".exe"
+          fi
+          go build -tags prod -o "turso-prod${EXT}" ./cmd/turso
+          "./turso-prod${EXT}" --help >/dev/null

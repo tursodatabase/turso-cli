@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+#
+# Replace InstallerUrl / InstallerSha256 with values from a real GitHub Release
+# that contains turso-cli_Windows_x86_64.zip and turso-cli_Windows_arm64.zip.
+# NestedInstallerFiles matches the GoReleaser zip layout (turso.exe at archive root).
+PackageIdentifier: Turso.CLI
+PackageVersion: 0.0.0-template
+InstallerLocale: en-US
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: turso.exe
+    PortableCommandAlias: turso
+Commands:
+  - turso
+UpgradeBehavior: install
+ReleaseDate: 2099-01-01
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/tursodatabase/turso-cli/releases/download/v0.0.0/turso-cli_Windows_x86_64.zip
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+  - Architecture: arm64
+    InstallerUrl: https://github.com/tursodatabase/turso-cli/releases/download/v0.0.0/turso-cli_Windows_arm64.zip
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+ManifestType: installer
+ManifestVersion: 1.10.0

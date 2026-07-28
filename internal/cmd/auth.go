@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	_ "embed"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -179,7 +181,7 @@ func auth(cmd *cobra.Command, path string) error {
 	}
 
 	if flags.Headless() {
-		return printHeadlessLoginInstructions(path)
+		return headlessLogin(settings, path)
 	}
 
 	state := randString(32)
@@ -262,6 +264,39 @@ func printHeadlessLoginInstructions(path string) error {
 	}
 	fmt.Println("Visit the following URL to login:")
 	fmt.Println(url)
+	return nil
+}
+
+// headlessLogin prints an auth URL (no localhost callback), then reads a pasted
+// access token from stdin. This is the supported path for environments where a
+// browser callback cannot reach the CLI (SSH, some WSL setups, locked-down hosts).
+func headlessLogin(config *settings.Settings, path string) error {
+	if err := printHeadlessLoginInstructions(path); err != nil {
+		return err
+	}
+	fmt.Println()
+	fmt.Println("After authenticating in your browser, paste the access token shown on the page and press Enter.")
+	fmt.Print("Access token: ")
+
+	reader := bufio.NewReader(os.Stdin)
+	token, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("failed to read access token: %w", err)
+	}
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return fmt.Errorf("no access token provided; re-run %s after copying the token from the browser", internal.Emph("turso auth login --headless"))
+	}
+
+	username, err := validateToken(token)
+	if err != nil {
+		return err
+	}
+
+	config.SetToken(token)
+	config.SetUsername(username)
+	fmt.Printf("✔  Success! Logged in as %s\n", username)
+	signupHint(config)
 	return nil
 }
 
