@@ -18,8 +18,7 @@ func createTestDatabase(t *testing.T, sizeBytes int) string {
 		t.Skip("sqlite3 not available, skipping test")
 	}
 
-	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, "test.db")
+	dbPath := filepath.Join(t.TempDir(), "test.db")
 
 	// Create database with correct settings for Turso
 	cmd := exec.Command("sqlite3", "-list", dbPath,
@@ -52,27 +51,46 @@ func TestRunQuickCheck(t *testing.T) {
 
 	t.Run("valid database succeeds", func(t *testing.T) {
 		dbPath := createTestDatabase(t, 10*1024) // 10KB
-		err := runQuickCheck(dbPath)
-		require.NoError(t, err)
+		require.NoError(t, runQuickCheck(dbPath))
 	})
 
 	t.Run("corrupted database returns error", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		dbPath := filepath.Join(tmpDir, "corrupt.db")
+		dbPath := filepath.Join(t.TempDir(), "corrupt.db")
 
 		// Create a file with garbage data
-		err := os.WriteFile(dbPath, []byte("not a valid sqlite database content here"), 0644)
-		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(dbPath, []byte("not a valid sqlite database content here"), 0644))
 
-		err = runQuickCheck(dbPath)
+		err := runQuickCheck(dbPath)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "integrity check failed")
 	})
 
 	t.Run("nonexistent file returns error", func(t *testing.T) {
-		err := runQuickCheck("/nonexistent/path/db.sqlite")
-		require.Error(t, err)
+		require.Error(t, runQuickCheck("/nonexistent/path/db.sqlite"))
 	})
+}
+
+func TestValidateDatabaseSettings(t *testing.T) {
+	checker := databaseFileChecker{
+		binary:      "tursodb",
+		journalMode: "mvcc",
+	}
+	settings := databaseSettings{
+		journalMode: "MVCC",
+		pageSize:    "4096",
+		autoVacuum:  "0",
+		encoding:    "UTF-8",
+	}
+
+	require.NoError(t, validateDatabaseSettings("data.db", settings, checker))
+	settings.journalMode = "WAL"
+	require.ErrorContains(t, validateDatabaseSettings("data.db", settings, checker), "not in MVCC mode")
+}
+
+func TestHandleDBFileAWSRejectsUnknownFormat(t *testing.T) {
+	dbPath := writeHeaderFile(t, sqliteMagic, 2, 255)
+	_, err := handleDBFileAWS(dbPath, "")
+	require.ErrorContains(t, err, "unsupported SQLite read/write format versions")
 }
 
 func TestTursodbLogPath(t *testing.T) {
@@ -129,6 +147,8 @@ func TestPrepareTursoDBFile(t *testing.T) {
 	dbPath := createTestDatabase(t, 10*1024)
 	require.NoError(t, checkpointWALBeforeUpload(dbPath))
 	require.NoError(t, prepareTursoDBFile(dbPath))
+	require.NoError(t, tursoDBFileIntegrityChecks(dbPath))
+	require.NoError(t, checkTursoDBSidecars(dbPath))
 
 	format, err := sniffSQLiteFileFormat(dbPath)
 	require.NoError(t, err)
