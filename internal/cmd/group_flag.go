@@ -341,11 +341,6 @@ func runQuickCheck(file string) error {
 	return nil
 }
 
-// checkpointWALBeforeUpload folds any pending WAL frames into the main
-// database file and verifies no data is left behind in sidecar files. The
-// upload ships only the main database file, so frames still sitting in
-// <file>-wal (or a hot rollback journal) would silently be missing from the
-// imported database.
 func checkpointWALBeforeUpload(file string) error {
 	if out, err := exec.Command("sqlite3", "-list", file, "PRAGMA wal_checkpoint(TRUNCATE);").CombinedOutput(); err != nil {
 		return fmt.Errorf("could not checkpoint database %s: %w: %s", file, err, out)
@@ -363,8 +358,8 @@ func checkpointWALBeforeUpload(file string) error {
 
 // prepareTursoDBFile asks the TursoDB engine to convert the database to MVCC,
 // checkpoint any logical-log entries into the main file, and validate the
-// resulting database. Uploading only the main file is safe once all data-bearing
-// sidecars are empty.
+// resulting database. Uploading only the main file is safe once the logical log
+// and WAL have been truncated.
 func prepareTursoDBFile(file string) error {
 	output, err := exec.Command("tursodb", "-q", "-m", "list", file,
 		"PRAGMA journal_mode = mvcc; PRAGMA wal_checkpoint(TRUNCATE); PRAGMA quick_check;").CombinedOutput()
@@ -411,9 +406,6 @@ func checkSidecarEmpty(sidecarPath, hint string) error {
 	return nil
 }
 
-// tursodbLogPath returns the logical-log sidecar path tursodb uses for a
-// database file, mirroring turso_core's `with_extension("db-log")`: the
-// file's extension (if any) is replaced with "db-log".
 func tursodbLogPath(file string) string {
 	return strings.TrimSuffix(file, filepath.Ext(file)) + ".db-log"
 }
@@ -428,9 +420,6 @@ func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 		if err := checkSQLiteAvailable(); err != nil {
 			return nil, err
 		}
-		// The server only accepts WAL or MVCC format files. Converting to WAL
-		// is exactly the remediation the error message used to instruct users
-		// to run themselves, and sqlite3 is already a hard requirement here.
 		fmt.Printf("File %s uses a rollback journal; converting it to WAL mode for import.\n", file)
 		if out, err := exec.Command("sqlite3", file, "PRAGMA journal_mode=WAL;").CombinedOutput(); err != nil {
 			return nil, fmt.Errorf("could not convert %s to WAL mode: %w: %s", file, err, out)

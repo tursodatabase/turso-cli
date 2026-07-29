@@ -9,8 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Import keeps its own flag value because it delegates database creation to
-// CreateDatabase; RunE copies the selected value to the shared create flag.
 var importTursoDBFlag bool
 
 func init() {
