@@ -158,7 +158,7 @@ type chunkUploadContext struct {
 	chunkPath        string
 	chunkSize        int64
 	chunkStartOffset int64 // File offset where this chunk starts
-	file             *os.File
+	file             io.ReadSeeker
 	headers          map[string]string
 	totalSize        int64
 	startTime        time.Time
@@ -355,7 +355,7 @@ func (i *TursoServerClient) startMultipartUpload(dbSize int64) (multipartUploadS
 	return multipartUploadStart(uploadResp), nil
 }
 
-func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file *os.File, totalSize int64, startTime time.Time, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
+func (i *TursoServerClient) uploadChunks(uploadID string, chunkSize int64, file io.ReadSeeker, totalSize int64, startTime time.Time, remoteEncryptionCipher, remoteEncryptionKey string, onUploadProgress func(progressPct int, uploadedBytes int64, totalBytes int64, elapsedTime time.Duration, done bool)) (int64, error) {
 	var uploadedBytes int64 = 0
 	chunkID := 0
 	lastProgressPct := -1

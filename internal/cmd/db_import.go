@@ -9,11 +9,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var importTursoDBFlag bool
+
 func init() {
 	dbCmd.AddCommand(importCmd)
 	addGroupFlag(importCmd)
 	addRemoteEncryptionKeyFlag(importCmd)
 	addRemoteEncryptionCipherFlag(importCmd)
+	importCmd.Flags().BoolVar(&importTursoDBFlag, "tursodb", false, "Import into a TursoDB (MVCC) database.")
 }
 
 var importCmd = &cobra.Command{
@@ -43,6 +46,7 @@ var importCmd = &cobra.Command{
 		}
 
 		fromFileFlag = filename
+		tursoDBFlag = importTursoDBFlag
 		name := sanitizeDatabaseName(filename)
 		return CreateDatabase(name)
 	},

@@ -155,7 +155,7 @@ func createDatabase(client *turso.Client, name, location, groupName string, seed
 	if sizeLimitFlag != "" {
 		return createDatabaseV2(client, name, location, groupName, seed, spinner)
 	}
-	if seed != nil && seed.Type != "database" && seed.Type != "upload" {
+	if seed != nil && seed.Type != "database" {
 		return createDatabaseV2(client, name, location, groupName, seed, spinner)
 	}
 	orgID, err := tryResolveOrgID(client)

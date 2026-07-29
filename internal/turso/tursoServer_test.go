@@ -1162,3 +1162,22 @@ func TestProgressReader_UpdatesTrackingFieldsCorrectly(t *testing.T) {
 		require.Equal(t, int64(50), pr.lastUpdateBytes, "lastUpdateBytes should track uploaded bytes")
 	})
 }
+
+func TestUploadFileMultipart_DoesNotRewriteFormatBytes(t *testing.T) {
+	mock := NewMockTursoServer()
+	mock.chunkSize = 16
+	defer mock.Close()
+
+	content := make([]byte, 100)
+	content[18], content[19] = 2, 2
+
+	client := createTestClient(t, mock.URL)
+	testFile := createTestFileWithContent(t, content)
+	progress := NewProgressRecorder()
+
+	err := client.UploadFileMultipart(testFile, "", "", progress.Callback())
+	require.NoError(t, err)
+
+	uploaded := mock.GetAllChunkData()
+	require.Equal(t, content, uploaded)
+}

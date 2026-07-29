@@ -5,11 +5,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Clever/csvlint"
@@ -184,185 +181,26 @@ func countFlags(flags ...string) (count int) {
 	return
 }
 
-const MaxAWSDBSizeBytes = 1024 * 1024 * 1024 * 20 // 20 GB
-
-func humanReadableSize(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}
-
-func checkIfDump(filename string) (bool, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return false, err
-	}
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	if scanner.Scan() {
-		firstLine := scanner.Text()
-		return strings.TrimSpace(firstLine) == "PRAGMA foreign_keys=OFF;", nil
-	} else {
-		return false, scanner.Err()
-	}
-}
-
-// getReservedBytes retrieves the current reserved bytes setting from a SQLite database
-func getReservedBytes(dbPath string) (int, error) {
-	output, err := exec.Command("sqlite3", "-list", dbPath, ".filectrl reserve_bytes").CombinedOutput()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get reserved bytes: %w", err)
-	}
-	outputStr := strings.TrimSpace(string(output))
-
-	if strings.Contains(outputStr, ":") {
-		parts := strings.Split(outputStr, ":")
-		if len(parts) >= 2 {
-			outputStr = strings.TrimSpace(parts[1])
-		}
-	}
-
-	reservedBytes, err := strconv.Atoi(outputStr)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse reserved bytes from output '%s': %w", string(output), err)
-	}
-
-	return reservedBytes, nil
-}
-
-// validateReservedBytes checks if the database has the required reserved bytes for the given cipher
-func validateReservedBytes(dbPath string, cipher string) error {
-	requiredBytes, ok := getRequiredReservedBytes(cipher)
-	if !ok {
-		return nil
-	}
-
-	currentBytes, err := getReservedBytes(dbPath)
-	if err != nil {
-		return err
-	}
-
-	if currentBytes != requiredBytes {
-		return fmt.Errorf("database reserved bytes mismatch: found %d, but cipher '%s' requires %d reserved bytes.\nTo fix this, run:\n\n  $ sqlite3 %s\n  sqlite> .filectrl reserve_bytes %d\n  sqlite> VACUUM;",
-			currentBytes, cipher, requiredBytes, dbPath, requiredBytes)
-	}
-
-	return nil
-}
-
-func sqliteFileIntegrityChecks(file string, cipher string) error {
-	if flags.Debug() {
-		log.Printf("Running integrity checks on database file %s", file)
-	}
-
-	if flags.Debug() {
-		log.Printf("Checking if this is a sqlite dump: common mistake!...")
-	}
-
-	isDump, err := checkIfDump(file)
-	if err != nil {
-		return fmt.Errorf("failed to get file header: %w", err)
-	}
-	if isDump {
-		return fmt.Errorf("%s is a sqlite3 dump, not a sqlite3 database. Please import a sqlite database", file)
-	}
-
-	if flags.Debug() {
-		log.Printf("Checking file size...")
-	}
-	fileInfo, err := os.Stat(file)
-	if err != nil {
-		return fmt.Errorf("failed to get file info: %w", err)
-	}
-
-	if fileInfo.Size() > MaxAWSDBSizeBytes {
-		return errors.New("database file size exceeds maximum allowed size of 20 GB")
-	}
-
-	if flags.Debug() {
-		log.Printf("Checking database settings...")
-	}
-	output, err := exec.Command("sqlite3", "-list", file, ".mode line",
-		"select journal_mode as j, page_size as p, auto_vacuum as a, encoding as e from pragma_journal_mode, pragma_page_size, pragma_auto_vacuum, pragma_encoding;").CombinedOutput()
-	if err != nil {
-
-		return fmt.Errorf("failed to check database settings: %w", err)
-	}
-
-	settings := string(output)
-	if !strings.Contains(settings, "j: wal") && !strings.Contains(settings, "j = wal") {
-		return fmt.Errorf("database is not in WAL mode. Set it with 'sqlite3 %s 'PRAGMA journal_mode = WAL'", file)
-	}
-	if !strings.Contains(settings, "p: 4096") && !strings.Contains(settings, "p = 4096") {
-		return fmt.Errorf("database must use 4KB page size. you can set it with 'sqlite3 %s 'PRAGMA page_size = 4096; VACUUM;' Note that this is not possible to do if your database is already in WAL mode", file)
-	}
-	if !strings.Contains(settings, "a: 0") && !strings.Contains(settings, "a = 0") {
-		return fmt.Errorf("database must have autovacuum disabled. you can set it with 'sqlite3 %s 'PRAGMA auto_vacuum = 0;'", file)
-	}
-	if !strings.Contains(settings, "e: UTF-8") && !strings.Contains(settings, "e = UTF-8") {
-		return fmt.Errorf("database must use UTF-8 encoding. you can set it with 'sqlite3 %s 'PRAGMA encoding = 'UTF-8'	", file)
-	}
-
-	// run quick_check
-	if flags.Debug() {
-		log.Printf("Running integrity check...")
-	}
-	spinner := prompt.Spinner(fmt.Sprintf("Validating database file (%s)...", humanReadableSize(fileInfo.Size())))
-	err = runQuickCheck(file)
-	spinner.Stop()
-	if err != nil {
-		return err
-	}
-
-	// validate reserved bytes if encryption cipher is specified
-	if cipher != "" {
-		if flags.Debug() {
-			log.Printf("Checking reserved bytes for cipher %s...", cipher)
-		}
-		return validateReservedBytes(file, cipher)
-	}
-
-	return nil
-}
-
-func runQuickCheck(file string) error {
-	cmd := exec.Command("sqlite3", "-list", file, "pragma quick_check;")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("integrity check failed: %w", err)
-	}
-	return nil
-}
-
-func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
-	if err := sqliteFileIntegrityChecks(file, cipher); err != nil {
-		return nil, err
-	}
-
-	seed := &turso.DBSeed{
-		Type:     "database_upload",
-		Filepath: file,
-	}
-
-	return seed, nil
-}
-
 func handleDBFile(client *turso.Client, file string, isAWS bool, cipher string) (*turso.DBSeed, error) {
 	if err := checkFileExists(file); err != nil {
-		return nil, err
-	}
-	if err := checkSQLiteAvailable(); err != nil {
 		return nil, err
 	}
 
 	if isAWS {
 		return handleDBFileAWS(file, cipher)
+	}
+
+	format, err := sniffSQLiteFileFormat(file)
+	if err != nil {
+		return nil, err
+	}
+	if format == fileFormatMVCC {
+		// non-AWS groups are seeded by replaying a .dump, which sqlite3 cannot
+		// produce from an MVCC (tursodb format) file
+		return nil, fmt.Errorf("%s is in tursodb (MVCC) format and can only be imported into AWS groups", file)
+	}
+	if err := checkSQLiteAvailable(); err != nil {
+		return nil, err
 	}
 
 	if err := checkSQLiteFile(file); err != nil {
