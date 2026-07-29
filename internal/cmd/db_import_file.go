@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -14,15 +15,41 @@ import (
 	"github.com/tursodatabase/turso-cli/internal/flags"
 	"github.com/tursodatabase/turso-cli/internal/prompt"
 	"github.com/tursodatabase/turso-cli/internal/turso"
+	_ "turso.tech/database/tursogo"
 )
 
 const MaxAWSDBSizeBytes = 1024 * 1024 * 1024 * 20 // 20 GB
 
 const databaseSettingsQuery = "select journal_mode as j, page_size as p, auto_vacuum as a, encoding as e from pragma_journal_mode, pragma_page_size, pragma_auto_vacuum, pragma_encoding;"
 
+type databaseEngine uint8
+
+const (
+	databaseEngineUnknown databaseEngine = iota
+	databaseEngineSQLite
+	databaseEngineTursoDB
+)
+
+func (e databaseEngine) name() string {
+	switch e {
+	case databaseEngineSQLite:
+		return "SQLite"
+	case databaseEngineTursoDB:
+		return "TursoDB"
+	default:
+		return "unknown"
+	}
+}
+
+func (e databaseEngine) settingsCommand() (string, bool) {
+	if e == databaseEngineSQLite {
+		return "sqlite3", true
+	}
+	return "", false
+}
+
 type databaseFileChecker struct {
-	name        string
-	binary      string
+	engine      databaseEngine
 	journalMode string
 	settings    func(string) (databaseSettings, error)
 	quickCheck  func(string) error
@@ -77,8 +104,7 @@ func validateDatabaseFileSize(file string) error {
 
 func sqliteFileIntegrityChecks(file string, cipher string) error {
 	return databaseFileIntegrityChecks(file, cipher, databaseFileChecker{
-		name:        "SQLite",
-		binary:      "sqlite3",
+		engine:      databaseEngineSQLite,
 		journalMode: "wal",
 		settings:    sqliteDatabaseSettings,
 		quickCheck:  runQuickCheck,
@@ -87,8 +113,7 @@ func sqliteFileIntegrityChecks(file string, cipher string) error {
 
 func tursoDBFileIntegrityChecks(file string) error {
 	return databaseFileIntegrityChecks(file, "", databaseFileChecker{
-		name:        "TursoDB",
-		binary:      "tursodb",
+		engine:      databaseEngineTursoDB,
 		journalMode: "mvcc",
 		settings:    tursoDBDatabaseSettings,
 		quickCheck:  runTursoDBQuickCheck,
@@ -97,7 +122,7 @@ func tursoDBFileIntegrityChecks(file string) error {
 
 func databaseFileIntegrityChecks(file, cipher string, checker databaseFileChecker) error {
 	if flags.Debug() {
-		log.Printf("Running %s integrity checks on database file %s", checker.name, file)
+		log.Printf("Running %s integrity checks on database file %s", checker.engine.name(), file)
 		log.Printf("Checking database settings...")
 	}
 
@@ -134,17 +159,30 @@ func databaseFileIntegrityChecks(file, cipher string, checker databaseFileChecke
 }
 
 func validateDatabaseSettings(file string, settings databaseSettings, checker databaseFileChecker) error {
+	settingsCommand, hasSettingsCommand := checker.engine.settingsCommand()
 	if !strings.EqualFold(settings.journalMode, checker.journalMode) {
-		return fmt.Errorf("database is not in %s mode. Set it with '%s %s \"PRAGMA journal_mode = %s;\"'", strings.ToUpper(checker.journalMode), checker.binary, file, strings.ToUpper(checker.journalMode))
+		if !hasSettingsCommand {
+			return fmt.Errorf("database is not in %s mode", strings.ToUpper(checker.journalMode))
+		}
+		return fmt.Errorf("database is not in %s mode. Set it with '%s %s \"PRAGMA journal_mode = %s;\"'", strings.ToUpper(checker.journalMode), settingsCommand, file, strings.ToUpper(checker.journalMode))
 	}
 	if settings.pageSize != "4096" {
-		return fmt.Errorf("database must use 4KB page size. You can set it with '%s %s \"PRAGMA page_size = 4096; VACUUM;\"'", checker.binary, file)
+		if !hasSettingsCommand {
+			return errors.New("database must use 4KB page size")
+		}
+		return fmt.Errorf("database must use 4KB page size. You can set it with '%s %s \"PRAGMA page_size = 4096; VACUUM;\"'", settingsCommand, file)
 	}
 	if settings.autoVacuum != "0" {
-		return fmt.Errorf("database must have autovacuum disabled. You can set it with '%s %s \"PRAGMA auto_vacuum = 0;\"'", checker.binary, file)
+		if !hasSettingsCommand {
+			return errors.New("database must have autovacuum disabled")
+		}
+		return fmt.Errorf("database must have autovacuum disabled. You can set it with '%s %s \"PRAGMA auto_vacuum = 0;\"'", settingsCommand, file)
 	}
 	if !strings.EqualFold(settings.encoding, "UTF-8") {
-		return fmt.Errorf("database must use UTF-8 encoding. You can set it with '%s %s \"PRAGMA encoding = 'UTF-8';\"'", checker.binary, file)
+		if !hasSettingsCommand {
+			return errors.New("database must use UTF-8 encoding")
+		}
+		return fmt.Errorf("database must use UTF-8 encoding. You can set it with '%s %s \"PRAGMA encoding = 'UTF-8';\"'", settingsCommand, file)
 	}
 	return nil
 }
@@ -175,15 +213,36 @@ func sqliteDatabaseSettings(file string) (databaseSettings, error) {
 }
 
 func tursoDBDatabaseSettings(file string) (databaseSettings, error) {
-	output, err := exec.Command("tursodb", "-q", "-m", "list", file, databaseSettingsQuery).CombinedOutput()
+	db, err := openTursoDB(file)
 	if err != nil {
-		return databaseSettings{}, fmt.Errorf("failed to check database settings with TursoDB: %w: %s", err, strings.TrimSpace(string(output)))
+		return databaseSettings{}, fmt.Errorf("failed to check database settings with TursoDB: %w", err)
 	}
-	settings, err := parseDatabaseSettings(string(output))
+	defer db.Close()
+
+	var settings databaseSettings
+	err = db.QueryRow(databaseSettingsQuery).Scan(
+		&settings.journalMode,
+		&settings.pageSize,
+		&settings.autoVacuum,
+		&settings.encoding,
+	)
 	if err != nil {
-		return databaseSettings{}, fmt.Errorf("failed to parse database settings from TursoDB: %w", err)
+		return databaseSettings{}, fmt.Errorf("failed to query database settings with TursoDB: %w", err)
 	}
 	return settings, nil
+}
+
+func openTursoDB(file string) (*sql.DB, error) {
+	db, err := sql.Open("turso", file)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return db, nil
 }
 
 func runQuickCheck(file string) error {
@@ -195,13 +254,34 @@ func runQuickCheck(file string) error {
 }
 
 func runTursoDBQuickCheck(file string) error {
-	output, err := exec.Command("tursodb", "-q", "-m", "list", file, "PRAGMA quick_check;").CombinedOutput()
+	db, err := openTursoDB(file)
 	if err != nil {
-		return fmt.Errorf("TursoDB integrity check failed for %s: %w: %s", file, err, strings.TrimSpace(string(output)))
+		return fmt.Errorf("TursoDB integrity check failed for %s: %w", file, err)
 	}
-	fields := strings.Fields(string(output))
-	if len(fields) == 0 || fields[len(fields)-1] != "ok" {
-		return fmt.Errorf("TursoDB integrity check failed for %s: %s", file, strings.TrimSpace(string(output)))
+	defer db.Close()
+
+	rows, err := db.Query("PRAGMA quick_check;")
+	if err != nil {
+		return fmt.Errorf("TursoDB integrity check failed for %s: %w", file, err)
+	}
+	defer rows.Close()
+
+	checked := false
+	for rows.Next() {
+		var result string
+		if err := rows.Scan(&result); err != nil {
+			return fmt.Errorf("TursoDB integrity check failed for %s: %w", file, err)
+		}
+		checked = true
+		if result != "ok" {
+			return fmt.Errorf("TursoDB integrity check failed for %s: %s", file, result)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("TursoDB integrity check failed for %s: %w", file, err)
+	}
+	if !checked {
+		return fmt.Errorf("TursoDB integrity check failed for %s: no result", file)
 	}
 	return nil
 }
@@ -222,10 +302,17 @@ func checkpointWALBeforeUpload(file string) error {
 }
 
 func prepareTursoDBFile(file string) error {
-	output, err := exec.Command("tursodb", "-q", "-m", "list", file,
-		"PRAGMA journal_mode = mvcc; PRAGMA wal_checkpoint(TRUNCATE);").CombinedOutput()
+	db, err := openTursoDB(file)
 	if err != nil {
-		return fmt.Errorf("could not prepare %s for TursoDB import: %w: %s", file, err, strings.TrimSpace(string(output)))
+		return fmt.Errorf("could not prepare %s for TursoDB import: %w", file, err)
+	}
+	_, execErr := db.Exec("PRAGMA journal_mode = mvcc; PRAGMA wal_checkpoint(TRUNCATE);")
+	closeErr := db.Close()
+	if execErr != nil {
+		return fmt.Errorf("could not prepare %s for TursoDB import: %w", file, execErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("could not close %s after preparing it for TursoDB import: %w", file, closeErr)
 	}
 
 	format, err := sniffSQLiteFileFormat(file)
@@ -322,9 +409,6 @@ func handleDBFileAWS(file string, cipher string) (*turso.DBSeed, error) {
 	}
 
 	if tursoDBFlag {
-		if err := checkTursoDBAvailable(); err != nil {
-			return nil, err
-		}
 		if format != fileFormatMVCC {
 			fmt.Printf("Converting %s to TursoDB (MVCC) format for import.\n", file)
 		}
@@ -384,12 +468,4 @@ func validateReservedBytes(dbPath string, cipher string) error {
 			currentBytes, cipher, requiredBytes, dbPath, requiredBytes)
 	}
 	return nil
-}
-
-func checkTursoDBAvailable() error {
-	_, err := exec.LookPath("tursodb")
-	if errors.Is(err, exec.ErrNotFound) {
-		return errors.New("could not find tursodb on your system. Please install it to import into a TursoDB database")
-	}
-	return err
 }

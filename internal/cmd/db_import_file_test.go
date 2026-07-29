@@ -72,7 +72,7 @@ func TestRunQuickCheck(t *testing.T) {
 
 func TestValidateDatabaseSettings(t *testing.T) {
 	checker := databaseFileChecker{
-		binary:      "tursodb",
+		engine:      databaseEngineTursoDB,
 		journalMode: "mvcc",
 	}
 	settings := databaseSettings{
@@ -84,7 +84,14 @@ func TestValidateDatabaseSettings(t *testing.T) {
 
 	require.NoError(t, validateDatabaseSettings("data.db", settings, checker))
 	settings.journalMode = "WAL"
-	require.ErrorContains(t, validateDatabaseSettings("data.db", settings, checker), "not in MVCC mode")
+	err := validateDatabaseSettings("data.db", settings, checker)
+	require.ErrorContains(t, err, "not in MVCC mode")
+	require.NotContains(t, err.Error(), "tursodb")
+
+	checker.engine = databaseEngineSQLite
+	checker.journalMode = "wal"
+	settings.journalMode = "MVCC"
+	require.ErrorContains(t, validateDatabaseSettings("data.db", settings, checker), "sqlite3")
 }
 
 func TestHandleDBFileAWSRejectsUnknownFormat(t *testing.T) {
@@ -140,12 +147,9 @@ func TestCheckpointWALBeforeUpload(t *testing.T) {
 }
 
 func TestPrepareTursoDBFile(t *testing.T) {
-	if _, err := exec.LookPath("tursodb"); err != nil {
-		t.Skip("tursodb not available, skipping test")
-	}
-
 	dbPath := createTestDatabase(t, 10*1024)
 	require.NoError(t, checkpointWALBeforeUpload(dbPath))
+	t.Setenv("PATH", t.TempDir()) // TursoDB preparation must not require an external binary.
 	require.NoError(t, prepareTursoDBFile(dbPath))
 	require.NoError(t, tursoDBFileIntegrityChecks(dbPath))
 	require.NoError(t, checkTursoDBSidecars(dbPath))
