@@ -3,6 +3,7 @@ package settings
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -20,12 +21,14 @@ func TestPersistTightensFilePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat after create: %v", err)
 	}
-	if got := st.Mode().Perm(); got != 0o600 {
-		t.Errorf("fresh file mode = %o, want 600", got)
-	}
-	stDir, _ := os.Stat(dir)
-	if got := stDir.Mode().Perm(); got != 0o700 {
-		t.Errorf("fresh dir mode = %o, want 700", got)
+	if runtime.GOOS != "windows" {
+		if got := st.Mode().Perm(); got != 0o600 {
+			t.Errorf("fresh file mode = %o, want 600", got)
+		}
+		stDir, _ := os.Stat(dir)
+		if got := stDir.Mode().Perm(); got != 0o700 {
+			t.Errorf("fresh dir mode = %o, want 700", got)
+		}
 	}
 
 	if err := os.Chmod(file, 0o644); err != nil {
@@ -39,7 +42,9 @@ func TestPersistTightensFilePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat after persist: %v", err)
 	}
-	if got := st.Mode().Perm(); got != 0o600 {
-		t.Errorf("file mode after persist = %o, want 600", got)
+	if runtime.GOOS != "windows" {
+		if got := st.Mode().Perm(); got != 0o600 {
+			t.Errorf("file mode after persist = %o, want 600", got)
+		}
 	}
 }
