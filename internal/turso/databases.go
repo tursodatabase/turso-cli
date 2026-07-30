@@ -28,6 +28,7 @@ type Database struct {
 	IsSchema         bool      `json:"is_schema" mapstructure:"is_schema"`
 	Parent           *Database `json:"parent,omitempty"`
 	EncryptionCipher string    `json:"encryption_cipher,omitempty"`
+	ServerType       string    `json:"server_type"`
 }
 
 type DatabasesClient client
