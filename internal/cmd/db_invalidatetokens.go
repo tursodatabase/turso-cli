@@ -76,7 +76,7 @@ func rotateAndNotify(turso *turso.Client, database turso.Database) error {
 func rotate(turso *turso.Client, database turso.Database) error {
 	invalidateDbTokenCache()
 	settings.PersistChanges()
-	if database.Group != "" && database.Version != "tech-preview" {
+	if database.Group != "" && database.ServerType != "turso-server" {
 		return turso.Groups.Rotate(database.Group)
 	}
 	return turso.Databases.Rotate(database.Name)
