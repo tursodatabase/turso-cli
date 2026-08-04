@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -20,9 +22,9 @@ func init() {
 }
 
 var importCmd = &cobra.Command{
-	Use:               "import [filename]",
+	Use:               "import [filename] [database-name]",
 	Short:             "Import a SQLite database file to Turso.",
-	Args:              cobra.MaximumNArgs(1),
+	Args:              cobra.MaximumNArgs(2),
 	ValidArgsFunction: noFilesArg,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return nil
@@ -30,7 +32,7 @@ var importCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		if len(args) == 0 {
-			return errors.New("filename is required: 'turso db import <filename>'")
+			return errors.New("filename is required: 'turso db import <filename> [database-name]'")
 		}
 		filename := args[0]
 
@@ -48,8 +50,32 @@ var importCmd = &cobra.Command{
 		fromFileFlag = filename
 		tursoDBFlag = importTursoDBFlag
 		name := sanitizeDatabaseName(filename)
+		if len(args) > 1 {
+			name = args[1]
+		} else if isInteractive() {
+			input, err := promptDatabaseName(name)
+			if err != nil {
+				return err
+			}
+			name = input
+		}
 		return CreateDatabase(name)
 	},
+}
+
+// Ask the user for a database name, defaulting to the one derived from the filename.
+func promptDatabaseName(defaultName string) (string, error) {
+	fmt.Printf("Database name [%s]: ", defaultName)
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return defaultName, nil
+	}
+	return input, nil
 }
 
 // Sanitize a SQLite database filename to be used as a cloud database name.
