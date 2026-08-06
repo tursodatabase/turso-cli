@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -38,6 +39,13 @@ func wakeupDatabase(client *turso.Client, name string) error {
 	defer s.Stop()
 
 	if err := client.Databases.Wakeup(name); err != nil {
+		if strings.Contains(err.Error(), "part of a group") {
+			db, dbErr := getDatabase(client, name)
+			if dbErr != nil {
+				return fmt.Errorf("%w\n\nTo unarchive the group, run:\n\n\tturso group unarchive <group-name>", err)
+			}
+			return fmt.Errorf("%w\n\nTo unarchive the group, run:\n\n\tturso group unarchive %s", err, db.Group)
+		}
 		return err
 	}
 	s.Stop()
