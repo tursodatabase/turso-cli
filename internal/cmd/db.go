@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tursodatabase/turso-cli/internal"
@@ -66,7 +67,20 @@ func getDatabase(client *turso.Client, name string, fresh ...bool) (turso.Databa
 		}
 	}
 
+	if suggestion := suggestDatabaseName(name, databases); suggestion != "" {
+		return turso.Database{}, fmt.Errorf("database %s not found. Did you mean %s? List known databases using %s", internal.Emph(name), internal.Emph(suggestion), internal.Emph("turso db list"))
+	}
 	return turso.Database{}, fmt.Errorf("database %s not found. List known databases using %s", internal.Emph(name), internal.Emph("turso db list"))
+}
+
+func suggestDatabaseName(name string, databases []turso.Database) string {
+	for _, database := range databases {
+		hostPrefix, _, _ := strings.Cut(database.Hostname, ".")
+		if hostPrefix == name {
+			return database.Name
+		}
+	}
+	return ""
 }
 
 func listDatabases(client *turso.Client) ([]turso.Database, error) {
