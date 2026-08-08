@@ -7,7 +7,7 @@ import (
 
 type TokensClient client
 
-func (c *TokensClient) Validate(token string) (int64, error) {
+func (c *TokensClient) Validate() (int64, error) {
 	r, err := c.client.Get("/v1/auth/validate", nil)
 	if err != nil {
 		return 0, fmt.Errorf("failed to request validation: %s", err)
