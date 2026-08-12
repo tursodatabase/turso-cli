@@ -23,7 +23,7 @@ func init() {
 	groupCmd.AddCommand(unarchiveGroupCmd)
 	addLocationFlag(groupsCreateCmd, "Create the group primary in the specified location")
 	addWaitFlag(groupsCreateCmd, "Wait for group to be ready")
-	flags.AddVersion(groupsCreateCmd, "Version of the group. Valid values: 'latest' or 'vector'")
+	flags.AddVersion(groupsCreateCmd, "Version of the group. Valid values: 'latest', or a specific turso-server version tag (e.g. 'v0.34.2') to pin the group — and every database in it — to a fleet running exactly that version (restricted to internal Turso users)")
 	groupCmd.AddCommand(groupsDestroyCmd)
 	addYesFlag(groupsDestroyCmd, "Confirms the destruction of the group, with all its locations and databases.")
 	groupCmd.AddCommand(groupShowCmd)
