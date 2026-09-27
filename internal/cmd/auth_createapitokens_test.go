@@ -15,13 +15,18 @@ func TestMintApiTokenOrganization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	previousOrg, previousURL, previousFlag := config.Organization(), viper.GetString("baseURL"), mintOrgFlag
+	previousOrg, previousURL := config.Organization(), viper.GetString("baseURL")
+	previousMintOrg, previousMintGroup, previousMintScopes := mintOrgFlag, mintGroupFlag, mintScopeFlags
+	previousMintReadOnly, previousMintFullAccess := mintReadOnlyFlag, mintFullAccessFlag
 	t.Cleanup(func() {
 		config.SetOrganization(previousOrg)
 		viper.Set("baseURL", previousURL)
-		mintOrgFlag = previousFlag
+		mintOrgFlag, mintGroupFlag, mintScopeFlags = previousMintOrg, previousMintGroup, previousMintScopes
+		mintReadOnlyFlag, mintFullAccessFlag = previousMintReadOnly, previousMintFullAccess
 	})
 	config.SetOrganization("selected-org")
+	mintOrgFlag, mintGroupFlag, mintScopeFlags = "", "", nil
+	mintReadOnlyFlag, mintFullAccessFlag = false, false
 	t.Setenv(ENV_ACCESS_TOKEN, "test-token")
 
 	for _, tc := range []struct {
@@ -42,13 +47,11 @@ func TestMintApiTokenOrganization(t *testing.T) {
 					if r.Method != http.MethodPost {
 						t.Errorf("method = %s, want POST", r.Method)
 					}
-					var body struct {
-						Organization string `json:"organization"`
-					}
+					var body map[string]any
 					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 						t.Errorf("missing or invalid request body: %v", err)
-					} else if body.Organization != tc.want {
-						t.Errorf("organization = %q, want %q", body.Organization, tc.want)
+					} else if len(body) != 1 || body["organization"] != tc.want {
+						t.Errorf("request body = %v, want only organization %q", body, tc.want)
 					}
 					w.Write([]byte(`{"token":{"value":"minted"}}`))
 				default:
