@@ -19,7 +19,7 @@ var (
 
 func init() {
 	apiTokensCmd.AddCommand(createApiTokensCmd)
-	createApiTokensCmd.Flags().StringVar(&mintOrgFlag, "org", "", "Organization to restrict the token to.")
+	createApiTokensCmd.Flags().StringVar(&mintOrgFlag, "org", "", "Organization to restrict the token to (defaults to the selected organization).")
 	createApiTokensCmd.Flags().StringVar(&mintGroupFlag, "group", "", "Group inside --org to restrict the token to. Implies --org and requires at least one scope.")
 	createApiTokensCmd.Flags().StringArrayVar(&mintScopeFlags, "scope", nil, "Permission scope to grant to a group-scoped token. May be repeated. Allowed values: "+scopeFlagListing()+".")
 	createApiTokensCmd.Flags().BoolVar(&mintReadOnlyFlag, "read-only", false, "Shorthand for --scope read.")
@@ -74,7 +74,11 @@ var createApiTokensCmd = &cobra.Command{
 			}
 		}
 
-		data, err := client.ApiTokens.CreateScoped(name, mintOrgFlag, mintGroupFlag, scopes)
+		org := mintOrgFlag
+		if org == "" {
+			org = client.Org
+		}
+		data, err := client.ApiTokens.CreateScoped(name, org, mintGroupFlag, scopes)
 		if err != nil {
 			return err
 		}
