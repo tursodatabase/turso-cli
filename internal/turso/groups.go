@@ -319,7 +319,7 @@ func (d *GroupsClient) Rotate(group string) error {
 	url := d.URL(fmt.Sprintf("/%s/auth/rotate", group))
 	r, err := d.client.Post(url, nil)
 	if err != nil {
-		return fmt.Errorf("failed to rotate database keys: %w", err)
+		return fmt.Errorf("failed to rotate group tokens: %w", err)
 	}
 	defer r.Body.Close()
 
@@ -329,7 +329,7 @@ func (d *GroupsClient) Rotate(group string) error {
 	}
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to rotate database keys: %w", parseResponseError(r))
+		return fmt.Errorf("failed to rotate group tokens: %w", parseResponseError(r))
 	}
 
 	return nil
