@@ -24,12 +24,12 @@ var groupTokensCmd = &cobra.Command{
 
 func init() {
 	groupTokensCmd.AddCommand(groupTokensInvalidateCmd)
-	flags.AddYes(groupTokensInvalidateCmd, "Confirms the invalidation of the credentials of the group and all its databases")
+	flags.AddYes(groupTokensInvalidateCmd, "Confirms the rotation of group credentials")
 }
 
 var groupTokensInvalidateCmd = &cobra.Command{
 	Use:               "invalidate <group-name>",
-	Short:             "Rotates the keys used to create and verify database tokens, invalidating all existing tokens invalid for the group.",
+	Short:             "Rotates group credentials; database-scoped tokens may need separate invalidation",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: groupArg,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -49,8 +49,8 @@ var groupTokensInvalidateCmd = &cobra.Command{
 			return rotateGroup(client, group)
 		}
 
-		fmt.Printf("To invalidate tokens for group %s, tokens from all its databases will be invalidated.\n", internal.Emph(name))
-		fmt.Printf("All your active connections to the databases in that group will be dropped and there will be a short downtime.\n\n")
+		fmt.Printf("This will rotate credentials for group %s; this invalidates group tokens but not necessarily database-scoped tokens.\n", internal.Emph(name))
+		fmt.Printf("To invalidate database-scoped tokens, run %s for each database.\n\n", internal.Emph("turso db tokens invalidate <database-name>"))
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
 		if err != nil {
@@ -78,8 +78,9 @@ func rotateGroup(turso *turso.Client, group turso.Group) error {
 	}
 
 	s.Stop()
-	fmt.Printf("✔  Success! Tokens invalidated successfully.\n\n")
-	fmt.Printf("Run %s to get a new one.\n", internal.Emph("turso group tokens create <group-name>"))
+	fmt.Printf("✔  Success! Group credentials rotated. This invalidates group tokens but not necessarily database-scoped tokens.\n\n")
+	fmt.Printf("Run %s to get a new group token.\n", internal.Emph("turso group tokens create <group-name>"))
+	fmt.Printf("To invalidate database-scoped tokens, run %s for each database.\n", internal.Emph("turso db tokens invalidate <database-name>"))
 	return nil
 }
 
