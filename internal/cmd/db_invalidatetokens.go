@@ -34,16 +34,15 @@ var dbInvalidateTokensCmd = &cobra.Command{
 			return err
 		}
 
-		if database.Group != "" && database.Version != "tech-preview" {
-			return fmt.Errorf("database %s is part of group %s, use %s instead", internal.Emph(name), internal.Emph(database.Group), internal.Emph("turso group tokens invalidate <group-name>"))
-		}
-
 		if yesFlag {
 			return rotateAndNotify(client, database)
 		}
 
-		fmt.Printf("To invalidate %s database tokens, all its replicas must be restarted.\n", internal.Emph(name))
-		fmt.Printf("All your active connections to the DB will be dropped and there will be a short downtime.\n\n")
+		fmt.Printf("This will invalidate existing database-scoped tokens for %s. Clients using them will need new tokens.\n", internal.Emph(name))
+		if database.Group != "" {
+			fmt.Println("Group tokens will not be invalidated.")
+		}
+		fmt.Println()
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
 		if err != nil {
@@ -76,8 +75,5 @@ func rotateAndNotify(turso *turso.Client, database turso.Database) error {
 func rotate(turso *turso.Client, database turso.Database) error {
 	invalidateDbTokenCache()
 	settings.PersistChanges()
-	if database.Group != "" && database.Version != "tech-preview" {
-		return turso.Groups.Rotate(database.Group)
-	}
 	return turso.Databases.Rotate(database.Name)
 }
