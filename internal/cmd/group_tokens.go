@@ -49,8 +49,8 @@ var groupTokensInvalidateCmd = &cobra.Command{
 			return rotateGroup(client, group)
 		}
 
-		fmt.Printf("This will rotate credentials for group %s. On shared clusters, this invalidates group tokens but not database-scoped tokens.\n", internal.Emph(name))
-		fmt.Printf("To invalidate database-scoped tokens, run %s for each database (where supported).\n\n", internal.Emph("turso db tokens invalidate <database-name>"))
+		fmt.Printf("This will rotate credentials for group %s; this invalidates group tokens but not necessarily database-scoped tokens.\n", internal.Emph(name))
+		fmt.Printf("To invalidate database-scoped tokens, run %s for each database.\n\n", internal.Emph("turso db tokens invalidate <database-name>"))
 
 		ok, err := promptConfirmation("Are you sure you want to do this?")
 		if err != nil {
@@ -78,9 +78,9 @@ func rotateGroup(turso *turso.Client, group turso.Group) error {
 	}
 
 	s.Stop()
-	fmt.Printf("✔  Success! Group credentials rotated.\n\n")
+	fmt.Printf("✔  Success! Group credentials rotated. This invalidates group tokens but not necessarily database-scoped tokens.\n\n")
 	fmt.Printf("Run %s to get a new group token.\n", internal.Emph("turso group tokens create <group-name>"))
-	fmt.Printf("To invalidate database-scoped tokens on shared clusters, run %s for each database (where supported).\n", internal.Emph("turso db tokens invalidate <database-name>"))
+	fmt.Printf("To invalidate database-scoped tokens, run %s for each database.\n", internal.Emph("turso db tokens invalidate <database-name>"))
 	return nil
 }
 
