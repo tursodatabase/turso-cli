@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,12 +32,15 @@ func TestMintApiTokenOrganization(t *testing.T) {
 
 	for _, tc := range []struct {
 		name, flag, want string
+		readOnly         bool
 	}{
-		{"selected organization", "", "selected-org"},
-		{"explicit organization", "other-org", "other-org"},
+		{"selected organization", "", "selected-org", false},
+		{"explicit organization", "other-org", "other-org", false},
+		{"read-only organization", "other-org", "other-org", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mintOrgFlag = tc.flag
+			mintReadOnlyFlag = tc.readOnly
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case "/v1/auth/validate":
@@ -50,8 +54,12 @@ func TestMintApiTokenOrganization(t *testing.T) {
 					var body map[string]any
 					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 						t.Errorf("missing or invalid request body: %v", err)
-					} else if len(body) != 1 || body["organization"] != tc.want {
-						t.Errorf("request body = %v, want only organization %q", body, tc.want)
+					} else if body["organization"] != tc.want {
+						t.Errorf("request body = %v, want organization %q", body, tc.want)
+					} else if tc.readOnly && fmt.Sprint(body["scopes"]) != "[read-only]" {
+						t.Errorf("request body = %v, want scopes [read-only]", body)
+					} else if !tc.readOnly && len(body) != 1 {
+						t.Errorf("request body = %v, want only organization", body)
 					}
 					w.Write([]byte(`{"token":{"value":"minted"}}`))
 				default:

@@ -66,7 +66,7 @@ func formatTokenOrgScope(t turso.ApiToken) string {
 // formatTokenPermissions summarizes the scope list for the "Permissions"
 // column. The platform expands presets to their underlying scopes server-side,
 // so we recognize the canonical preset shapes here ("read-only" = just
-// `read`, "full-access" = every known scope) for a friendlier label;
+// `read`, "full-access" = every group-level scope) for a friendlier label;
 // anything else is listed verbatim.
 func formatTokenPermissions(t turso.ApiToken) string {
 	if len(t.Scopes) == 0 {
@@ -77,18 +77,18 @@ func formatTokenPermissions(t turso.ApiToken) string {
 	if len(scopes) == 1 && scopes[0] == string(turso.ScopeRead) {
 		return "read-only"
 	}
-	if isFullAccessScopeSet(scopes) {
+	if isScopeSet(scopes, turso.AllScopes) {
 		return "full-access"
 	}
 	return strings.Join(scopes, ", ")
 }
 
-func isFullAccessScopeSet(sortedScopes []string) bool {
-	if len(sortedScopes) != len(turso.AllScopes) {
+func isScopeSet(sortedScopes []string, set []turso.Scope) bool {
+	if len(sortedScopes) != len(set) {
 		return false
 	}
-	reference := make([]string, 0, len(turso.AllScopes))
-	for _, s := range turso.AllScopes {
+	reference := make([]string, 0, len(set))
+	for _, s := range set {
 		reference = append(reference, string(s))
 	}
 	sort.Strings(reference)
