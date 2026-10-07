@@ -21,7 +21,7 @@ func init() {
 	apiTokensCmd.AddCommand(createApiTokensCmd)
 	createApiTokensCmd.Flags().StringVar(&mintOrgFlag, "org", "", "Organization to restrict the token to (defaults to the selected organization).")
 	createApiTokensCmd.Flags().StringVar(&mintGroupFlag, "group", "", "Group inside --org to restrict the token to. Implies --org and requires at least one scope.")
-	createApiTokensCmd.Flags().StringArrayVar(&mintScopeFlags, "scope", nil, "Permission scope to grant to a group-scoped token. May be repeated. Allowed values: "+scopeFlagListing()+".")
+	createApiTokensCmd.Flags().StringArrayVar(&mintScopeFlags, "scope", nil, "Permission scope to grant to the token. May be repeated. Allowed values: "+scopeFlagListing()+".")
 	createApiTokensCmd.Flags().BoolVar(&mintReadOnlyFlag, "read-only", false, "Shorthand for --scope read.")
 	createApiTokensCmd.Flags().BoolVar(&mintFullAccessFlag, "full-access", false, "Shorthand for granting every scope. Use with care; equivalent to a deployer that can create, delete, configure, mint and rotate.")
 }
@@ -33,8 +33,11 @@ var createApiTokensCmd = &cobra.Command{
 		"API tokens are revocable non-expiring tokens that authenticate holders as the user who minted them.\n" +
 		"They can be used to implement automations with the " + internal.Emph("turso") + " CLI or the platform API.\n" +
 		"\n" +
-		"With --group, the token is restricted to a single group inside the organization and to the\n" +
-		"set of scopes you pass via --scope (or the --read-only / --full-access shorthands).",
+		"With --scope (or the --read-only / --full-access shorthands), the token is restricted to that set\n" +
+		"of scopes. Without --group it covers every group in the organization, but never organization\n" +
+		"management (members, billing changes, minting tokens).\n" +
+		"\n" +
+		"With --group, the token is restricted to a single group inside the organization and requires scopes.",
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
@@ -58,8 +61,11 @@ var createApiTokensCmd = &cobra.Command{
 			if len(scopes) == 0 {
 				return fmt.Errorf("--group requires at least one scope (use --scope, --read-only, or --full-access)")
 			}
-		} else if len(scopes) > 0 {
-			return fmt.Errorf("--scope / --read-only / --full-access are only meaningful with --group")
+			for _, s := range scopes {
+				if turso.IsOrgLevelScope(s) {
+					return fmt.Errorf("scope %s is only valid without --group", internal.Emph(s))
+				}
+			}
 		}
 
 		if mintOrgFlag != "" {
@@ -157,9 +163,12 @@ func validateGroupExists(client *turso.Client, orgSlug, groupName string) error 
 }
 
 func scopeFlagListing() string {
-	parts := make([]string, 0, len(turso.AllScopes))
+	parts := make([]string, 0, len(turso.AllScopes)+len(turso.OrgLevelScopes))
 	for _, s := range turso.AllScopes {
 		parts = append(parts, string(s))
+	}
+	for _, s := range turso.OrgLevelScopes {
+		parts = append(parts, string(s)+" (without --group only)")
 	}
 	return strings.Join(parts, ", ")
 }

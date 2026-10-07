@@ -54,9 +54,9 @@ func (a *ApiTokensClient) CreateWithOrg(name string, organization string) (Creat
 
 // CreateScoped mints an API token with optional restrictions. Empty
 // organization minted an unrestricted token. organization + empty group
-// produces an organization-scoped token. organization + group + non-empty
-// scopes produces a group-scoped token; the platform requires the scopes
-// list to be non-empty in that case.
+// produces an organization-scoped token, limited to scopes when non-empty.
+// organization + group + non-empty scopes produces a group-scoped token; the
+// platform requires the scopes list to be non-empty in that case.
 //
 // scopes may contain individual scope labels (see AllScopes) or the
 // preset names "read-only" / "full-access" — the platform expands the
