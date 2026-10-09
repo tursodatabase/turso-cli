@@ -83,6 +83,7 @@ func ReadSettings() (*Settings, error) {
 		}
 	}
 
+	viper.SetConfigFile(configFile)
 	return settings, nil
 }
 
@@ -101,13 +102,44 @@ func PersistChanges() {
 }
 
 func TryToPersistChanges() error {
-	if err := viper.WriteConfig(); err != nil {
+	if err := writeSettingsAtomically(); err != nil {
 		return fmt.Errorf("failed to persist turso settings file: %w", err)
 	}
-	if configFile := viper.ConfigFileUsed(); configFile != "" {
-		_ = os.Chmod(configFile, settingsFileMode)
-	}
 	return nil
+}
+
+// Write beside the destination so concurrent readers see either the previous
+// complete settings or the new ones, never a truncated JSON document.
+func writeSettingsAtomically() error {
+	filename := viper.ConfigFileUsed()
+	if filename == "" {
+		return fmt.Errorf("settings file path is not configured")
+	}
+	if st, err := os.Lstat(filename); err == nil && st.Mode()&os.ModeSymlink != 0 {
+		filename, err = filepath.EvalSymlinks(filename)
+		if err != nil {
+			return err
+		}
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(filename), ".settings-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(temporary.Name())
+	defer temporary.Close()
+	if err := temporary.Chmod(settingsFileMode); err != nil {
+		return err
+	}
+	if err := viper.WriteConfigTo(temporary); err != nil {
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporary.Name(), filename)
 }
 
 func (s *Settings) RegisterUse(cmd string) bool {
