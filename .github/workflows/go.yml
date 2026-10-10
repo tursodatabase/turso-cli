@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
@@ -32,6 +32,23 @@ jobs:
       - name: Format
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: Setup Golang with cache
+        uses: actions/setup-go@v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
       - name: Build
         run: go build -v ./...
 
@@ -41,9 +58,11 @@ jobs:
       - name: Install sqlclosecheck
         # TODO revert to github.com/ryanrolds/sqlclosecheck when https://github.com/ryanrolds/sqlclosecheck/pull/47 is merged
         run: go install github.com/LeMikaelF/sqlclosecheck@b53ecaccb94623dfa6050e4ada4eeecd3a130829
+        env:
+          GOBIN: ${{ runner.temp }}/sqlclosecheck-bin
 
       - name: sqlclosecheck
-        run: go vet -vettool=${HOME}/go/bin/sqlclosecheck ./...
+        run: go vet "-vettool=${{ runner.temp }}/sqlclosecheck-bin/sqlclosecheck" ./...
 
       - name: Staticcheck
         uses: dominikh/staticcheck-action@v1.4.1
@@ -56,4 +75,4 @@ jobs:
         run: go test -v ./...
 
       - name: Build Turso binary
-        run: go build -o turso cmd/turso/main.go
+        run: go build ./cmd/turso
