@@ -15,7 +15,7 @@ type FineGrainedPermissions struct {
 var fineGrainedPermissions []string
 
 func AddFineGrainedPermissions(cmd *cobra.Command) {
-	cmd.Flags().StringArrayVarP(&fineGrainedPermissions, "permissions", "p", nil, "fine-grained permissions in format <table-name|all>:<action1>,...\n(e.g: -p all:data_read -p comments:data_insert)")
+	cmd.Flags().StringArrayVarP(&fineGrainedPermissions, "permissions", "p", nil, "fine-grained permissions in format <table-name|all>:<action1>,...\n(e.g: -p all:data_read -p comments:data_add)\nvalid actions: data_read, data_add, data_update, data_delete, schema_add, schema_update, schema_delete")
 }
 
 func FineGrainedPermissionsFlags() ([]FineGrainedPermissions, error) {
